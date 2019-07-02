@@ -1,0 +1,25 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# provider binary
+terraform-provider-opennebula
+
+# Folders
+_obj
+_test
+
+_testmain.go
+
+*.test
+*.prof
+
+tmp/
+.env
+test.go
+*.swp
+*.un~
+
+
+*.tfstate*
