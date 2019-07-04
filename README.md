@@ -36,10 +36,12 @@ Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-
 Current definition of these resource types are supported yet:
 * Groups
 * Image
+* Security Groups
 
 As well as data sources for:
 * Groups
 * Image
+* Security Groups
 
 ## DOCUMENTATION
 TODO Update Wiki page
@@ -62,6 +64,6 @@ The following list represent's all of OpenNebula's resources reachable through t
 * [ ] [onemarketapp](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onemarketapp)
 * [ ] [onevrouter](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevrouter)
 * [ ] [onezone](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onezone)
-* [ ] [onesecgroup](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onesecgroup)
+* [X] [onesecgroup](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onesecgroup)
 * [ ] [oneacl](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneacl)
 * [ ] [oneacct](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneacct)

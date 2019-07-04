@@ -30,13 +30,15 @@ func Provider() *schema.Provider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"opennebula_group": dataOpennebulaGroup(),
-			"opennebula_image": dataOpennebulaImage(),
+			"opennebula_group":          dataOpennebulaGroup(),
+			"opennebula_image":          dataOpennebulaImage(),
+			"opennebula_security_group": dataOpennebulaSecurityGroup(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"opennebula_group": resourceOpennebulaGroup(),
-			"opennebula_image": resourceOpennebulaImage(),
+			"opennebula_group":          resourceOpennebulaGroup(),
+			"opennebula_image":          resourceOpennebulaImage(),
+			"opennebula_security_group": resourceOpennebulaSecurityGroup(),
 		},
 
 		ConfigureFunc: providerConfigure,
