@@ -35,9 +35,11 @@ Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-
 
 Current definition of these resource types are supported yet:
 * Groups
+* Image
 
 As well as data sources for:
 * Groups
+* Image
 
 ## DOCUMENTATION
 TODO Update Wiki page
@@ -55,7 +57,7 @@ The following list represent's all of OpenNebula's resources reachable through t
 * [ ] [onevnet](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevnet)
 * [ ] [oneuser](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneuser)
 * [ ] [onedatastore](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onedatastore)
-* [ ] [oneimage](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneimage)
+* [X] [oneimage](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneimage)
 * [ ] [onemarket](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onemarket)
 * [ ] [onemarketapp](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onemarketapp)
 * [ ] [onevrouter](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevrouter)
