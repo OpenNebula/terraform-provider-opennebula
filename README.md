@@ -37,11 +37,13 @@ Current definition of these resource types are supported yet:
 * Groups
 * Image
 * Security Groups
+* Template
 
 As well as data sources for:
 * Groups
 * Image
 * Security Groups
+* Template
 
 ## DOCUMENTATION
 TODO Update Wiki page
@@ -51,7 +53,7 @@ TODO Update Wiki page
 The following list represent's all of OpenNebula's resources reachable through their API. The checked items are the ones that are functional and tested:
 
 * [ ] [onevm](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevm)
-* [ ] [onetemplate](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onetemplate)
+* [X] [onetemplate](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onetemplate)
 * [ ] [onehost](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onehost)
 * [ ] [onecluster](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onecluster)
 * [X] [onegroup](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onegroup)
