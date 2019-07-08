@@ -38,12 +38,14 @@ Current definition of these resource types are supported yet:
 * Image
 * Security Groups
 * Template
+* Virtual Data Center
 
 As well as data sources for:
 * Groups
 * Image
 * Security Groups
 * Template
+* Virtual Data Center
 
 ## DOCUMENTATION
 TODO Update Wiki page
@@ -57,7 +59,7 @@ The following list represent's all of OpenNebula's resources reachable through t
 * [ ] [onehost](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onehost)
 * [ ] [onecluster](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onecluster)
 * [X] [onegroup](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onegroup)
-* [ ] [onevdc](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevdc)
+* [X] [onevdc](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevdc)
 * [ ] [onevnet](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevnet)
 * [ ] [oneuser](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneuser)
 * [ ] [onedatastore](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onedatastore)
