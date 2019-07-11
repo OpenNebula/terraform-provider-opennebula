@@ -43,6 +43,7 @@ func Provider() *schema.Provider {
 			"opennebula_security_group":      resourceOpennebulaSecurityGroup(),
 			"opennebula_template":            resourceOpennebulaTemplate(),
 			"opennebula_virtual_data_center": resourceOpennebulaVirtualDataCenter(),
+			"opennebula_virtual_machine":     resourceOpennebulaVirtualMachine(),
 		},
 
 		ConfigureFunc: providerConfigure,
