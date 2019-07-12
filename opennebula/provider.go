@@ -35,6 +35,7 @@ func Provider() *schema.Provider {
 			"opennebula_security_group":      dataOpennebulaSecurityGroup(),
 			"opennebula_template":            dataOpennebulaTemplate(),
 			"opennebula_virtual_data_center": dataOpennebulaVirtualDataCenter(),
+			"opennebula_virtual_network":     dataOpennebulaVirtualNetwork(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -44,6 +45,7 @@ func Provider() *schema.Provider {
 			"opennebula_template":            resourceOpennebulaTemplate(),
 			"opennebula_virtual_data_center": resourceOpennebulaVirtualDataCenter(),
 			"opennebula_virtual_machine":     resourceOpennebulaVirtualMachine(),
+			"opennebula_virtual_network":     resourceOpennebulaVirtualNetwork(),
 		},
 
 		ConfigureFunc: providerConfigure,
