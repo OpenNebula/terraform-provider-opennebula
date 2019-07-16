@@ -32,9 +32,9 @@ For Older OpenNebula and Terraform releases, you can use non official provider f
 
 ## Features
 
-### Resources
+### Data sources
 
-Current definition of these resources are supported:
+Current definition of these data sources are supported:
 * Groups
 * Image
 * Security Groups
@@ -42,9 +42,9 @@ Current definition of these resources are supported:
 * Virtual Data Center
 * Virtual Network
 
-### Data Sources
+### Resources
 
-Current definition of these data sources are supported:
+Current definition of these resources are supported:
 * Groups [onegroup](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onegroup)
 * Image [oneimage](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneimage)
 * Security Groups [onesecgroup](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onesecgroup)
