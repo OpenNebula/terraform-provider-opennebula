@@ -14,7 +14,7 @@ Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-
 ## Authors
 
 * Leaders:
-- Tino Vasquez (https://github.com/tinova)
+- Tino Vazquez (https://github.com/tinova)
 - Jean-Philippe Fourès (https://github.com/jaypif)
 - Pierre Lafièvre (https://github.com/treywelsh)
 - Edouard Hur (https://github.com/hekmon)
