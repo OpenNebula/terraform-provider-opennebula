@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
-	 vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
+	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 )
 
 type vnetTemplate struct {

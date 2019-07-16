@@ -13,6 +13,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
 type ImageTemplate struct {
@@ -24,6 +25,7 @@ type ImageTemplate struct {
 }
 
 var imagetypes = []string{"OS", "CDROM", "DATABLOCK", "KERNEL", "RAMDISK", "CONTEXT"}
+var locktypes = []string{"USE", "MANAGE", "ADMIN", "ALL", "UNLOCK"}
 
 func resourceOpennebulaImage() *schema.Resource {
 	return &schema.Resource{
@@ -79,9 +81,9 @@ func resourceOpennebulaImage() *schema.Resource {
 				Description: "ID of the user that will own the Image",
 			},
 			"gid": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "ID of the group that will own the Image",
+				Type:          schema.TypeInt,
+				Computed:      true,
+				Description:   "ID of the group that will own the Image",
 			},
 			"uname": {
 				Type:        schema.TypeString,
@@ -111,6 +113,21 @@ func resourceOpennebulaImage() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Flag which indicates if the Image has to be persistent",
+			},
+			"lock": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Lock level of the new Image: USE, MANAGE, ADMIN, ALL, UNLOCK",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+
+					if inArray(value, locktypes) < 0 {
+						errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(locktypes, ",")))
+					}
+
+					return
+				},
 			},
 			"path": {
 				Type:          schema.TypeString,
@@ -171,7 +188,6 @@ func resourceOpennebulaImage() *schema.Resource {
 			"group": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"gid"},
 				Description:   "Name of the Group that onws the Image, If empty, it uses caller group",
 			},
 		},
@@ -224,8 +240,6 @@ func changeImageGroup(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-	} else {
-		gid = d.Get("gid").(int)
 	}
 
 	err = ic.Chown(-1, gid)
@@ -291,8 +305,31 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	if d.Get("group") != "" || d.Get("gid") != "" {
+	if d.Get("group") != "" {
 		err = changeImageGroup(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.Get("persistent").(bool) {
+		err = ic.Persistent(d.Get("persistent").(bool))
+		if err != nil {
+			return err
+		}
+	}
+
+	if lock, ok := d.GetOk("lock"); ok {
+		if lock.(string) == "UNLOCK" {
+			err = ic.Unlock()
+		} else {
+			var level shared.LockLevel
+			err = StringToLockLevel(lock.(string), &level)
+			if err != nil {
+				return err
+			}
+			err = ic.Lock(level)
+		}
 		if err != nil {
 			return err
 		}
@@ -430,6 +467,9 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		d.Set("description", desc)
 	}
+	if image.LockInfos != nil {
+		d.Set("lock", LockLevelToString(image.LockInfos.Locked))
+	}
 
 	return nil
 }
@@ -472,7 +512,7 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		log.Printf("[INFO] Successfully updated Image %s\n", image.Name)
 	}
 
-	if d.HasChange("group") || d.HasChange("gid") {
+	if d.HasChange("group") {
 		err = changeImageGroup(d, meta)
 		if err != nil {
 			return err
@@ -486,6 +526,23 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 			return err
 		}
 		log.Printf("[INFO] Successfully updated persistent flag for Image %s\n", image.Name)
+	}
+
+	if d.HasChange("lock") {
+		lock := d.Get("lock").(string)
+		if lock == "UNLOCK" {
+			err = ic.Unlock()
+		} else {
+			var level shared.LockLevel
+			err = StringToLockLevel(lock, &level)
+			if err != nil {
+				return err
+			}
+			err = ic.Lock(level)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("type") {
@@ -534,10 +591,8 @@ func generateImageXML(d *schema.ResourceData) (string, error) {
 		imagetype = val.(string)
 	}
 
-	if d.Get("persistent") != nil {
-		if d.Get("persistent").(bool) {
-			imagepersistent = 1
-		}
+	if d.Get("persistent").(bool) {
+		imagepersistent = 1
 	}
 
 	if val, ok := d.GetOk("size"); ok {

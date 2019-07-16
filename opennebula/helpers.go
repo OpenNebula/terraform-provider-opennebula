@@ -2,6 +2,7 @@ package opennebula
 
 import (
 	"fmt"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"strings"
 )
 
@@ -22,4 +23,40 @@ func appendTemplate(template, attribute, value string) string {
 
 func ArrayToString(list []interface{}, delim string) string {
 	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(list)), delim), "[]")
+}
+
+func StringToLockLevel(str string, lock *shared.LockLevel) error {
+	if str == "USE" {
+		*lock = shared.LockUse
+		return nil
+	}
+	if str == "MANAGE" {
+		*lock = shared.LockManage
+		return nil
+	}
+	if str == "ADMIN" {
+		*lock = shared.LockAdmin
+		return nil
+	}
+	if str == "ALL" {
+		*lock = shared.LockAll
+		return nil
+	}
+	return fmt.Errorf("Unexpected Lock level %s", str)
+}
+
+func LockLevelToString(lock int) string {
+	if lock == 1 {
+		return "USE"
+	}
+	if lock == 2 {
+		return "MANAGE"
+	}
+	if lock == 3 {
+		return "ADMIN"
+	}
+	if lock == 4 {
+		return "ALL"
+	}
+	return ""
 }
