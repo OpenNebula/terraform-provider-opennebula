@@ -14,6 +14,7 @@ Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-
 ## Authors
 
 * Leaders:
+
 - Tino Vazquez (https://github.com/tinova)
 - Jean-Philippe Fourès (https://github.com/jaypif)
 - Pierre Lafièvre (https://github.com/treywelsh)
@@ -98,7 +99,7 @@ repopath$ dep init
 repopath$ go build -o terraform-provider-opennebula
 ```
 
-**Warning: this provider is a "Third party" provider. It must follow this rules for the binary name.**
+**Warning: this provider is a "Third party" provider. It must follow these rules for the binary name.**
 
 #### Integration with Terraform
 
