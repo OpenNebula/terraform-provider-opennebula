@@ -123,7 +123,7 @@ This will initialize terraform to use OpenNebula Provider.
 
 ## Usage
 
-Lots of Examples and details of data sources and resources parameters are available on the Wiki page of the project.
+Lots of Examples and details of data sources and resources parameters are available on the [Wiki](https://github.com/OpenNebula/addon-terraform/wiki).
 
 ## References
 
