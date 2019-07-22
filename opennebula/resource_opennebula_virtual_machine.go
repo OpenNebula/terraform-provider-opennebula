@@ -275,7 +275,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 						"keymap": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "en",
+							Default:  "en-us",
 						},
 					},
 				},
@@ -334,7 +334,6 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				//Computed:    true,
 				MinItems:    1,
 				MaxItems:    1,
-				ForceNew:    true,
 				Description: "Definition of OS boot and type for the Virtual Machine",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
