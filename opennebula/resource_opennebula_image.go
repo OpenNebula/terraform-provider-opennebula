@@ -81,9 +81,9 @@ func resourceOpennebulaImage() *schema.Resource {
 				Description: "ID of the user that will own the Image",
 			},
 			"gid": {
-				Type:          schema.TypeInt,
-				Computed:      true,
-				Description:   "ID of the group that will own the Image",
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "ID of the group that will own the Image",
 			},
 			"uname": {
 				Type:        schema.TypeString,
@@ -186,9 +186,9 @@ func resourceOpennebulaImage() *schema.Resource {
 				Description: "Image format, normally 'raw' or 'qcow2'",
 			},
 			"group": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Description:   "Name of the Group that onws the Image, If empty, it uses caller group",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Name of the Group that onws the Image, If empty, it uses caller group",
 			},
 		},
 	}
