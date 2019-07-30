@@ -19,10 +19,9 @@ import (
 )
 
 type vmTemplate struct {
-	//Context *Context `xml:"CONTEXT"`
-	CPU                float64                `xml:"CPU"`
+	CPU                float64                `xml:"CPU, omitempty"`
 	VCPU               int                    `xml:"VCPU,omitempty"`
-	Memory             int                    `xml:"MEMORY"`
+	Memory             int                    `xml:"MEMORY, omitempty"`
 	NICs               []vmNIC                `xml:"NIC"`
 	NICAliases         []vm.NicAlias          `xml:"NIC_ALIAS"`
 	Context            stringMap              `xml:"CONTEXT"`
@@ -136,10 +135,10 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Final name of the VM instance",
 			},
 			"template_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Id of the VM template to use. Either 'template_name' or 'template_id' is required",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "Id of the VM template to use",
 			},
 			"pending": {
 				Type:        schema.TypeBool,
@@ -204,9 +203,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Current LCM state of the VM",
 			},
 			"cpu": {
-				Type:        schema.TypeFloat,
-				Optional:    true,
-				Description: "Amount of CPU quota assigned to the virtual machine",
+				Type:          schema.TypeFloat,
+				Optional:      true,
+				Description:   "Amount of CPU quota assigned to the virtual machine",
 			},
 			"vcpu": {
 				Type:        schema.TypeInt,
@@ -214,9 +213,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Number of virtual CPUs assigned to the virtual machine",
 			},
 			"memory": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Amount of memory (RAM) in MB assigned to the virtual machine",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Description:   "Amount of memory (RAM) in MB assigned to the virtual machine",
 			},
 			"context": {
 				Type:        schema.TypeMap,
@@ -427,7 +426,7 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		// if template id is set, instantiate a VM from this template
 		tc := controller.Template(v.(int))
 
-		// Get Extra Params to add to (or override) the template
+		// customize template except for memory and cpu.
 		vmxml, xmlerr := generateVmXML(d)
 		if xmlerr != nil {
 			return xmlerr
@@ -809,19 +808,51 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 	}
 
 	//Pull all the bits together into the main VM template
-	vmvcpu := d.Get("vcpu").(int)
-	vmcpu := d.Get("cpu").(float64)
-	vmmemory := d.Get("memory").(int)
-
-	vmtpl := &vmTemplate{
-		VCPU:     vmvcpu,
-		CPU:      vmcpu,
-		Memory:   vmmemory,
-		Context:  vmcontext,
-		NICs:     vmnics,
-		Disks:    vmdisks,
-		Graphics: &vmgraphics,
-		OS:       &vmos,
+	var vmvcpu interface{}
+	var vmcpu interface{}
+	var vmmemory interface{}
+	var vmtpl *vmTemplate
+	var ok bool
+	if vmcpu, ok = d.GetOk("cpu"); ok {
+		if vmmemory, ok = d.GetOk("memory"); ok {
+			if vmvcpu, ok = d.GetOk("vcpu"); ok {
+				vmtpl = &vmTemplate{
+					VCPU:     vmvcpu.(int),
+					CPU:      vmcpu.(float64),
+					Memory:   vmmemory.(int),
+					Context:  vmcontext,
+					NICs:     vmnics,
+					Disks:    vmdisks,
+					Graphics: &vmgraphics,
+					OS:       &vmos,
+				}
+			}
+			vmtpl = &vmTemplate{
+				CPU:      vmcpu.(float64),
+				Memory:   vmmemory.(int),
+				Context:  vmcontext,
+				NICs:     vmnics,
+				Disks:    vmdisks,
+				Graphics: &vmgraphics,
+				OS:       &vmos,
+			}
+		}
+		vmtpl = &vmTemplate{
+			CPU:      vmcpu.(float64),
+			Context:  vmcontext,
+			NICs:     vmnics,
+			Disks:    vmdisks,
+			Graphics: &vmgraphics,
+			OS:       &vmos,
+		}
+	} else {
+		vmtpl = &vmTemplate{
+			Context:  vmcontext,
+			NICs:     vmnics,
+			Disks:    vmdisks,
+			Graphics: &vmgraphics,
+			OS:       &vmos,
+		}
 	}
 
 	w := &bytes.Buffer{}
