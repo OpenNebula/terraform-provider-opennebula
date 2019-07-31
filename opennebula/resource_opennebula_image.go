@@ -452,19 +452,19 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 
 	d.Set("size", image.Size)
 	devpref, err := image.Template.Dynamic.GetContentByName("DEV_PREFIX")
-	if err != nil {
+	if err == nil {
 		d.Set("dev_prefix", devpref)
 	}
 	driver, err := image.Template.Dynamic.GetContentByName("DRIVER")
-	if err != nil {
+	if err == nil {
 		d.Set("driver", driver)
 	}
 	format, err := image.Template.Dynamic.GetContentByName("FORMAT")
-	if err != nil {
+	if err == nil {
 		d.Set("format", format)
 	}
 	desc, err := image.Template.Dynamic.GetContentByName("DESCRIPTION")
-	if err != nil {
+	if err == nil {
 		d.Set("description", desc)
 	}
 	if image.LockInfos != nil {
