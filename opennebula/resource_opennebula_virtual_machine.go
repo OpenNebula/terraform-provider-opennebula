@@ -610,7 +610,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 		vm, err := vmc.Info()
 		d.SetPartial("name")
-		log.Printf("[INFO] Successfully updated name (%s) for VM ID\n", vm.Name, vm.ID)
+		log.Printf("[INFO] Successfully updated name (%s) for VM ID %x\n", vm.Name, vm.ID)
 	}
 
 	if d.HasChange("permissions") && d.Get("permissions") != "" {

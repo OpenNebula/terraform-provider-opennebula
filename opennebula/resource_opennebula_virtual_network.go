@@ -795,7 +795,7 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	}
 
 	if err := d.Set("ar", generateARMapFromStructs(vn.ARs)); err != nil {
-		log.Printf("[WARN] Error setting ar for Virtual Network %s, error: %s", vn.ID, err)
+		log.Printf("[WARN] Error setting ar for Virtual Network %x, error: %s", vn.ID, err)
 	}
 	return nil
 }

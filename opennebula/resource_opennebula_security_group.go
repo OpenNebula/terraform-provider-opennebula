@@ -251,7 +251,7 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 	d.Set("description", securitygroup.Template.Description)
 
 	if err := d.Set("rule", generateSecurityGroupMapFromStructs(securitygroup.Template.Rules)); err != nil {
-		log.Printf("[WARN] Error setting rule for Security Group %s, error: %s", securitygroup.ID, err)
+		log.Printf("[WARN] Error setting rule for Security Group %x, error: %s", securitygroup.ID, err)
 	}
 
 	return nil
