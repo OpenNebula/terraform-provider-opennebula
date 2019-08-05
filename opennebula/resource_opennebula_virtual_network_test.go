@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
-	goca "github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
 func TestAccVirtualNetwork(t *testing.T) {
@@ -42,8 +42,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualNetworkConfigUpdate,
-                ExpectNonEmptyPlan: true,
+				Config:             testAccVirtualNetworkConfigUpdate,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test-virtual_network"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "physical_device", "dummy0"),
