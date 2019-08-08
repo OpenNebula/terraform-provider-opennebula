@@ -21,13 +21,13 @@ func TestAccSecurityGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "testsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "642"),
-                    testAccSecurityGroupRule(0, "PROTOCOL", "ALL"),
-                    testAccSecurityGroupRule(0, "RULE_TYPE", "OUTBOUND"),
-                    testAccSecurityGroupRule(1, "PROTOCOL", "TCP"),
-                    testAccSecurityGroupRule(1, "RULE_TYPE", "INBOUND"),
-                    testAccSecurityGroupRule(1, "RANGE", "22"),
-                    testAccSecurityGroupRule(2, "PROTOCOL", "ICMP"),
-                    testAccSecurityGroupRule(2, "RULE_TYPE", "INBOUND"),
+					testAccSecurityGroupRule(0, "PROTOCOL", "ALL"),
+					testAccSecurityGroupRule(0, "RULE_TYPE", "OUTBOUND"),
+					testAccSecurityGroupRule(1, "PROTOCOL", "TCP"),
+					testAccSecurityGroupRule(1, "RULE_TYPE", "INBOUND"),
+					testAccSecurityGroupRule(1, "RANGE", "22"),
+					testAccSecurityGroupRule(2, "PROTOCOL", "ICMP"),
+					testAccSecurityGroupRule(2, "RULE_TYPE", "INBOUND"),
 				),
 			},
 			{
@@ -35,13 +35,13 @@ func TestAccSecurityGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "renamedsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "660"),
-                    testAccSecurityGroupRule(0, "PROTOCOL", "ALL"),
-                    testAccSecurityGroupRule(0, "RULE_TYPE", "OUTBOUND"),
-                    testAccSecurityGroupRule(1, "PROTOCOL", "TCP"),
-                    testAccSecurityGroupRule(1, "RULE_TYPE", "INBOUND"),
-                    testAccSecurityGroupRule(1, "RANGE", "80"),
-                    testAccSecurityGroupRule(2, "PROTOCOL", "ICMP"),
-                    testAccSecurityGroupRule(2, "RULE_TYPE", "INBOUND"),
+					testAccSecurityGroupRule(0, "PROTOCOL", "ALL"),
+					testAccSecurityGroupRule(0, "RULE_TYPE", "OUTBOUND"),
+					testAccSecurityGroupRule(1, "PROTOCOL", "TCP"),
+					testAccSecurityGroupRule(1, "RULE_TYPE", "INBOUND"),
+					testAccSecurityGroupRule(1, "RANGE", "80"),
+					testAccSecurityGroupRule(2, "PROTOCOL", "ICMP"),
+					testAccSecurityGroupRule(2, "RULE_TYPE", "INBOUND"),
 				),
 			},
 		},
@@ -67,36 +67,36 @@ func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
 func testAccSecurityGroupRule(ruleidx int, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		controller := testAccProvider.Meta().(*goca.Controller)
-		
-        for _, rs := range s.RootModule().Resources {
-		    sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
-		    sgc := controller.SecurityGroup(int(sgID))
-		    // Get Security Group Info
-		    sg, _ := sgc.Info()
+
+		for _, rs := range s.RootModule().Resources {
+			sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			sgc := controller.SecurityGroup(int(sgID))
+			// Get Security Group Info
+			sg, _ := sgc.Info()
 			if sg == nil {
 				return fmt.Errorf("Expected Security Group %s to exist when checking permissions", rs.Primary.ID)
 			}
-            sgrules := generateSecurityGroupMapFromStructs(sg.Template.Rules)
+			sgrules := generateSecurityGroupMapFromStructs(sg.Template.Rules)
 
-            var found bool
+			var found bool
 
-            for i, rule := range sgrules {
-                if i == ruleidx {
-                    if rule[key] != nil && rule[key].(string) != value {
-                        return fmt.Errorf("Expected %s = %s for rule ID %d, got %s = %s", key, value, ruleidx, key, rule[key].(string))
-                    }
-                    found = true
-                }
-            }
+			for i, rule := range sgrules {
+				if i == ruleidx {
+					if rule[key] != nil && rule[key].(string) != value {
+						return fmt.Errorf("Expected %s = %s for rule ID %d, got %s = %s", key, value, ruleidx, key, rule[key].(string))
+					}
+					found = true
+				}
+			}
 
-            if !found {
-                return fmt.Errorf("rule id %d with %s = %s does not exist", ruleidx, key, value)
-            }
+			if !found {
+				return fmt.Errorf("rule id %d with %s = %s does not exist", ruleidx, key, value)
+			}
 
-        }
+		}
 
-        return nil
-    }
+		return nil
+	}
 }
 
 var testAccSecurityGroupConfigBasic = `
