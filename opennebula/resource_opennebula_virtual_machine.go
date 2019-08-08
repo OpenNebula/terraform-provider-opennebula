@@ -749,8 +749,17 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 
 	_, err = waitForVmState(d, meta, "done")
 	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for virtual machine (%s) to be in state DONE: %s", d.Id(), err)
+		vm, _ := vmc.Info(false)
+
+		vmState, vmLcmState, _ := vm.State()
+		if vmLcmState.String() == "EPILOG_FAILURE" {
+			if err = vmc.TerminateHard(); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf(
+				"Error waiting for virtual machine (%s) to be in state DONE: %s (state: %v, lcmState: %v)", d.Id(), err, vmState, vmLcmState)
+		}
 	}
 
 	log.Printf("[INFO] Successfully terminated VM\n")
@@ -804,11 +813,13 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
 			} else if vmState == 3 && vmLcmState == 39 {
 				return vm, "prolog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
+			} else if vmState == 3 && vmLcmState == 40 {
+				return vm, "epilog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
 			} else {
 				return vm, "anythingelse", nil
 			}
 		},
-		Timeout:    10 * time.Minute,
+		Timeout:    3 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -966,7 +977,6 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 
 	log.Printf("VM XML: %s", w.String())
 	return w.String(), nil
-
 }
 
 func resourceVMNicHash(v interface{}) int {
