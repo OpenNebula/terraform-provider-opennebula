@@ -214,18 +214,18 @@ func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interf
 	return nil
 }
 
-func getAddDelIntList(ngrouplist, ogrouplist []int) ([]int, []int) {
+func getAddDelIntList(ngrouplist, ogrouplist []interface{}) ([]int, []int) {
 	addgroup := []int{}
 	// Get new groups to add
 	for _, ngroup := range ngrouplist {
 		found := false
 		for _, ogroup := range ogrouplist {
-			if ngroup == ogroup {
+			if ngroup.(int) == ogroup.(int) {
 				found = true
 				break
 			}
 			if !found {
-				addgroup = append(addgroup, ngroup)
+				addgroup = append(addgroup, ngroup.(int))
 			}
 		}
 	}
@@ -234,26 +234,17 @@ func getAddDelIntList(ngrouplist, ogrouplist []int) ([]int, []int) {
 	for _, ogroup := range ogrouplist {
 		found := false
 		for _, ngroup := range ngrouplist {
-			if ogroup == ngroup {
+			if ogroup.(int) == ngroup.(int) {
 				found = true
 				break
 			}
 			if !found {
-				delgroup = append(delgroup, ogroup)
+				delgroup = append(delgroup, ogroup.(int))
 			}
 		}
 	}
 
 	return addgroup, delgroup
-}
-
-func interfaceSliceToIntSlice(is []interface{}) []int {
-	intslice := make([]int, 0)
-	for _, e := range is {
-		intslice = append(intslice, e.(int))
-	}
-
-	return intslice
 }
 
 func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -272,8 +263,8 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 
 	if d.HasChange("group_ids") {
 		ogroups, ngroups := d.GetChange("group_ids")
-		ogrouplist := ogroups.([]int)
-		ngrouplist := ngroups.([]int)
+		ogrouplist := ogroups.([]interface{})
+		ngrouplist := ngroups.([]interface{})
 
 		addgroup, delgroup := getAddDelIntList(ngrouplist, ogrouplist)
 
@@ -385,14 +376,14 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 
 func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
 
-	zones := make(map[int]vdcResources, 0)
+	zones := make(map[int]*vdcResources, 0)
 
 	// Get clusters
 	for _, cluster := range vdc.Clusters {
 		if zonecluster, ok := zones[cluster.ZoneID]; ok {
 			zonecluster.ClusterIDs = append(zonecluster.ClusterIDs, cluster.ClusterID)
 		} else {
-			zones[cluster.ZoneID] = vdcResources{
+			zones[cluster.ZoneID] = &vdcResources{
 				ClusterIDs: []int{cluster.ClusterID},
 			}
 		}
@@ -402,7 +393,7 @@ func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
 		if zonehost, ok := zones[host.ZoneID]; ok {
 			zonehost.HostIDs = append(zonehost.HostIDs, host.HostID)
 		} else {
-			zones[host.ZoneID] = vdcResources{
+			zones[host.ZoneID] = &vdcResources{
 				HostIDs: []int{host.HostID},
 			}
 		}
@@ -412,7 +403,7 @@ func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
 		if zoneds, ok := zones[ds.ZoneID]; ok {
 			zoneds.DatastoreIDs = append(zoneds.DatastoreIDs, ds.DatastoreID)
 		} else {
-			zones[ds.ZoneID] = vdcResources{
+			zones[ds.ZoneID] = &vdcResources{
 				DatastoreIDs: []int{ds.DatastoreID},
 			}
 		}
@@ -420,15 +411,15 @@ func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
 	// Get vnet
 	for _, vnet := range vdc.VNets {
 		if zonevnet, ok := zones[vnet.ZoneID]; ok {
-			zonevnet.DatastoreIDs = append(zonevnet.VNetIDs, vnet.VnetID)
+			zonevnet.VNetIDs = append(zonevnet.VNetIDs, vnet.VnetID)
 		} else {
-			zones[vnet.VnetID] = vdcResources{
+			zones[vnet.ZoneID] = &vdcResources{
 				VNetIDs: []int{vnet.VnetID},
 			}
 		}
 	}
 
-	zonesid := make([]vdcZone, 0)
+	zonemap := make([]map[string]interface{}, 0)
 	for k, v := range zones {
 		z := vdcZone{
 			ID:           k,
@@ -437,14 +428,8 @@ func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
 			DatastoreIDs: v.DatastoreIDs,
 			VNetIDs:      v.VNetIDs,
 		}
-
-		zonesid = append(zonesid, z)
-	}
-
-	zonemap := make([]map[string]interface{}, 0)
-
-	for i := 0; i < len(zonesid); i++ {
-		zonemap = append(zonemap, structs.Map(zonesid[i]))
+		zmap := structs.Map(z)
+		zonemap = append(zonemap, zmap)
 	}
 
 	return zonemap
