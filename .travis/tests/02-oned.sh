@@ -15,8 +15,8 @@
 #--------------------------------------------------------------------------- #
 
 # Set credentials
-mkdir $HOME/.one
-echo "oneadmin:opennebula" > $HOME/.one/one_auth
+sudo su -c "mkdir /var/lib/one/.one" oneadmin
+sudo su -c "echo "oneadmin:opennebula" > /var/lib/one/.one/one_auth" oneadmin
 
 # Enable dummy drivers
 sudo chmod o+w /etc/one/oned.conf
