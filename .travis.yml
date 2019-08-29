@@ -20,7 +20,9 @@ before_install:
   - eval "$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.12 bash)"
   - wget -q -O- https://downloads.opennebula.org/repo/repo.key | sudo apt-key add -
   - sudo sh -c 'echo "deb https://downloads.opennebula.org/repo/5.8/Ubuntu/16.04 stable opennebula" > /etc/apt/sources.list.d/opennebula.list'
-  - sudo apt-get update && sudo apt-get install opennebula  
-  - sudo /usr/share/one/install_gems --yes
+  - sudo apt-get update && sudo apt-get install opennebula
+  - source /home/travis/.rvm/scripts/rvm
+  - rvm repair wrappers
+  - rvmsudo /usr/share/one/install_gems --yes
 script:
   - set -o errexit; source .travis/smoke_tests.sh
