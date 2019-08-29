@@ -14,10 +14,6 @@
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
 
-# install oned system wide
-
-sudo ./install.sh -u travis
-
 # Set credentials
 mkdir $HOME/.one
 echo "oneadmin:opennebula" > $HOME/.one/one_auth
