@@ -24,7 +24,7 @@ echo 'IM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_im_dummy
 echo 'VM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_vmm_dummy",TYPE="xml" ]' >> /etc/one/oned.conf
 
 # start oned
-one start
+sudo systemctl start opennebula
 
 # check it's up
 timeout 60 sh -c 'until nc -z $0 $1; do sleep 1; done' localhost 2633
