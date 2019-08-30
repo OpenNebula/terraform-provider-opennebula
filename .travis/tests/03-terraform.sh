@@ -24,7 +24,11 @@ export TF_ACC=1
 curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 #Configure GOPATH
-ln -s /home/travis/build/christian7007/addon-terraform $GOPATH/src
+ln -s . $GOPATH/src
+echo "ls -l $GOPATH/src"
+ls -l $GOPATH/src
+echo "ls -l $GOPATH"
+ls -l $GOPATH
 cd $GOPATH/src/addon-terraform
 
 # get dependencies 
