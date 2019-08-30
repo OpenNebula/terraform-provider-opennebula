@@ -17,6 +17,9 @@
 # Set credentials
 sudo su -c "echo 'oneadmin:opennebula' > /var/lib/one/.one/one_auth" oneadmin
 
+mkdir ~/.one
+echo 'oneadmin:opennebula' > ~/.one/one_auth
+
 # Enable dummy drivers
 sudo chmod o+w /etc/one/oned.conf
 echo 'IM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_im_dummy"]' >> /etc/one/oned.conf
