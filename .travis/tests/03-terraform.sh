@@ -23,6 +23,10 @@ export TF_ACC=1
 # install dep dependencies manager
 curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
+#Configure GOPATH
+ln -s . $GOPATH/src/addon-terraform
+cd $GOPATH/src/addon-terraform
+
 # get dependencies 
 dep ensure
 
