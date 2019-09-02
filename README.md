@@ -1,5 +1,7 @@
 # addon-terraform
 
+[![Build Status](https://travis-ci.org/OpenNebula/addon-terraform.svg?branch=master)](https://travis-ci.org/OpenNebula/addon-terraform)
+
 ## Description
 
 [OpenNebula](https://opennebula.org/) provider for [Terraform](https://www.terraform.io/).
