@@ -19,22 +19,23 @@ export OPENNEBULA_ENDPOINT="http://localhost:2633/RPC2"
 export OPENNEBULA_USERNAME="oneadmin"
 export OPENNEBULA_PASSWORD="opennebula"
 export TF_ACC=1
+export CODECOV_TOKEN="b4d4b95c-bb63-4412-b3aa-6d0cf674d619"
 
 # install dep dependencies manager
 curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-#Configure GOPATH
-mkdir $GOPATH/src
-ln -s /home/travis/build/OpenNebula/addon-terraform $GOPATH/src
-
-cd $GOPATH/src/addon-terraform
-
-# get dependencies 
+# get dependencies
 dep ensure
 
 # build addon
 go build -o terraform-provider-opennebula
 
 # Run tests
-cd opennebula && go test -v
+echo "" > coverage.txt
+cd opennebula && go test -coverprofile=profile.out -v
+if [ -f profile.out ]; then
+    cat profile.out >> coverage.txt
+    go tool cover -func=profile.out
+    rm profile.out
+fi
 

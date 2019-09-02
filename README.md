@@ -1,6 +1,6 @@
 # addon-terraform
 
-[![Build Status](https://travis-ci.org/OpenNebula/addon-terraform.svg?branch=master)](https://travis-ci.org/OpenNebula/addon-terraform)
+[![Build Status](https://travis-ci.org/OpenNebula/addon-terraform.svg?branch=master)](https://travis-ci.org/OpenNebula/addon-terraform) [![codecov](https://codecov.io/gh/OpenNebula/addon-terraform/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenNebula/addon-terraform)
 
 ## Description
 
