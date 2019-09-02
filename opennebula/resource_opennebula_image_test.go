@@ -66,29 +66,6 @@ func TestAccImage(t *testing.T) {
 					}, "test-image-datablock"),
 				),
 			},
-			{
-				Config: testAccImageConfigCloneBasic,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "name", "test-image-clone"),
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "datastore_id", "1"),
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "persistent", "true"),
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "dev_prefix", "vd"),
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "target", "vdb"),
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "driver", "raw"),
-					resource.TestCheckResourceAttr("opennebula_image.testclone", "permissions", "642"),
-					resource.TestCheckResourceAttrSet("opennebula_image.testclone", "clone_from_image"),
-					resource.TestCheckResourceAttrSet("opennebula_image.testclone", "uid"),
-					resource.TestCheckResourceAttrSet("opennebula_image.testclone", "gid"),
-					resource.TestCheckResourceAttrSet("opennebula_image.testclone", "uname"),
-					resource.TestCheckResourceAttrSet("opennebula_image.testclone", "gname"),
-					testAccCheckImagePermissions(&shared.Permissions{
-						OwnerU: 1,
-						OwnerM: 1,
-						GroupU: 1,
-						OtherM: 1,
-					}, "test-image-clone"),
-				),
-			},
 		},
 	})
 }
@@ -167,22 +144,5 @@ resource "opennebula_image" "testimage" {
    dev_prefix = "vd"
    permissions = 660
    driver = "qcow2"
-}
-`
-
-var testAccImageConfigCloneBasic = `
-data "opennebula_image" "image" {
-    name = "imagetobeclone"
-}
-
-resource "opennebula_image" "testclone" {
-   name = "test-image-clone"
-   clone_from_image = "${data.opennebula_image.image.id}"
-   datastore_id = 1
-   persistent = true
-   dev_prefix = "vd"
-   target = "vdb"
-   permissions = "642"
-   driver = "raw"
 }
 `
