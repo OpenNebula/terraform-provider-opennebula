@@ -25,7 +25,7 @@ curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 #Configure GOPATH
 mkdir $GOPATH/src
-ln -s /home/travis/build/christian7007/addon-terraform $GOPATH/src
+ln -s /home/travis/build/OpenNebula/addon-terraform $GOPATH/src
 
 cd $GOPATH/src/addon-terraform
 
