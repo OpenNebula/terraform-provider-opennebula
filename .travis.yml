@@ -15,14 +15,25 @@
 #--------------------------------------------------------------------------- #
 
 dist: xenial
-language: generic
+language: go
+
+go:
+  - 1.12.x
+
 before_install:
-  - eval "$(curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | GIMME_GO_VERSION=1.12 bash)"
   - wget -q -O- https://downloads.opennebula.org/repo/repo.key | sudo apt-key add -
   - sudo sh -c 'echo "deb https://downloads.opennebula.org/repo/5.8/Ubuntu/16.04 stable opennebula" > /etc/apt/sources.list.d/opennebula.list'
   - sudo apt-get update && sudo apt-get install opennebula
   - source /home/travis/.rvm/scripts/rvm
   - rvm repair wrappers
   - rvmsudo /usr/share/one/install_gems --yes
+  - go get -t -v ./...
+
+before_script:
+  - source .travis/before_script/oned.sh
+
 script:
-  - set -o errexit; source .travis/smoke_tests.sh
+  - set -o errexit; source .travis/tests/terraform.sh
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -t b4d4b95c-bb63-4412-b3aa-6d0cf674d619
