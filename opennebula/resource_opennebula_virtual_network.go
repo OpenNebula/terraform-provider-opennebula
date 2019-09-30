@@ -361,10 +361,12 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		// Get VNet Controller to reserve from
 		vnc = controller.VirtualNetwork(reservation_vnet)
 
-		err := vnc.Reserve(fmt.Sprintf(reservation_string, reservation_size, reservation_name))
+		rID, err := vnc.Reserve(fmt.Sprintf(reservation_string, reservation_size, reservation_name))
 		if err != nil {
 			return err
 		}
+
+		vnc = controller.VirtualNetwork(rID)
 
 		vnet, err := vnc.Info()
 		if err != nil {
@@ -374,16 +376,6 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		d.SetId(fmt.Sprintf("%v", vnet.ID))
 
 		log.Printf("[DEBUG] New VNET reservation ID: %d", vnet.ID)
-
-		//Apply the security group rules to the reservation if defined
-		if securitygroups, ok := d.GetOk("security_groups"); ok {
-			secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
-
-			err = vnc.Update(fmt.Sprintf("SECURITY_GROUPS=\"%s\"", secgrouplist), 1)
-			if err != nil {
-				return err
-			}
-		}
 
 	} else { //New VNET
 		vntpl, err := generateVnXML(d)
@@ -396,34 +388,9 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		if err != nil {
 			return err
 		}
-		vnc := controller.VirtualNetwork(vnetID)
+		vnc = controller.VirtualNetwork(vnetID)
 
 		d.SetId(fmt.Sprintf("%v", vnetID))
-
-		// Set Security Groups
-		if securitygroups, ok := d.GetOk("security_groups"); ok {
-			secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
-
-			err = vnc.Update(fmt.Sprintf("SECURITY_GROUPS=\"%s\"", secgrouplist), 1)
-			if err != nil {
-				return err
-			}
-		}
-		// update permisions
-		if perms, ok := d.GetOk("permissions"); ok {
-			err = vnc.Chmod(permissionUnix(perms.(string)))
-			if err != nil {
-				log.Printf("[ERROR] template permissions change failed, error: %s", err)
-				return err
-			}
-		}
-
-		if d.Get("group") != "" || d.Get("gid") != "" {
-			err = changeVNetGroup(d, meta)
-			if err != nil {
-				return err
-			}
-		}
 
 		if d.Get("hold_size").(int) > 0 {
 			// add address range and reservations
@@ -470,7 +437,31 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 				return err
 			}
 		}
+	}
 
+	// Set Security Groups
+	if securitygroups, ok := d.GetOk("security_groups"); ok {
+		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
+
+		err := vnc.Update(fmt.Sprintf("SECURITY_GROUPS=\"%s\"", secgrouplist), 1)
+		if err != nil {
+			return err
+		}
+	}
+	// update permisions
+	if perms, ok := d.GetOk("permissions"); ok {
+		err := vnc.Chmod(permissionUnix(perms.(string)))
+		if err != nil {
+			log.Printf("[ERROR] template permissions change failed, error: %s", err)
+			return err
+		}
+	}
+
+	if d.Get("group") != "" || d.Get("gid") != "" {
+		err := changeVNetGroup(d, meta)
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceOpennebulaVirtualNetworkRead(d, meta)
