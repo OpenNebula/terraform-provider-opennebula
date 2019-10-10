@@ -227,7 +227,7 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	if d.Get("quotas") != nil {
+	if _, ok := d.GetOk("quotas"); ok {
 		err = gc.Quota(generateGroupQuotas(d))
 		if err != nil {
 			return err
@@ -272,9 +272,11 @@ func resourceOpennebulaGroupUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if d.HasChange("quotas") {
-		err = gc.Quota(generateGroupQuotas(d))
-		if err != nil {
-			return err
+		if _, ok := d.GetOk("quotas"); ok {
+			err = gc.Quota(generateGroupQuotas(d))
+			if err != nil {
+				return err
+			}
 		}
 	}
 
