@@ -77,7 +77,9 @@ func testAccCheckImageDestroy(s *terraform.State) error {
 		imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 		ic := controller.Image(int(imageID))
 		// Get Image Info
-		image, _ := ic.Info()
+		// TODO: fix it after 5.10 release
+		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+		image, _ := ic.Info(false)
 		if image != nil {
 			// Do not try to destroy image to be cloned
 			if image.ID != 11 {
@@ -97,7 +99,9 @@ func testAccCheckImagePermissions(expected *shared.Permissions, resourcename str
 			imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 			ic := controller.Image(int(imageID))
 			// Get image Info
-			image, _ := ic.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			image, _ := ic.Info(false)
 			if image == nil {
 				return fmt.Errorf("Expected image %s to exist when checking permissions", rs.Primary.ID)
 			}

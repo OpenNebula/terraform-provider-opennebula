@@ -201,7 +201,9 @@ func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	vdc, err := vdcc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	vdc, err := vdcc.Info(false)
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,7 @@
 
 [[constraint]]
   name = "github.com/OpenNebula/one"
-  revision = "cfac3ad57c927b2c19eaa0bf21dc77b46a12d22a"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/hashicorp/terraform"

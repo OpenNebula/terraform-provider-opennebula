@@ -236,7 +236,9 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	securitygroup, err := sgc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	securitygroup, err := sgc.Info(false)
 	if err != nil {
 		return err
 	}
@@ -333,7 +335,9 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	securitygroup, err := sgc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	securitygroup, err := sgc.Info(false)
 	if err != nil {
 		return err
 	}

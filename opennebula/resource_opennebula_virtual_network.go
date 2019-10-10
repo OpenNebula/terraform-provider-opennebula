@@ -368,7 +368,9 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 
 		vnc = controller.VirtualNetwork(rID)
 
-		vnet, err := vnc.Info()
+		// TODO: fix it after 5.10 release
+		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+		vnet, err := vnc.Info(false)
 		if err != nil {
 			return err
 		}
@@ -707,7 +709,9 @@ func generateVnXML(d *schema.ResourceData) (string, error) {
 
 func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
 	controller := meta.(*goca.Controller)
-	clusterPool, err := controller.Clusters().Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	clusterPool, err := controller.Clusters().Info(false)
 	if err != nil {
 		return err
 	}
@@ -732,7 +736,9 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	vn, err := vnc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	vn, err := vnc.Info(false)
 	if err != nil {
 		return err
 	}
@@ -843,7 +849,9 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[INFO] Successfully updated name for Vnet\n")
 	}
 
-	vn, err := vnc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	vn, err := vnc.Info(false)
 	if err != nil {
 		return err
 	}
@@ -866,7 +874,9 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[INFO] Successfully updated group for Vnet %s\n", vn.Name)
 	}
 
-	vn, err = vnc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	vn, err = vnc.Info(false)
 	if err != nil {
 		return err
 	}

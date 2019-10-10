@@ -96,7 +96,9 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 		vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 		vnc := controller.VirtualNetwork(int(vnID))
 		// Get Virtual Network Info
-		vn, _ := vnc.Info()
+		// TODO: fix it after 5.10 release
+		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+		vn, _ := vnc.Info(false)
 		if vn != nil {
 			return fmt.Errorf("Expected virtual network %s to have been destroyed", rs.Primary.ID)
 		}
@@ -113,7 +115,9 @@ func testAccCheckVirtualNetworkARnumber(expectedARs int) resource.TestCheckFunc 
 			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 			vnc := controller.VirtualNetwork(int(vnID))
 			// Get Virtual Network Info
-			vn, _ := vnc.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			vn, _ := vnc.Info(false)
 			if vn == nil {
 				return fmt.Errorf("Expected virtual network %s to exist", rs.Primary.ID)
 			}
@@ -135,7 +139,9 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 			vnc := controller.VirtualNetwork(int(vnID))
 			// Get Virtual Network Info
-			vn, _ := vnc.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			vn, _ := vnc.Info(false)
 			if vn == nil {
 				return fmt.Errorf("Expected virtual_network %s to exist when checking permissions", rs.Primary.ID)
 			}
@@ -162,7 +168,9 @@ func testAccVirtualNetworkAR(aridx int, key, value string) resource.TestCheckFun
 			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 			vnc := controller.VirtualNetwork(int(vnID))
 			// Get Virtual Network Info
-			vn, _ := vnc.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			vn, _ := vnc.Info(false)
 			if vn == nil {
 				return fmt.Errorf("Expected virtual network %s to exist when checking permissions", rs.Primary.ID)
 			}
@@ -195,7 +203,9 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 			vnc := controller.VirtualNetwork(int(vnID))
 			// Get Virtual Network Info
-			vn, _ := vnc.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			vn, _ := vnc.Info(false)
 			if vn == nil {
 				return fmt.Errorf("Expected virtual network %s to exist when checking permissions", rs.Primary.ID)
 			}

@@ -41,7 +41,9 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 		groupID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 		gc := controller.Group(int(groupID))
 		// Get Group Info
-		group, _ := gc.Info()
+		// TODO: fix it after 5.10 release
+		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+		group, _ := gc.Info(false)
 		if group != nil {
 			return fmt.Errorf("Expected group %s to have been destroyed", rs.Primary.ID)
 		}
