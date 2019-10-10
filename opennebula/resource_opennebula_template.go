@@ -151,23 +151,23 @@ func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
 func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	template, xmlerr := generateTemplateXML(d)
+	tpl, xmlerr := generateTemplateXML(d)
 	if xmlerr != nil {
 		return xmlerr
 	}
 
-	templateID, err := controller.Templates().Create(template)
+	tplID, err := controller.Templates().Create(tpl)
 	if err != nil {
 		log.Printf("[ERROR] Template creation failed, error: %s", err)
 		return err
 	}
 
-	tc := controller.Template(templateID)
+	tc := controller.Template(tplID)
 
 	// add template information into Template
 	err = tc.Update(d.Get("template").(string), 1)
 
-	d.SetId(fmt.Sprintf("%v", templateID))
+	d.SetId(fmt.Sprintf("%v", tplID))
 
 	// Change Permissions only if Permissions are set
 	if perms, ok := d.GetOk("permissions"); ok {
@@ -195,24 +195,27 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	template, err := tc.Info()
+	// TODO: fix it after 5.10 release availability
+	// Force the "extended" bool to false to keep ONE 5.8 behavior
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	tpl, err := tc.Info(false, false)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%v", template.ID))
-	d.Set("name", template.Name)
-	d.Set("uid", template.UID)
-	d.Set("gid", template.GID)
-	d.Set("uname", template.UName)
-	d.Set("gname", template.GName)
-	d.Set("reg_time", template.RegTime)
-	d.Set("permissions", permissionsUnixString(template.Permissions))
+	d.SetId(fmt.Sprintf("%v", tpl.ID))
+	d.Set("name", tpl.Name)
+	d.Set("uid", tpl.UID)
+	d.Set("gid", tpl.GID)
+	d.Set("uname", tpl.UName)
+	d.Set("gname", tpl.GName)
+	d.Set("reg_time", tpl.RegTime)
+	d.Set("permissions", permissionsUnixString(tpl.Permissions))
 
-	// Get Human readable template information
-	tpl := pretty.Sprint(template.Template)
+	// Get Human readable tpl information
+	tplstr := pretty.Sprint(tpl.Template)
 
-	d.Set("template", tpl)
+	d.Set("template", tplstr)
 
 	return nil
 }
@@ -232,7 +235,10 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	template, err := tc.Info()
+	// TODO: fix it after 5.10 release availability
+	// Force the "extended" bool to false to keep ONE 5.8 behavior
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	tpl, err := tc.Info(false, false)
 	if err != nil {
 		return err
 	}
@@ -243,21 +249,24 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 			return err
 		}
 		// Update Name in internal struct
-		template, err = tc.Info()
+		// TODO: fix it after 5.10 release availability
+		// Force the "extended" bool to false to keep ONE 5.8 behavior
+		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+		tpl, err = tc.Info(false, false)
 		if err != nil {
 			return err
 		}
-		log.Printf("[INFO] Successfully updated name for template %s\n", template.Name)
+		log.Printf("[INFO] Successfully updated name for tpl %s\n", tpl.Name)
 	}
 
-	if d.HasChange("template") && d.Get("template") != "" {
+	if d.HasChange("template") && d.Get("tpl") != "" {
 		// replace the whole template instead of merging it with the existing one
 		err = tc.Update(d.Get("template").(string), 0)
 		if err != nil {
 			return err
 		}
 
-		log.Printf("[INFO] Successfully updated template template %s\n", template.Name)
+		log.Printf("[INFO] Successfully updated template template %s\n", tpl.Name)
 
 	}
 
@@ -268,7 +277,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 				return err
 			}
 		}
-		log.Printf("[INFO] Successfully updated Template %s\n", template.Name)
+		log.Printf("[INFO] Successfully updated Template %s\n", tpl.Name)
 	}
 
 	if d.HasChange("group") || d.HasChange("gid") {
@@ -276,7 +285,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		if err != nil {
 			return err
 		}
-		log.Printf("[INFO] Successfully updated group for Template %s\n", template.Name)
+		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
 	}
 
 	return nil
@@ -301,7 +310,7 @@ func resourceOpennebulaTemplateDelete(d *schema.ResourceData, meta interface{}) 
 func generateTemplateXML(d *schema.ResourceData) (string, error) {
 	name := d.Get("name").(string)
 
-	template := &template.Template{
+	tpl := &template.Template{
 		Name: name,
 	}
 
@@ -310,7 +319,7 @@ func generateTemplateXML(d *schema.ResourceData) (string, error) {
 	//Encode the Template schema to XML
 	enc := xml.NewEncoder(w)
 	//enc.Indent("", "  ")
-	if err := enc.Encode(template); err != nil {
+	if err := enc.Encode(tpl); err != nil {
 		return "", err
 	}
 

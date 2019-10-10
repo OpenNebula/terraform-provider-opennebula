@@ -243,7 +243,9 @@ func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	group, err := gc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	group, err := gc.Info(false)
 	if err != nil {
 		return err
 	}

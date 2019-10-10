@@ -380,7 +380,9 @@ func waitForImageState(d *schema.ResourceData, meta interface{}, state string) (
 					return image, "notfound", nil
 				}
 			}
-			image, err = ic.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			image, err = ic.Info(false)
 			if err != nil {
 				if strings.Contains(err.Error(), "Error getting image") {
 					return image, "notfound", nil
@@ -418,7 +420,9 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	image, err := ic.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	image, err := ic.Info(false)
 	if err != nil {
 		return err
 	}
@@ -489,7 +493,9 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return err
 	}
-	image, err := ic.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	image, err := ic.Info(false)
 	if err != nil {
 		return err
 	}

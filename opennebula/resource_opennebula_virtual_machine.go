@@ -498,7 +498,9 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	vm, err := vmc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	vm, err := vmc.Info(false)
 	if err != nil {
 		return err
 	}
@@ -597,7 +599,9 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	vm, err := vmc.Info()
+	// TODO: fix it after 5.10 release
+	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+	vm, err := vmc.Info(false)
 	if err != nil {
 		return err
 	}
@@ -607,7 +611,9 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		if err != nil {
 			return err
 		}
-		vm, err := vmc.Info()
+		// TODO: fix it after 5.10 release
+		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+		vm, err := vmc.Info(false)
 		d.SetPartial("name")
 		log.Printf("[INFO] Successfully updated name (%s) for VM ID %x\n", vm.Name, vm.ID)
 	}
@@ -686,7 +692,9 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 					return vm, "", fmt.Errorf("Could not find VM by ID %s", d.Id())
 				}
 			}
-			vm, err = vmc.Info()
+			// TODO: fix it after 5.10 release
+			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+			vm, err = vmc.Info(false)
 			if err != nil {
 				if strings.Contains(err.Error(), "Error getting") {
 					return vm, "notfound", nil
