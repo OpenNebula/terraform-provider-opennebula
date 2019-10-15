@@ -675,7 +675,7 @@ func generateVnXML(d *schema.ResourceData) (string, error) {
 	vnautovlan := "0"
 	var vnvlan string
 
-	if validVlanType(vnmad) > 0 {
+	if validVlanType(vnmad) >= 0 {
 		if d.Get("automatic_vlan_id") == true {
 			vnautovlan = "1"
 		} else if vlanid, ok := d.GetOk("vlan_id"); ok {
