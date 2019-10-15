@@ -1,0 +1,112 @@
+#!/usr/bin/env ruby
+
+# ---------------------------------------------------------------------------- #
+# Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                  #
+#                                                                              #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may      #
+# not use this file except in compliance with the License. You may obtain      #
+# a copy of the License at                                                     #
+#                                                                              #
+# http://www.apache.org/licenses/LICENSE-2.0                                   #
+#                                                                              #
+# Unless required by applicable law or agreed to in writing, software          #
+# distributed under the License is distributed on an "AS IS" BASIS,            #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.     #
+# See the License for the specific language governing permissions and          #
+# limitations under the License.                                               #
+# ---------------------------------------------------------------------------- #
+
+# DELETE <host:remote_system_ds/disk.i|host:remote_system_ds/> vmid dsid
+#   - host is the target host to deploy the VM
+#   - remote_system_ds is the path for the system datastore in the host
+#   - vmid is the id of the VM
+#   - dsid is the target datastore (0 is the system datastore)
+# ---------------------------------------------------------------------------- #
+
+ONE_LOCATION=ENV["ONE_LOCATION"] if !defined?(ONE_LOCATION)
+
+if !ONE_LOCATION
+    RUBY_LIB_LOCATION="/usr/lib/one/ruby" if !defined?(RUBY_LIB_LOCATION)
+else
+    RUBY_LIB_LOCATION=ONE_LOCATION+"/lib/ruby" if !defined?(RUBY_LIB_LOCATION)
+end
+
+$: << RUBY_LIB_LOCATION
+$: << File.dirname(__FILE__)
+
+require 'vcenter_driver'
+
+VM_PREFIX_DEFAULT = "one-$i-"
+
+path = ARGV[0]
+vmid = ARGV[1]
+dsid = ARGV[2]
+
+check_valid path, "path"
+check_valid vmid, "vmid"
+check_valid dsid, "dsid"
+
+hostname, img_path = path.split(":")
+
+# Get host ID
+host = VCenterDriver::VIHelper.find_by_name(OpenNebula::HostPool, hostname)
+host_id = host['ID']
+
+# Get VM
+one_vm = VCenterDriver::VIHelper.one_item(OpenNebula::VirtualMachine, vmid)
+vm_ref = one_vm['DEPLOY_ID']
+
+vm = nil
+
+# tm:delete INIT block:
+begin
+    @error_message = "error obtaining client and vm"
+    vi_client = VCenterDriver::VIClient.new_from_host(host_id)
+
+    if vm_ref && !vm_ref.empty?
+        vm = VCenterDriver::VirtualMachine.new(vi_client, vm_ref, vmid)
+    else
+        # we try to get vcenter item
+        vcenter_vm = VCenterDriver::VIHelper.find_vcenter_vm_by_name(one_vm, host, vi_client)
+
+        # If no VM object retrieved, raise an exception
+        raise "Could not find the undeployed VM in vCenter's inventory using it's name" if !vcenter_vm
+
+        vm_ref = vcenter_vm._ref
+        vm = VCenterDriver::VirtualMachine.new(vi_client, vm_ref, vmid)
+    end
+
+    vm.one_item = one_vm
+
+    is_disk = path.match(/disk\.\d+$/)
+
+    if is_disk
+        dsid = img_path.split("/")[-3] # get dsid from path
+        @error_message = "error deleting disk with #{img_path} in datastore: #{dsid}"
+        one_ds = VCenterDriver::VIHelper.one_item(OpenNebula::Datastore, dsid)
+        ds_ref = one_ds['TEMPLATE/VCENTER_DS_REF']
+
+        # Get disk info, destroy it if is possible
+        disk_id = img_path.split(".")[-1]
+        disk = vm.disk(disk_id)
+        vm.destroy_disk(disk)
+    else
+        @error_message = "Error unregistering vm #{vmid} (#{vm_ref})."
+        vm.poweroff_hard if vm.is_powered_on?
+
+        if vm.instantiated_as_persistent?
+            vm.remove_all_snapshots if vm.has_snapshots?
+            vm.convert_to_template
+        else
+            vm.destroy
+        end
+    end
+
+rescue Exception => e
+    vi_client.close_connection if vi_client
+    message = "#{@error_message}. Reason: #{e.message}\n#{e.backtrace}"
+    OpenNebula.log_error(message)
+    STDERR.puts "#{message} #{e.backtrace}" if VCenterDriver::CONFIG[:debug_information]
+
+    exit -1
+end

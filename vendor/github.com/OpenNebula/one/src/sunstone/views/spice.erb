@@ -1,0 +1,61 @@
+<!--
+   Based on the original:
+   Copyright (C) 2012 by Jeremy P. White <jwhite@codeweavers.com>
+
+   This file is part of spice-html5.
+
+   spice-html5 is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   spice-html5 is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with spice-html5.  If not, see <http://www.gnu.org/licenses/>.
+
+   --------------------------------------------------
+    Spice Javascript client template.
+    Refer to main.js for more detailed information
+   --------------------------------------------------
+
+-->
+
+<!doctype html>
+<html>
+    <head>
+
+        <title><%= params['title']%></title>
+        <link rel="stylesheet" type="text/css" href="css/spice-custom.css" />
+        <script src="dist/console/spice.js?v=<%= OpenNebula::VERSION %>"></script> 
+    </head>
+
+    <body>
+
+
+    <div style="background: #f7f7f7; border-bottom: 1px solid #dfdfdf; padding: 10px 0px 15px 0px">
+            <div id="noVNC_status_bar" class="noVNC_status_bar" style="margin-top: 0px;">
+                <table border=0 width="100%"><tr>
+                    <td width="1%" >
+                        <img src="images/one_small_logo.png" style="height:40px; vertical-align:top; margin-left: 30px">
+                    </td>
+                    <td><div id="message-div" class="spice-message"></div></td>
+                </tr></table>
+            </div>
+    </div>
+
+        <div id="spice-area">
+            <div id="spice-screen" class="spice-screen"></div>
+        </div>
+
+        
+
+        <div id="debug-div">
+        <!-- If DUMPXXX is turned on, dumped images will go here -->
+        </div>
+
+    </body>
+</html>

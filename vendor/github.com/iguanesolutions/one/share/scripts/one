@@ -1,0 +1,258 @@
+#!/bin/bash
+
+# -------------------------------------------------------------------------- #
+# Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+#--------------------------------------------------------------------------- #
+
+if [ -z "$ONE_LOCATION" ]; then
+    ONE_PID=/var/run/one/oned.pid
+    ONE_SCHEDPID=/var/run/one/sched.pid
+    ONE_CONF=/etc/one/oned.conf
+    ONE_DB=/var/lib/one/one.db
+    ONE_LOG=/var/log/one/oned.log
+    ONE_SCHED_LOG=/var/log/one/sched.log
+    ONE_XMLRPC_LOG=/var/log/one/one_xmlrpc.log
+
+    ONED=/usr/bin/oned
+    ONE_SCHEDULER=/usr/bin/mm_sched
+
+    LOCK_FILE=/var/lock/one/one
+else
+    ONE_PID=$ONE_LOCATION/var/oned.pid
+    ONE_SCHEDPID=$ONE_LOCATION/var/sched.pid
+    ONE_CONF=$ONE_LOCATION/etc/oned.conf
+    ONE_DB=$ONE_LOCATION/var/one.db
+    ONE_LOG=$ONE_LOCATION/var/oned.log
+    ONE_SCHED_LOG=$ONE_LOCATION/var/sched.log
+    ONE_XMLRPC_LOG=$ONE_LOCATION/var/one_xmlrpc.log
+
+    ONED=$ONE_LOCATION/bin/oned
+    ONE_SCHEDULER=$ONE_LOCATION/bin/mm_sched
+
+    LOCK_FILE=$ONE_LOCATION/var/.lock
+fi
+
+KILL_9_SECONDS=5
+BACKUP="true"
+
+#------------------------------------------------------------------------------
+# Function that checks for running daemons
+#------------------------------------------------------------------------------
+setup()
+{
+    ONE_PID_DIR=`dirname $ONE_PID`
+
+    mkdir -p $ONE_PID_DIR
+
+    if [ ! -w $ONE_PID_DIR ]; then
+        echo "$ONE_PID_DIR is not writable, cannot start oned or scheduler."
+        exit 1
+    fi
+
+    if [ -f $LOCK_FILE ]; then
+        if [ -f  $ONE_PID ]; then
+            ONEPID=`cat $ONE_PID`
+            ps $ONEPID > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo "ONE is still running (PID:$ONEPID). Please try 'one stop' first."
+                exit 1
+            fi
+        fi
+        if [ -f  $ONE_SCHEDPID ]; then
+            ONESCHEDPID=`cat $ONE_SCHEDPID`
+            ps $ONESCHEDPID > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo "The scheduler is still running (PID:$ONEPID). Please try 'one stop' first."
+                exit 1
+            fi
+        fi
+        echo "Stale .lock detected. Erasing it."
+        rm $LOCK_FILE
+    fi
+}
+
+#------------------------------------------------------------------------------
+# Function that stops the daemons
+#------------------------------------------------------------------------------
+stop()
+{
+    stop_oned
+
+    stop_sched
+}
+
+stop_oned()
+{
+    if [ -f $ONE_PID ]; then
+        PID=$(cat $ONE_PID)
+        kill $PID > /dev/null 2>&1
+
+        counter=0
+        while ps $PID > /dev/null 2>&1; do
+            let counter=counter+1
+            if [ $counter -gt $KILL_9_SECONDS ]; then
+                kill -9 $PID > /dev/null 2>&1
+                break
+            fi
+            sleep 1
+        done
+
+        rm -f $ONE_PID > /dev/null 2>&1
+    fi
+}
+
+stop_sched()
+{
+    if [ -f $ONE_SCHEDPID ]; then
+        kill `cat $ONE_SCHEDPID` > /dev/null 2>&1
+        rm -f $ONE_SCHEDPID > /dev/null 2>&1
+    fi
+}
+
+#------------------------------------------------------------------------------
+# Function that starts the daemons
+#------------------------------------------------------------------------------
+start()
+{
+    if [ ! -x "$ONED" ]; then
+        echo "Can not find $ONED."
+        exit 1
+    fi
+
+    if [ ! -x "$ONE_SCHEDULER" ]; then
+        echo "Can not find $ONE_SCHEDULER."
+        exit 1
+    fi
+
+    if [ ! -f "$ONE_DB" ]; then
+        if [ ! -f "$HOME/.one/one_auth" ]; then
+            if [ -z "$ONE_AUTH" ]; then
+                echo "You should have ONE_AUTH set the first time you start"
+                echo "OpenNebula as it is used to set the credentials for"
+                echo "the administrator user."
+                exit 1
+            fi
+        fi
+    fi
+
+    # Start the one daemon
+    start_oned
+
+    # Start the scheduler
+    start_sched
+
+    # Wait for the daemons to warm up
+    sleep 3
+
+    STARTED="true"
+
+    ps `cat $ONE_PID` > /dev/null 2>&1
+
+    if [ $? -ne 0 ]; then
+        echo "oned failed to start"
+        STARTED="false"
+    fi
+
+    ps `cat $ONE_SCHEDPID` > /dev/null 2>&1
+
+    if [ $? -ne 0 ]; then
+        echo "scheduler failed to start"
+        STARTED="false"
+    fi
+
+    if [ "$STARTED" == "false" ]; then
+        stop
+        exit -1
+    fi
+}
+
+start_oned()
+{
+    if [ "$BACKUP" = "true" ];then
+        [ -f "$ONE_LOG" ] && mv $ONE_LOG{,.$(date '+%Y%m%d%H%M%S')}
+        [ -f "$ONE_XMLRPC_LOG" ] && mv $ONE_XMLRPC_LOG{,.$(date '+%Y%m%d%H%M%S')}
+    fi
+    $ONED -f 2>&1 &
+
+    LASTRC=$?
+    LASTPID=$!
+
+    if [ $LASTRC -ne 0 ]; then
+        echo "Error executing $ONED"
+        exit 1
+    else
+        echo $LASTPID > $ONE_PID
+    fi
+}
+
+start_sched()
+{
+    if [ "$BACKUP" = "true" ];then
+        [ -f "$ONE_SCHED_LOG" ] && mv $ONE_SCHED_LOG{,.$(date '+%Y%m%d%H%M%S')}
+    fi
+    $ONE_SCHEDULER&
+
+    LASTRC=$?
+    LASTPID=$!
+
+    if [ $LASTRC -ne 0 ]; then
+        echo "Error executing $ONE_SCHEDULER"
+        exit 1
+    else
+        echo $LASTPID > $ONE_SCHEDPID
+    fi
+}
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+if [ "$1" = "-f" ]; then
+    BACKUP="false"
+    shift
+fi
+
+case "$1" in
+    start)
+        setup
+        start
+        ;;
+    stop)
+        stop
+        echo "oned and scheduler stopped"
+        ;;
+    restart)
+        stop
+        setup
+        start
+        echo "oned and scheduler restarted"
+        ;;
+    start-sched)
+        start_sched
+        ;;
+    stop-sched)
+        stop_sched
+        ;;
+    restart-sched)
+        stop_sched
+        sleep 1
+        start_sched
+        ;;
+    *)
+        echo "Usage: one [-f] {start|stop|restart|start-sched|stop-sched|restart-sched}" >&2
+        echo "Options:" >&2
+        echo "  -f  Do not backup log files." >&2
+        exit 3
+        ;;
+esac

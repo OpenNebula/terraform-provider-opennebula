@@ -1,0 +1,152 @@
+{{! -------------------------------------------------------------------------- }}
+{{! Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                }}
+{{!                                                                            }}
+{{! Licensed under the Apache License, Version 2.0 (the "License"); you may    }}
+{{! not use this file except in compliance with the License. You may obtain    }}
+{{! a copy of the License at                                                   }}
+{{!                                                                            }}
+{{! http://www.apache.org/licenses/LICENSE-2.0                                 }}
+{{!                                                                            }}
+{{! Unless required by applicable law or agreed to in writing, software        }}
+{{! distributed under the License is distributed on an "AS IS" BASIS,          }}
+{{! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   }}
+{{! See the License for the specific language governing permissions and        }}
+{{! limitations under the License.                                             }}
+{{! -------------------------------------------------------------------------- }}
+
+<div class="row">
+  <div class="medium-6 columns graphics">
+    <fieldset>
+      <legend>{{tr "Graphics"}}</legend>
+      <div class="">
+        <div class="large-12 columns text-center">
+          <input type="radio" wizard_field="TYPE" name="graphics_type" ID="radioNoneType{{uniqueId}}" value="">
+          <label for="radioNoneType{{uniqueId}}">{{tr "None"}}</label>
+          <input type="radio" wizard_field="TYPE" name="graphics_type" ID="radioVncType{{uniqueId}}" value="VNC" checked>
+          <label for="radioVncType{{uniqueId}}">VNC</label>
+          <input type="radio" wizard_field="TYPE" name="graphics_type" ID="radioSdlType{{uniqueId}}" value="SDL" class="hypervisor only_kvm not_lxd" >
+          <label class="hypervisor only_kvm"  for="radioSdlType{{uniqueId}}">SDL</label>
+          <input type="radio" wizard_field="TYPE" name="graphics_type" ID="radioSpiceType{{uniqueId}}" value="SPICE" class="hypervisor only_kvm not_lxd" >
+          <label  class="hypervisor only_kvm" for="radioSpiceType{{uniqueId}}">SPICE</label>
+        </div>
+      </div>
+      <br>
+      <div class="">
+        <div class="large-12 columns">
+          <label>
+            {{tr "Listen on IP"}}
+            <input class="graphics-setting" type="text" wizard_field="LISTEN" placeholder="0.0.0.0"/>
+          </label>
+        </div>
+      </div>
+      <div class="">
+        <div class="medium-6 columns vm_updateconf_hide">
+          <label>
+            {{tr "Server port"}}
+            {{{tip (tr "Port for the VNC/SPICE server")}}}
+            <input class="graphics-setting" type="text" wizard_field="PORT"/>
+          </label>
+        </div>
+        <div class="medium-6 columns">
+          <label>
+            {{tr "Keymap"}}
+            <input class="graphics-setting" type="text" wizard_field="KEYMAP" placeholder="en-us"/>
+          </label>
+        </div>
+      </div>
+      <div class=" hypervisor only_kvm">
+        <div class="large-12 columns">
+          <label>
+            {{tr "Password"}}
+            <input class="graphics-setting" type="text" wizard_field="PASSWD"/>
+          </label>
+        </div>
+      </div>
+      <div class=" hypervisor only_kvm vm_updateconf_hide">
+        <div class="columns large-12">
+          <input type="checkbox" class="RANDOM_PASSWD graphics-setting" id="RANDOM_PASSWD{{uniqueId}}">
+          <label for="RANDOM_PASSWD{{uniqueId}}">
+            {{tr "Generate random password"}}
+          </label>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="medium-6 columns inputs hypervisor only_kvm">
+    <fieldset>
+      <legend>{{tr "Inputs"}}</legend>
+      <div class="">
+        <div class="medium-5 columns">
+          <label>
+            {{tr "Type"}}
+            <select id="INPUT_TYPE" name="input_type">
+              <option value=""></option>
+              <option value="mouse">{{tr "Mouse"}}</option>
+              <option value="tablet">{{tr "Tablet"}}</option>
+            </select>
+          </label>
+        </div>
+        <div class="medium-4 columns">
+          <label>
+            {{tr "Bus"}}
+            <select id="INPUT_BUS" name="input_bus">
+              <option value=""></option>
+              <option value="usb">{{tr "USB"}}</option>
+              <option value="ps2">{{tr "PS2"}}</option>
+            </select>
+          </label>
+        </div>
+        <div class="medium-3 columns">
+          <label>&nbsp;</label>
+          <a href="#" class="button small radius secondary" id="add_input">{{tr "Add"}}</a>
+        </div>
+      </div>
+      <div class="">
+        <div class="large-12 columns">
+          <table id="input_table" class="dataTable policies_table">
+            <tbody id="tbodyinput">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="medium-12 columns hypervisor only_kvm">
+    <fieldset class="hypervisor only_kvm vm_updateconf_hide">
+      <legend>{{tr "PCI Devices"}}</legend>
+      <div class="row">
+        <div class="large-12 columns text-center">
+          <span class="radius secondary label">
+            <i class="fas fa-exclamation-triangle"/> {{tr "PCI passthrough of network devices is configured per NIC, in the \"Network\" tab. Do not add network devices here"}}
+          </span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="large-12 columns">
+          <table class="dataTable pci_devices">
+            <thead>
+              <tr>
+                <th style="width:50%">{{tr "Device name"}}</th>
+                <th>{{tr "Vendor"}}</th>
+                <th>{{tr "Device"}}</th>
+                <th>{{tr "Class"}}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5">
+                  <a type="button" class="add_pci button small small-12 secondary radius">
+                    <i class="fas fa-lg fa-plus-circle"></i>
+                  </a>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+</div>

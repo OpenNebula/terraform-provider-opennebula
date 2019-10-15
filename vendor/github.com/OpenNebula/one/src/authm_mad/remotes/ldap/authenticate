@@ -1,0 +1,162 @@
+#!/usr/bin/env ruby
+
+# ---------------------------------------------------------------------------- #
+# Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                  #
+#                                                                              #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may      #
+# not use this file except in compliance with the License. You may obtain      #
+# a copy of the License at                                                     #
+#                                                                              #
+# http://www.apache.org/licenses/LICENSE-2.0                                   #
+#                                                                              #
+# Unless required by applicable law or agreed to in writing, software          #
+# distributed under the License is distributed on an "AS IS" BASIS,            #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.     #
+# See the License for the specific language governing permissions and          #
+# limitations under the License.                                               #
+# ---------------------------------------------------------------------------- #
+
+ONE_LOCATION = ENV['ONE_LOCATION']
+
+if !ONE_LOCATION
+    RUBY_LIB_LOCATION = '/usr/lib/one/ruby'
+    GEMS_LOCATION     = '/usr/share/one/gems'
+    ETC_LOCATION      = '/etc/one/'
+else
+    RUBY_LIB_LOCATION = ONE_LOCATION + '/lib/ruby'
+    GEMS_LOCATION     = ONE_LOCATION + '/share/gems'
+    ETC_LOCATION      = ONE_LOCATION + '/etc/'
+end
+
+if File.directory?(GEMS_LOCATION)
+    Gem.use_paths(GEMS_LOCATION)
+end
+
+$LOAD_PATH << RUBY_LIB_LOCATION
+
+require 'yaml'
+require 'opennebula/ldap_auth'
+require 'uri'
+require 'timeout'
+require 'rexml/document'
+require 'opennebula/error'
+require 'opennebula/xml_utils'
+
+if defined?(URI::Parser)
+    URI_PARSER=URI::Parser.new
+else
+    URI_PARSER=URI
+end
+
+begin
+    xml = OpenNebula::XMLElement.new
+    xml.initialize_xml(STDIN.read, 'AUTHN')
+
+    user   = URI_PARSER.unescape(xml['/AUTHN/USERNAME'])
+    pass   = URI_PARSER.unescape(xml['/AUTHN/PASSWORD'])
+    secret = URI_PARSER.unescape(xml['/AUTHN/SECRET'])
+rescue
+    STDERR.puts "Invalid XML input"
+    exit(-1)
+end
+
+options=YAML.load(File.read(ETC_LOCATION+'/auth/ldap_auth.conf'))
+
+order=options[:order]
+
+if !order
+    STDERR.puts ":order value not found, the configuration file could be malformed"
+    order=options.keys
+elsif order.class != Array
+    STDERR.puts ":order value malformed, must be an Array"
+    exit(-1)
+end
+
+order.each do |name|
+    if name.is_a? Array
+        servers = name
+    elsif name.is_a? Hash
+        if name.keys.size == 1
+            servers = [name.values].flatten
+        else
+            STDERR.puts ":order contains invalid group configuration: #{name}"
+            exit(-1)
+        end
+    else
+        servers = [name]
+    end
+
+    STDERR.puts "Using group of servers: #{servers.join(', ')}" if servers.length>1
+
+    servers.each do |server_name|
+        STDERR.puts "Trying LDAP server #{server_name} "
+
+        server_conf=options[server_name]
+        if !server_conf
+            STDERR.puts "Configuration for server not found"
+            break
+        end
+
+        begin
+            # timeout
+            timeout = server_conf[:timeout]
+            timeout ||= 15
+
+            Timeout.timeout(timeout) do
+                ldap=OpenNebula::LdapAuth.new(server_conf)
+
+                user_name, user_group_name = ldap.find_user(user)
+
+                if !user_name
+                    STDERR.puts "User #{user} not found"
+                    break
+                end
+
+                if server_conf[:group]
+                    if !ldap.is_in_group?(user_group_name, server_conf[:group])
+                        STDERR.puts "User #{user} is not in group #{server_conf[:group]}"
+                        break
+                    end
+                end
+
+                if ldap.authenticate(user_name, secret)
+                    groups = ldap.get_groups
+                    if groups.empty?
+                        if !server_conf[:mapping_default]
+                            STDERR.puts "User does not belong to a mapped group"
+                            break
+                        else
+                            groups = [server_conf[:mapping_default]]
+                        end
+                    end
+
+                    # authentication success
+                    group_list = groups.join(' ')
+                    escaped_user = URI_PARSER.escape(user).strip.downcase
+                    escaped_secret = URI_PARSER.escape(user_name)
+
+                    puts "ldap #{escaped_user} #{escaped_secret} #{group_list}"
+                    exit
+                else
+                    STDERR.puts "Bad user/password"
+                    break
+                end
+            end
+
+            # Note: break inside the Timeout block breaks only from
+            # the Timeout block. To break from the servers loop,
+            # we need to repeat here!
+            break
+        rescue SystemExit
+            raise
+        rescue Timeout::Error
+            STDERR.puts "Communication timed out with LDAP #{server_name}"
+        rescue Exception => e
+            STDERR.puts "Exception raised with LDAP #{server_name}: #{e}"
+        end
+    end
+end
+
+# authentication failure
+STDERR.puts "Could not authenticate user #{user}"
+exit(-1)

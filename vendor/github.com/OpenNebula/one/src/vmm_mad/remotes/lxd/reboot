@@ -1,0 +1,48 @@
+#!/usr/bin/ruby
+
+# -------------------------------------------------------------------------- #
+# Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+#--------------------------------------------------------------------------- #
+
+$LOAD_PATH.unshift File.dirname(__FILE__)
+
+require 'container'
+
+require_relative '../../scripts_common'
+
+# ------------------------------------------------------------------------------
+# Action Arguments, STDIN doesn't include XML description of the OpenNebula VM
+# ------------------------------------------------------------------------------
+vm_name = ARGV[0]
+
+client    = LXDClient.new
+container = Container.get(vm_name, nil, client)
+container = Container.get(vm_name, container.config['user.xml'], client)
+
+# ------------------------------------------------------------------------------
+# Stop the container, start it
+# ------------------------------------------------------------------------------
+case container.config['user.reboot_state']
+when 'STOPPED'
+    container.start
+    container.config['user.reboot_state'] = 'RUNNING'
+else
+    force = false
+    force = true if ARGV[-1] == '-f'
+    container.check_stop(force)
+    container.config['user.reboot_state'] = 'STOPPED'
+end
+
+container.update

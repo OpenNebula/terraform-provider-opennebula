@@ -1,0 +1,274 @@
+{{! -------------------------------------------------------------------------- }}
+{{! Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                }}
+{{!                                                                            }}
+{{! Licensed under the Apache License, Version 2.0 (the "License"); you may    }}
+{{! not use this file except in compliance with the License. You may obtain    }}
+{{! a copy of the License at                                                   }}
+{{!                                                                            }}
+{{! http://www.apache.org/licenses/LICENSE-2.0                                 }}
+{{!                                                                            }}
+{{! Unless required by applicable law or agreed to in writing, software        }}
+{{! distributed under the License is distributed on an "AS IS" BASIS,          }}
+{{! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   }}
+{{! See the License for the specific language governing permissions and        }}
+{{! limitations under the License.                                             }}
+{{! -------------------------------------------------------------------------- }}
+<div id="tabs-bootos" class="row collapse">
+  <div class="medium-2 columns">
+    <ul class="tabs vertical" id="osTabs" data-tabs>
+      <li class="tabs-title is-active">
+        <a href="#bootTab{{uniqueId}}">{{tr "Boot"}}</a>
+      </li>
+      <li class="tabs-title vm_updateconf_hide only_kvm not_lxd">
+        <a href="#kernelTab{{uniqueId}}">{{tr "Kernel"}}</a>
+      </li>
+      <li class="tabs-title vm_updateconf_hide only_kvm not_lxd">
+        <a href="#ramdiskTab{{uniqueId}}">{{tr "Ramdisk"}}</a>
+      </li>
+      <li class="tabs-title only_kvm not_lxd">
+        <a href="#featuresTab{{uniqueId}}">{{tr "Features"}}</a>
+      </li>
+      <li class="tabs-title only_kvm not_lxd">
+        <a href="#cpuTab{{uniqueId}}">{{tr "CPU Model"}}</a>
+      </li>
+    </ul>
+  </div>
+  <div class="medium-10 columns">
+    <div class="tabs-content vertical" data-tabs-content="osTabs">
+      <div class="wizard_internal_tab is-active tabs-panel bootTab" id="bootTab{{uniqueId}}">
+        <div class="row">
+          <div class="medium-4 columns only_kvm">
+            <label>
+              {{tr "CPU Architecture"}}
+              <select wizard_field="ARCH">
+                <option value=""></option>
+                <option value="i686">i686</option>
+                <option value="x86_64">x86_64</option>
+              </select>
+            </label>
+          </div>
+          <div class="medium-4 columns hypervisor only_kvm">
+            <label id="sd-disk-bus-info">
+              {{tr "Bus for SD disks"}}
+            </label>
+          </div>
+          <div class="medium-4 columns hypervisor only_kvm">
+            <label id="kvm-info">
+              {{tr "Machine type"}}
+            </label>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="medium-4 columns only_kvm">
+            <label>
+              {{tr "Root device"}}
+              <input type="text" wizard_field="ROOT" placeholder="sda1"/>
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="medium-8 columns">
+            <label>
+              {{tr "Boot order"}}
+              {{{tip (tr "Select the devices to boot from, and their order")}}}
+            </label>
+            <table class="boot-order dataTable" value="">
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <br/>
+        <div class="row">
+          <div class="large-12 columns only_kvm">
+            <label>
+              {{tr "Kernel boot parameters"}}
+              <input type="text" wizard_field="KERNEL_CMD" placeholder="ro console=tty1"/>
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="large-12 columns only_kvm">
+            <label>
+              {{tr "Path to the bootloader executable"}}
+              <input type="text" wizard_field="BOOTLOADER"/>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div id="kernelTab{{uniqueId}}" class="wizard_internal_tab tabs-panel kernelTab">
+        <div class="row">
+          <div class="large-12 columns text-center">
+            <input id="radioKernelDs{{uniqueId}}" type="radio" name="kernel_type" value="kernel_ds" checked/>
+            <label for="radioKernelDs{{uniqueId}}">{{tr "Registered Image"}}</label>
+            <input id="radioKernelPath{{uniqueId}}" type="radio" name="kernel_type" value="kernel_path"/>
+            <label for="radioKernelPath{{uniqueId}}">{{tr "Remote path"}}</label>
+          </div>
+        </div>
+        <br>
+        <div class="kernel_ds">
+          {{{kernelFilesTableHTML}}}
+          <div id="kernel_ds_inputs" class="row">
+            <div class="large-12 columns">
+              <label>
+                {{tr "KERNEL_DS"}}
+                <input type="text" wizard_field="KERNEL_DS" id="KERNEL_DS" name="KERNEL_DS"/>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div id="kernel_path_inputs" class="kernel_path row" hidden>
+          <div class="large-12 columns">
+            <label>
+              {{tr "Path to the OS kernel to boot the image"}}
+              <input type="text" wizard_field="KERNEL"/>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div id="ramdiskTab{{uniqueId}}" class="wizard_internal_tab tabs-panel ramdiskTab">
+        <div class="row">
+          <div class="large-12 columns text-center">
+            <input id="radioInintrdDs{{uniqueId}}" type="radio" name="initrd_type" value="initrd_ds" checked>
+            <label for="radioInintrdDs{{uniqueId}}">{{tr "Registered Image "}}</label>
+            <input id="radioInitrdPath{{uniqueId}}" type="radio" name="initrd_type" value="initrd_path">
+            <label for="radioInitrdPath{{uniqueId}}">{{tr "Remote path"}}</label>
+          </div>
+        </div>
+        <br>
+        <div class="initrd_ds">
+          {{{initrdFilesTableHTML}}}
+          <div class="row">
+            <div class="large-12 columns">
+              <label>
+                {{tr "INITRD_DS"}}
+                <input type="text" wizard_field="INITRD_DS" id="INITRD_DS" name="initrd_id"/>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div id="initrd_path_inputs" class="initrd_path" hidden>
+          <div class="row">
+            <div class="large-12 columns">
+              <label>
+                {{tr "Path to the initrd image"}}
+                <input type="text" wizard_field="INITRD"/>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard_internal_tab tabs-panel featuresTab" id="featuresTab{{uniqueId}}">
+        <div class="row">
+          <div class="medium-6 columns">
+            <label>
+              {{tr "ACPI"}}
+              {{{tip (tr "Add support in the VM for Advanced Configuration and Power Interface (ACPI)")}}}
+              <select wizard_field="ACPI">
+                <option value=""></option>
+                <option value="yes">{{tr "Yes"}}</option>
+                <option value="no">{{tr "No"}}</option>
+              </select>
+            </label>
+          </div>
+          <div class="medium-6 columns">
+            <label>
+              {{tr "PAE"}}
+              {{{tip (tr "Add support in the VM for Physical Address Extension (PAE)")}}}
+              <select wizard_field="PAE">
+                <option value=""></option>
+                <option value="yes">{{tr "Yes"}}</option>
+                <option value="no">{{tr "No"}}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="medium-6 columns">
+            <label>
+              {{tr "APIC"}}
+              {{{tip (tr "Enables the advanced programmable IRQ management.")}}}
+              <select wizard_field="APIC">
+                <option value=""></option>
+                <option value="yes">{{tr "Yes"}}</option>
+                <option value="no">{{tr "No"}}</option>
+              </select>
+            </label>
+          </div>
+          <div class="medium-6 columns">
+            <label>
+              {{tr "HYPERV"}}
+              {{{tip (tr "Add support in the VM for hyper-v features (HYPERV)")}}}
+              <select wizard_field="HYPERV">
+                <option value=""></option>
+                <option value="yes">{{tr "Yes"}}</option>
+                <option value="no">{{tr "No"}}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="medium-6 columns">
+            <label>
+              {{tr "Localtime"}}
+              {{{tip (tr "The guest clock will be synchronized to the hosts configured timezone when booted.")}}}
+              <select wizard_field="LOCALTIME">
+                <option value=""></option>
+                <option value="yes">{{tr "Yes"}}</option>
+                <option value="no">{{tr "No"}}</option>
+              </select>
+            </label>
+          </div>
+          <div class="medium-6 columns">
+            <label>
+              {{tr "QEMU Guest Agent"}}
+              {{{tip (tr "Enables the QEMU Guest Agent communication. This does not start the Guest Agent inside the VM.")}}}
+              <select wizard_field="GUEST_AGENT">
+                <option value=""></option>
+                <option value="yes">{{tr "Yes"}}</option>
+                <option value="no">{{tr "No"}}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="medium-6 columns">
+            <label>
+              {{tr "virtio-scsi Queues"}}
+              {{{tip (tr "Number of vCPU queues to use in the virtio-scsi controller. Leave blank to use the default value.")}}}
+              <select wizard_field="VIRTIO_SCSI_QUEUES">
+                <option value=""></option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="wizard_internal_tab tabs-panel cpuTab" id="cpuTab{{uniqueId}}">
+         <div class="row">
+          <div class="medium-4 columns">
+            <label id="cpu-model">
+              {{tr "CPU Model"}}
+            </label>
+          </div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
