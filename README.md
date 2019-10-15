@@ -1,6 +1,6 @@
-# addon-terraform
+# terraform-provider-opennebula
 
-[![Build Status](https://travis-ci.org/OpenNebula/addon-terraform.svg?branch=master)](https://travis-ci.org/OpenNebula/addon-terraform) [![codecov](https://codecov.io/gh/OpenNebula/addon-terraform/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenNebula/addon-terraform)
+[![Build Status](https://travis-ci.org/OpenNebula/terraform-provider-opennebula.svg?branch=master)](https://travis-ci.org/OpenNebula/terraform-provider-opennebula) [![codecov](https://codecov.io/gh/OpenNebula/terraform-provider-opennebula/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenNebula/terraform-provider-opennebula)
 
 ## Description
 
@@ -9,7 +9,7 @@
 ## Development
 
 Bug reports and pull requests are welcome on GitHub at
-https://github.com/OpenNebula/addon-terraform/issues.
+https://github.com/OpenNebula/terraform-provider-opennebula/issues.
 
 Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-participate-in-Add_on-Development) rules for any pull request.
 
@@ -125,7 +125,7 @@ This will initialize terraform to use OpenNebula Provider.
 
 ## Usage
 
-Lots of Examples and details of data sources and resources parameters are available on the [Wiki](https://github.com/OpenNebula/addon-terraform/wiki).
+Lots of Examples and details of data sources and resources parameters are available on the [Wiki](https://github.com/OpenNebula/terraform-provider-opennebula/wiki).
 
 ## References
 
