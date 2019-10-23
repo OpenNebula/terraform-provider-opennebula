@@ -1,0 +1,68 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%#= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-opennebula-index") %>>
+          <a href="/docs/providers/opennebula/index.html">OpenNebula Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-opennebula-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-opennebula-datasource-group") %>>
+              <a href="/docs/providers/opennebula/d/group.html">opennebula_group</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-datasource-image") %>>
+              <a href="/docs/providers/opennebula/d/image.html">opennebula_image</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-datasource-security-group") %>>
+              <a href="/docs/providers/opennebula/d/security_group.html">opennebula_security group</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-datasource-template") %>>
+              <a href="/docs/providers/opennebula/d/template.html">opennebula_template</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-datasource-virtual-data-center") %>>
+              <a href="/docs/providers/opennebula/d/virtual_data_center.html">opennebula_virtual data center</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-datasource-virtual-network") %>>
+              <a href="/docs/providers/opennebula/d/virtual_network.html">opennebula_virtual network</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-opennebula-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-opennebula-resource-group") %>>
+              <a href="/docs/providers/opennebula/r/group.html">opennebula_group</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-resource-image") %>>
+              <a href="/docs/providers/opennebula/r/image.html">opennebula_image</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-resource-security-group") %>>
+              <a href="/docs/providers/opennebula/r/security_group.html">opennebula_security group</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-resource-template") %>>
+              <a href="/docs/providers/opennebula/r/template.html">opennebula_template</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-resource-virtual-data-center") %>>
+              <a href="/docs/providers/opennebula/r/virtual_data_center.html">opennebula_virtual data center</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-resource-virtual-machine") %>>
+              <a href="/docs/providers/opennebula/r/virtual_machine.html">opennebula_virtual machine</a>
+            </li>
+            <li<%= sidebar_current("docs-opennebula-resource-virtual-network") %>>
+              <a href="/docs/providers/opennebula/r/virtual_network.html">opennebula_virtual network</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

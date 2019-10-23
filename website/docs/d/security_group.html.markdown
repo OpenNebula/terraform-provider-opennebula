@@ -1,0 +1,24 @@
+---
+layout: "opennebula"
+page_title: "OpenNebula: opennebula_security_group"
+sidebar_current: "docs-opennebula-datasource-security-group"
+description: |-
+  Get the security group information for a given name.
+---
+
+# opennebula_security_group
+
+Use this data source to retrieve the security group information for a given name.
+
+## Example Usage
+
+```hcl
+data "opennebula_security_group" "ExistingSecurityGroup" {
+  name = "My_Security_Group"
+}
+```
+
+## Argument Reference
+
+ * `name` - (Required) The OpenNebula security group to retrieve information for.
+
