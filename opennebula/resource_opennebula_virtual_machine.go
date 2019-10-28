@@ -19,15 +19,15 @@ import (
 )
 
 type vmTemplate struct {
-	CPU                float64                `xml:"CPU, omitempty"`
+	CPU                float64                `xml:"CPU,omitempty"`
 	VCPU               int                    `xml:"VCPU,omitempty"`
-	Memory             int                    `xml:"MEMORY, omitempty"`
-	NICs               []vmNIC                `xml:"NIC"`
+	Memory             int                    `xml:"MEMORY,omitempty"`
+	NICs               []vmNIC                `xml:"NIC,omitempty"`
 	NICAliases         []vm.NicAlias          `xml:"NIC_ALIAS"`
-	Context            stringMap              `xml:"CONTEXT"`
-	Disks              []vmDisk               `xml:"DISK"`
-	Graphics           *vmGraphics            `xml:"GRAPHICS"`
-	OS                 *vm.OS                 `xml:"OS"`
+	Context            stringMap              `xml:"CONTEXT,omitempty"`
+	Disks              []vmDisk               `xml:"DISK,omitempty"`
+	Graphics           []vmGraphics           `xml:"GRAPHICS,omitempty"`
+	OS                 []vm.OS                `xml:"OS,omitempty"`
 	Snapshots          []vm.Snapshot          `xml:"SNAPSHOT"`
 	SecurityGroupRules []vm.SecurityGroupRule `xml:"SECURITY_GROUP_RULE"`
 }
@@ -135,10 +135,10 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Final name of the VM instance",
 			},
 			"template_id": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ForceNew:      true,
-				Description:   "Id of the VM template to use",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Id of the VM template to use",
 			},
 			"pending": {
 				Type:        schema.TypeBool,
@@ -203,9 +203,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Current LCM state of the VM",
 			},
 			"cpu": {
-				Type:          schema.TypeFloat,
-				Optional:      true,
-				Description:   "Amount of CPU quota assigned to the virtual machine",
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Description: "Amount of CPU quota assigned to the virtual machine",
 			},
 			"vcpu": {
 				Type:        schema.TypeInt,
@@ -213,9 +213,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Number of virtual CPUs assigned to the virtual machine",
 			},
 			"memory": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				Description:   "Amount of memory (RAM) in MB assigned to the virtual machine",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Amount of memory (RAM) in MB assigned to the virtual machine",
 			},
 			"context": {
 				Type:        schema.TypeMap,
@@ -226,7 +226,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				//Computed:    true,
-				MinItems:    1,
+				MinItems:    0,
 				MaxItems:    8,
 				Description: "Definition of disks assigned to the Virtual Machine",
 				Elem: &schema.Resource{
@@ -253,9 +253,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"graphics": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MinItems: 0,
+				MaxItems: 1,
 				//Computed:    true,
-				MinItems:    1,
-				MaxItems:    1,
 				Description: "Definition of graphics adapter assigned to the Virtual Machine",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -283,7 +283,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				//Computed:    true,
-				MinItems:    1,
+				MinItems:    0,
 				MaxItems:    8,
 				Description: "Definition of network adapter(s) assigned to the Virtual Machine",
 				Elem: &schema.Resource{
@@ -330,9 +330,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"os": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MinItems: 0,
+				MaxItems: 8,
 				//Computed:    true,
-				MinItems:    1,
-				MaxItems:    1,
 				Description: "Definition of OS boot and type for the Virtual Machine",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -786,33 +786,35 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 	}
 
 	//Generate GRAPHICS definition
-	var vmgraphics vmGraphics
-	if g, ok := d.GetOk("graphics"); ok {
-		graphics := g.(*schema.Set).List()
-		graphicsconfig := graphics[0].(map[string]interface{})
+	graphics := d.Get("graphics").(*schema.Set).List()
+	vmgraphics := make([]vmGraphics, len(graphics))
+	for i := 0; i < len(graphics); i++ {
+		graphicsconfig := graphics[i].(map[string]interface{})
 		gfxlisten := graphicsconfig["listen"].(string)
 		gfxtype := graphicsconfig["type"].(string)
 		gfxport := graphicsconfig["port"].(string)
 		gfxkeymap := graphicsconfig["keymap"].(string)
-		vmgraphics = vmGraphics{
+		vmgraphic := vmGraphics{
 			Listen: gfxlisten,
 			Port:   gfxport,
 			Type:   gfxtype,
 			Keymap: gfxkeymap,
 		}
+		vmgraphics[i] = vmgraphic
 	}
 
 	//Generate OS definition
-	var vmos vm.OS
-	if o, ok := d.GetOk("os"); ok {
-		os := o.(*schema.Set).List()
-		osconfig := os[0].(map[string]interface{})
+	os := d.Get("os").(*schema.Set).List()
+	vmos := make([]vm.OS, len(os))
+	for i := 0; i < len(os); i++ {
+		osconfig := os[i].(map[string]interface{})
 		osarch := osconfig["arch"].(string)
 		osboot := osconfig["boot"].(string)
-		vmos = vm.OS{
+		vmo := vm.OS{
 			Arch: osarch,
 			Boot: osboot,
 		}
+		vmos[i] = vmo
 	}
 
 	//Pull all the bits together into the main VM template
@@ -831,8 +833,8 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 					Context:  vmcontext,
 					NICs:     vmnics,
 					Disks:    vmdisks,
-					Graphics: &vmgraphics,
-					OS:       &vmos,
+					Graphics: vmgraphics,
+					OS:       vmos,
 				}
 			}
 			vmtpl = &vmTemplate{
@@ -841,8 +843,8 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 				Context:  vmcontext,
 				NICs:     vmnics,
 				Disks:    vmdisks,
-				Graphics: &vmgraphics,
-				OS:       &vmos,
+				Graphics: vmgraphics,
+				OS:       vmos,
 			}
 		}
 		vmtpl = &vmTemplate{
@@ -850,16 +852,16 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 			Context:  vmcontext,
 			NICs:     vmnics,
 			Disks:    vmdisks,
-			Graphics: &vmgraphics,
-			OS:       &vmos,
+			Graphics: vmgraphics,
+			OS:       vmos,
 		}
 	} else {
 		vmtpl = &vmTemplate{
 			Context:  vmcontext,
 			NICs:     vmnics,
 			Disks:    vmdisks,
-			Graphics: &vmgraphics,
-			OS:       &vmos,
+			Graphics: vmgraphics,
+			OS:       vmos,
 		}
 	}
 
