@@ -22,13 +22,13 @@ export TF_ACC=1
 export CODECOV_TOKEN="b4d4b95c-bb63-4412-b3aa-6d0cf674d619"
 
 # install dep dependencies manager
-curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+#curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 # get dependencies
-dep ensure
+#dep ensure
 
 # build addon
-go build -o terraform-provider-opennebula
+make build
 
 # Run tests
 echo "" > coverage.txt
