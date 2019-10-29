@@ -3,9 +3,12 @@ package opennebula
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 )
 
 func resourceOpennebulaGroup() *schema.Resource {
@@ -178,7 +181,7 @@ func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupCo
 	if d.Id() != "" {
 		gid, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("Group Id (%s) is not an integer", d.Id())
+			return nil, err
 		}
 		gc = controller.Group(int(gid))
 	}
@@ -187,8 +190,7 @@ func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupCo
 	if d.Id() == "" {
 		gid, err := controller.Groups().ByName(d.Get("name").(string))
 		if err != nil {
-			d.SetId("")
-			return nil, fmt.Errorf("Could not find Group with name %s", d.Get("name").(string))
+			return nil, err
 		}
 		gc = controller.Group(gid)
 	}
@@ -240,7 +242,21 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error {
 	gc, err := getGroupController(d, meta)
 	if err != nil {
-		return err
+		switch err.(type) {
+		case *errs.ClientError:
+			clientErr, _ := err.(*errs.ClientError)
+			if clientErr.Code == errs.ClientRespHTTP {
+				response := clientErr.GetHTTPResponse()
+				if response.StatusCode == http.StatusNotFound {
+					log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
+					d.SetId("")
+					return nil
+				}
+			}
+			return err
+		default:
+			return err
+		}
 	}
 
 	// TODO: fix it after 5.10 release

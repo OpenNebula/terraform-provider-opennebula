@@ -10,11 +10,13 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"io"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 )
 
@@ -370,7 +372,7 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 	if d.Id() != "" {
 		id, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("VM Id (%s) is not an integer", d.Id())
+			return nil, err
 		}
 		vmc = controller.VM(int(id))
 	}
@@ -379,8 +381,7 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 	if d.Id() == "" {
 		gid, err := controller.VMs().ByName(d.Get("name").(string), args...)
 		if err != nil {
-			d.SetId("")
-			return nil, fmt.Errorf("Could not find VM with name %s", d.Get("name").(string))
+			return nil, err
 		}
 		vmc = controller.VM(gid)
 	}
@@ -495,7 +496,21 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
 	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
 	if err != nil {
-		return err
+		switch err.(type) {
+		case *errs.ClientError:
+			clientErr, _ := err.(*errs.ClientError)
+			if clientErr.Code == errs.ClientRespHTTP {
+				response := clientErr.GetHTTPResponse()
+				if response.StatusCode == http.StatusNotFound {
+					log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
+					d.SetId("")
+					return nil
+				}
+			}
+			return err
+		default:
+			return err
+		}
 	}
 
 	// TODO: fix it after 5.10 release

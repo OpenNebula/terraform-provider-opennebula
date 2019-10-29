@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 )
 
@@ -290,7 +292,7 @@ func getVirtualNetworkController(d *schema.ResourceData, meta interface{}, args 
 	if d.Id() != "" {
 		id, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("VNet Id (%s) is not an integer", d.Id())
+			return nil, err
 		}
 		vnc = controller.VirtualNetwork(int(id))
 	}
@@ -299,8 +301,7 @@ func getVirtualNetworkController(d *schema.ResourceData, meta interface{}, args 
 	if d.Id() == "" {
 		id, err := controller.VirtualNetworks().ByName(d.Get("name").(string), args...)
 		if err != nil {
-			d.SetId("")
-			return nil, fmt.Errorf("Could not find VNet with name %s", d.Get("name").(string))
+			return nil, err
 		}
 		vnc = controller.VirtualNetwork(id)
 	}
@@ -733,7 +734,22 @@ func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
 func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	vnc, err := getVirtualNetworkController(d, meta, -2, -1, -1)
 	if err != nil {
-		return err
+		switch err.(type) {
+		// The service down when have a HTTP response with code other than 2XX
+		case *errs.ClientError:
+			clientErr, _ := err.(*errs.ClientError)
+			if clientErr.Code == errs.ClientRespHTTP {
+				response := clientErr.GetHTTPResponse()
+				if response.StatusCode == http.StatusNotFound {
+					log.Printf("[WARN] Removing virtual network %s from state because it no longer exists in", d.Get("name"))
+					d.SetId("")
+					return nil
+				}
+			}
+			return err
+		default:
+			return err
+		}
 	}
 
 	// TODO: fix it after 5.10 release
