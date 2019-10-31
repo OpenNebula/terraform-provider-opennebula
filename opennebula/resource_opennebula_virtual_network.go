@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/structs"
+	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
@@ -829,6 +830,28 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		if err != nil {
 			return err
 		}
+	}
+
+	if d.HasChange("gateway") {
+		err := vnc.Update(fmt.Sprintf("GATEWAY = \"%s\"", d.Get("gateway").(string)), 1)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("dns") {
+		err := vnc.Update(fmt.Sprintf("DNS = \"%s\"", d.Get("dns").(string)), 1)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("network_mask") {
+		err := vnc.Update(fmt.Sprintf("NETWORK_MASK = \"%s\"", d.Get("network_mask").(string)), 1)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	if d.HasChange("security_groups") {
