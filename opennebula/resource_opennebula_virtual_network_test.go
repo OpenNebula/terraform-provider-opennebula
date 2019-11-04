@@ -2,12 +2,13 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
@@ -29,6 +30,9 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "mtu", "1500"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "permissions", "642"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "dns", "172.16.100.1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "gateway", "172.16.100.1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_mask", "255.255.255.0"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
@@ -60,6 +64,9 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "mtu", "1500"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "group", "users"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "dns", "172.16.100.254"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "gateway", "172.16.100.254"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_mask", "255.255.0.0"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
@@ -240,6 +247,9 @@ resource "opennebula_virtual_network" "test" {
   type            = "vxlan"
   vlan_id         = "8000046"
   mtu             = 1500
+  gateway         = "172.16.100.1"
+  dns             = "172.16.100.1"
+  network_mask    = "255.255.255.0"
   ar {
     ar_type = "IP4"
     size    = 16
@@ -264,6 +274,9 @@ resource "opennebula_virtual_network" "test" {
   type            = "vxlan"
   vlan_id         = "8000046"
   mtu             = 1500
+  gateway         = "172.16.100.254"
+  dns             = "172.16.100.254"
+  network_mask    = "255.255.0.0"
   ar {
     ar_type = "IP4"
     size    = 16
