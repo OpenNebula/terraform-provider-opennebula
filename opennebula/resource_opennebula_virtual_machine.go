@@ -332,8 +332,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"os": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				MinItems: 0,
-				MaxItems: 8,
+				MaxItems: 1,
 				//Computed:    true,
 				Description: "Definition of OS boot and type for the Virtual Machine",
 				Elem: &schema.Resource{
@@ -530,25 +529,42 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	d.Set("state", vm.StateRaw)
 	d.Set("lcmstate", vm.LCMStateRaw)
 	//TODO fix this:
-	//d.Set("ip", vm.VmTemplate.Context.IP)
-	d.Set("permissions", permissionsUnixString(vm.Permissions))
+	err = d.Set("permissions", permissionsUnixString(vm.Permissions))
+	if err != nil {
+		return err
+	}
 
 	//Pull in NIC config from OpenNebula into schema
 	if vm.Template.NICs != nil {
-		d.Set("nic", generateNicMapFromStructs(vm.Template.NICs))
+		err = d.Set("nic", generateNicMapFromStructs(vm.Template.NICs))
+		if err != nil {
+			return err
+		}
 		d.Set("ip", &vm.Template.NICs[0].IP)
+		if err != nil {
+			return err
+		}
 	}
 
 	if vm.Template.Disks != nil {
-		d.Set("disk", generateDiskMapFromStructs(vm.Template.Disks))
+		err = d.Set("disk", generateDiskMapFromStructs(vm.Template.Disks))
+		if err != nil {
+			return err
+		}
 	}
 
 	if vm.Template.OS != nil {
-		d.Set("os", generateOskMapFromStructs(*vm.Template.OS))
+		err = d.Set("os", generateOskMapFromStructs(*vm.Template.OS))
+		if err != nil {
+			return err
+		}
 	}
 
 	if vm.Template.Graphics != nil {
-		d.Set("graphics", generateGraphicskMapFromStructs(*vm.Template.Graphics))
+		err = d.Set("graphics", generateGraphicskMapFromStructs(*vm.Template.Graphics))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

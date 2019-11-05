@@ -735,7 +735,6 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	vnc, err := getVirtualNetworkController(d, meta, -2, -1, -1)
 	if err != nil {
 		switch err.(type) {
-		// The service down when have a HTTP response with code other than 2XX
 		case *errs.ClientError:
 			clientErr, _ := err.(*errs.ClientError)
 			if clientErr.Code == errs.ClientRespHTTP {
@@ -798,13 +797,23 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	if err != nil {
 		log.Printf("[DEBUG] Error setting security groups on vnet: %s", err)
 	}
-	mtu, _ := vn.Template.Dynamic.GetContentByName("MTU")
-	if mtu != "" {
-		d.Set("mtu", fmt.Sprintf("%v", mtu))
+	mtustr, _ := vn.Template.Dynamic.GetContentByName("MTU")
+	if mtustr != "" {
+		mtu, err := strconv.ParseInt(mtustr, 10, 64)
+		if err != nil {
+			return err
+		}
+		err = d.Set("mtu", mtu)
+		if err != nil {
+			return err
+		}
 	}
 	desc, _ := vn.Template.Dynamic.GetContentByName("DESCRIPTION")
 	if desc != "" {
-		d.Set("description", fmt.Sprintf("%v", desc))
+		err = d.Set("description", fmt.Sprintf("%v", desc))
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := d.Set("ar", generateARMapFromStructs(vn.ARs)); err != nil {
