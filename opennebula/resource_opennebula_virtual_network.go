@@ -674,26 +674,35 @@ func generateVnXML(d *schema.ResourceData) (string, error) {
 	if vnmad == "" {
 		vnmad = "bridge"
 	}
-	vnautovlan := "0"
-	var vnvlan string
+	var vntpl *vn.VirtualNetwork
 
 	if validVlanType(vnmad) >= 0 {
 		if d.Get("automatic_vlan_id") == true {
-			vnautovlan = "1"
+			vntpl = &vn.VirtualNetwork{
+				Name:            vnname,
+				Bridge:          vnbridge,
+				PhyDev:          vnphydev,
+				VNMad:           vnmad,
+				VlanIDAutomatic: "YES",
+			}
 		} else if vlanid, ok := d.GetOk("vlan_id"); ok {
-			vnvlan = vlanid.(string)
+			vntpl = &vn.VirtualNetwork{
+				Name:   vnname,
+				Bridge: vnbridge,
+				PhyDev: vnphydev,
+				VNMad:  vnmad,
+				VlanID: vlanid.(string),
+			}
 		} else {
 			return "", fmt.Errorf("You must specify a 'vlan_id' or set the flag 'automatic_vlan_id'")
 		}
-	}
-
-	vntpl := &vn.VirtualNetwork{
-		Name:            vnname,
-		Bridge:          vnbridge,
-		PhyDev:          vnphydev,
-		VNMad:           vnmad,
-		VlanIDAutomatic: vnautovlan,
-		VlanID:          vnvlan,
+	} else {
+		vntpl = &vn.VirtualNetwork{
+			Name:   vnname,
+			Bridge: vnbridge,
+			PhyDev: vnphydev,
+			VNMad:  vnmad,
+		}
 	}
 
 	w := &bytes.Buffer{}
