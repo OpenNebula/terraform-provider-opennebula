@@ -166,7 +166,7 @@ func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) 
 	tc := controller.Template(tplID)
 
 	// add template information into Template
-	err = tc.Update(d.Get("template").(string), 1)
+	err = tc.Update(d.Get("template").(string), 0)
 
 	d.SetId(fmt.Sprintf("%v", tplID))
 
@@ -230,7 +230,10 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 	// Get Human readable tpl information
 	tplstr := pretty.Sprint(tpl.Template)
 
-	d.Set("template", tplstr)
+	err = d.Set("template", tplstr)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -276,7 +279,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 
 	if d.HasChange("template") && d.Get("tpl") != "" {
 		// replace the whole template instead of merging it with the existing one
-		err = tc.Update(d.Get("template").(string), 0)
+		err = tc.Update(d.Get("template").(string), 1)
 		if err != nil {
 			return err
 		}
