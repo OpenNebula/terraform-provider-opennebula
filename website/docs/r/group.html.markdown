@@ -127,5 +127,22 @@ The following attribute is exported:
 
 ## Import
 
-Not tested yet
+To import an existing group #134 into Terraform, add this declaration to your .tf file:
 
+```hcl
+resource "opennebula_group" "importgroup" {
+    name = "importedgroup"
+}
+```
+
+And then run:
+
+```
+terraform import opennebula_group.importgroup 134
+```
+
+Verify that Terraform does not perform any change:
+
+```
+terraform plan
+```

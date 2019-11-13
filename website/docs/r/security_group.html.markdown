@@ -73,5 +73,22 @@ The following attribute are exported:
 
 ## Import
 
-Not tested yet
+To import an existing security group #142 into Terraform, add this declaration to your .tf file:
 
+```hcl
+resource "opennebula_security_group" "importsg" {
+    name = "importedsg"
+}
+```
+
+And then run:
+
+```
+terraform import opennebula_security_group.importsg 142
+```
+
+Verify that Terraform does not perform any change:
+
+```
+terraform plan
+```

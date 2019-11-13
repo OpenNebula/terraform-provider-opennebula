@@ -133,5 +133,22 @@ The following attribute are exported:
 
 ## Import
 
-Not tested yet
+To import an existing virtual machine #42 into Terraform, add this declaration to your .tf file:
+
+```hcl
+resource "opennebula_virtual_machine" "importvm" {
+    name = "importedvm"
+}
+
+And then run:
+
+```
+terraform import opennebula_virtual_machine.importvm 42
+```
+
+Verify that Terraform does not perform any change:
+
+```
+terraform plan
+```
 

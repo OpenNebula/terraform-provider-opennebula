@@ -54,6 +54,22 @@ The following attribute is exported:
 
 ## Import
 
-Not tested yet
+To import an existing virtual data center #13 into Terraform, add this declaration to your .tf file:
 
+```hcl
+resource "opennebula_virtual_data_center" "importvdc" {
+    name = "importedvdc"
+}
+```
 
+And then run:
+
+```
+terraform import opennebula_virtual_data_center.importvdc 13
+```
+
+Verify that Terraform does not perform any change:
+
+```
+terraform plan
+```

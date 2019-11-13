@@ -66,6 +66,22 @@ The following attribute are exported:
 
 ## Import
 
-Not tested yet
+To import an existing virtual machine template #54 into Terraform, add this declaration to your .tf file:
 
+```hcl
+resource "opennebula_template" "importtpl" {
+    name = "importedtpl"
+}
+```
 
+And then run:
+
+```
+terraform import opennebula_template.importtppl 54
+```
+
+Verify that Terraform does not perform any change:
+
+```
+terraform plan
+```

@@ -112,5 +112,22 @@ The following attributes are exported:
 
 ## Import
 
-Not tested yet
+To import an existing image #14 into Terraform, add this declaration to your .tf file:
 
+```hcl
+resource "opennebula_image" "importimage" {
+    name = "importedimage"
+}
+```
+
+And then run:
+
+```
+terraform import opennebula_image.importimage 14
+```
+
+Verify that Terraform does not perform any change:
+
+```
+terraform plan
+```
