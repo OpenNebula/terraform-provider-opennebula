@@ -33,7 +33,7 @@ with template file `template-tpl.txt`:
 CPU = 1
 VCPU = 1
 MEMORY = 512
-Context =  [ 
+Context =  [
   DNS_HOSTNAME = "YES",
   NETWORK = "YES",
   SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]"
