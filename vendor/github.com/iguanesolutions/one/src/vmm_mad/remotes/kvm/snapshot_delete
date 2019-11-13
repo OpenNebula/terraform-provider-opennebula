@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# -------------------------------------------------------------------------- #
+# Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+#--------------------------------------------------------------------------- #
+
+source $(dirname $0)/../../etc/vmm/kvm/kvmrc
+source $(dirname $0)/../../scripts_common.sh
+
+DOMAIN="$1"
+NAME="$2"
+
+# -------- Get datastore location from libvirt metadata ------------
+
+DRIVER_PATH=$(dirname $0)
+XPATH="${DRIVER_PATH}/../../datastore/xpath.rb --stdin"
+
+METADATA_XML=`virsh --connect $LIBVIRT_URI metadata $DOMAIN $LIBVIRT_MD_URI $LIBVIRT_MD_KEY`
+
+unset i XPATH_ELEMENTS
+
+while IFS= read -r -d '' element; do
+    XPATH_ELEMENTS[i++]="$element"
+done < <(echo "$METADATA_XML" | $XPATH /vm/system_datastore/)
+
+unset i
+
+DATASTORE_PATH="${XPATH_ELEMENTS[i++]}"
+
+
+# ------ Delete snapshot metadata and the snapshot itself ----------
+
+[ -n "$DATASTORE_PATH" ] && rm ${DATASTORE_PATH}/${NAME}.xml 2>/dev/null || true
+
+exec_and_log \
+    "virsh --connect $LIBVIRT_URI snapshot-delete $DOMAIN $NAME" \
+    "Could not delete snapshot $NAME for domain $DOMAIN."
+
+exit 0

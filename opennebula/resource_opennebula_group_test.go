@@ -17,21 +17,24 @@ func TestAccGroup(t *testing.T) {
 		CheckDestroy: testAccCheckGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGroupConfigBasic,
+				Config:             testAccGroupConfigBasic,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "delete_on_destruction", "false"),
 				),
 			},
 			{
-				Config: testAccGroupConfigUpdate,
+				Config:             testAccGroupConfigUpdate,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "delete_on_destruction", "true"),
 				),
 			},
 			{
-				Config: testAccGroupLigh,
+				Config:             testAccGroupLigh,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
 					resource.TestCheckResourceAttr("opennebula_group.group2", "delete_on_destruction", "true"),
@@ -72,17 +75,12 @@ resource "opennebula_group" "group" {
     EOF
     delete_on_destruction = false
     quotas {
-        datastore {
-            datastore_id = 100
+        datastore_quotas {
+            id = 1
             images = 3
             size = 100
         }
-        datastore {
-            datastore_id = 101
-            images = 2
-            size = 50
-        }
-        vm {
+        vm_quotas {
             cpu = 4
             memory = 8192
         }
@@ -103,17 +101,12 @@ resource "opennebula_group" "group" {
     EOF
     delete_on_destruction = true
     quotas {
-        datastore {
-            datastore_id = 100
+        datastore_quotas {
+            id = 1
             images = 4
             size = 100
         }
-        datastore {
-            datastore_id = 101
-            images = 1
-            size = 50
-        }
-        vm {
+        vm_quotas {
             cpu = 4
             memory = 8192
         }
@@ -134,17 +127,12 @@ resource "opennebula_group" "group" {
     EOF
     delete_on_destruction = true
     quotas {
-        datastore {
-            datastore_id = 100
+        datastore_quotas {
+            id = 1
             images = 4
             size = 100
         }
-        datastore {
-            datastore_id = 101
-            images = 1
-            size = 50
-        }
-        vm {
+        vm_quotas {
             cpu = 4
             memory = 8192
         }

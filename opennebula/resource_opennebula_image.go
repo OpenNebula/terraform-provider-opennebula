@@ -7,11 +7,13 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
@@ -207,7 +209,7 @@ func getImageController(d *schema.ResourceData, meta interface{}, args ...int) (
 	if d.Id() != "" {
 		gid, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("Image Id (%s) is not an integer", d.Id())
+			return nil, err
 		}
 		ic = controller.Image(int(gid))
 	}
@@ -216,8 +218,7 @@ func getImageController(d *schema.ResourceData, meta interface{}, args ...int) (
 	if d.Id() == "" {
 		gid, err := controller.Images().ByName(d.Get("name").(string), args...)
 		if err != nil {
-			d.SetId("")
-			return nil, fmt.Errorf("Could not find Image with name %s, got id: %d", d.Get("name").(string), gid)
+			return nil, err
 		}
 		ic = controller.Image(gid)
 	}
@@ -417,7 +418,21 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	// Get all images
 	ic, err := getImageController(d, meta, -2, -1, -1)
 	if err != nil {
-		return err
+		switch err.(type) {
+		case *errs.ClientError:
+			clientErr, _ := err.(*errs.ClientError)
+			if clientErr.Code == errs.ClientRespHTTP {
+				response := clientErr.GetHTTPResponse()
+				if response.StatusCode == http.StatusNotFound {
+					log.Printf("[WARN] Removing image %s from state because it no longer exists in", d.Get("name"))
+					d.SetId("")
+					return nil
+				}
+			}
+			return err
+		default:
+			return err
+		}
 	}
 
 	// TODO: fix it after 5.10 release

@@ -1,0 +1,79 @@
+# -------------------------------------------------------------------------- #
+# Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+#--------------------------------------------------------------------------- #
+
+export LANG=C
+
+export LIBVIRT_URI=qemu:///system
+
+export QEMU_PROTOCOL=qemu+ssh
+
+export LIBVIRT_MD_URI=http://opennebula.org/xmlns/libvirt/1.0
+export LIBVIRT_MD_KEY=one
+
+# Seconds to wait after shutdown until timeout
+export SHUTDOWN_TIMEOUT=300
+
+# Uncomment this line to force VM cancellation after shutdown timeout
+#export FORCE_DESTROY=yes
+
+# Uncomment this line to force VM's without ACPI enabled to be destroyed
+# on shutdown
+#CANCEL_NO_ACPI=yes
+
+# This parameter will set the default cache type for new attached disks. It
+# will be used in case the attached disk does not have an specific cache
+# method set (can be set using templates when attaching a disk).
+#DEFAULT_ATTACH_CACHE=none
+
+# Uncomment this line to set options for the virsh migrate command
+#MIGRATE_OPTIONS=--unsafe
+
+# IDE and SCSI disks always have the ability to issue "discard"
+# (aka TRIM or UNMAP) commands. However, by default "discard" commands are
+# silently ignored as they can cause performance degradation and fragmentation.
+# To enable them, the "-drive" option now supports a "discard" suboption; the
+# default value is "ignore" (or its synonym "off"), and the other valid value
+# is "unmap" (or "on").
+#DEFAULT_ATTACH_DISCARD=unmap
+
+# The default DISK I/O policy for new attached disks.
+#DEFAULT_ATTACH_IO=
+
+# These parameters set the default DISK I/O throttling attributes
+# for the new attached disk in case they aren't set.
+#DEFAULT_ATTACH_TOTAL_BYTES_SEC=
+#DEFAULT_ATTACH_TOTAL_BYTES_SEC_MAX=
+#DEFAULT_ATTACH_TOTAL_BYTES_SEC_MAX_LENGTH=
+#DEFAULT_ATTACH_READ_BYTES_SEC=
+#DEFAULT_ATTACH_READ_BYTES_SEC_MAX=
+#DEFAULT_ATTACH_READ_BYTES_SEC_MAX_LENGTH=
+#DEFAULT_ATTACH_WRITE_BYTES_SEC=
+#DEFAULT_ATTACH_WRITE_BYTES_SEC_MAX=
+#DEFAULT_ATTACH_WRITE_BYTES_SEC_MAX_LENGTH=
+#DEFAULT_ATTACH_TOTAL_IOPS_SEC=
+#DEFAULT_ATTACH_TOTAL_IOPS_SEC_MAX=
+#DEFAULT_ATTACH_TOTAL_IOPS_SEC_MAX_LENGTH=
+#DEFAULT_ATTACH_READ_IOPS_SEC=
+#DEFAULT_ATTACH_READ_IOPS_SEC_MAX=
+#DEFAULT_ATTACH_READ_IOPS_SEC_MAX_LENGTH=
+#DEFAULT_ATTACH_WRITE_IOPS_SEC=
+#DEFAULT_ATTACH_WRITE_IOPS_SEC_MAX=
+#DEFAULT_ATTACH_WRITE_IOPS_SEC_MAX_LENGTH=
+
+# This parameters will set the default NIC model and filter for
+# the hot-attached interfaces.
+#DEFAULT_ATTACH_NIC_MODEL=virtio
+#DEFAULT_ATTACH_NIC_FILTER=clean-traffic

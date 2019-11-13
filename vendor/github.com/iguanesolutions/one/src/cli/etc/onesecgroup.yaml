@@ -1,0 +1,44 @@
+---
+:ID:
+  :desc: ONE identifier for the Security Group
+  :size: 4
+
+:NAME:
+  :desc: Name of the Security Group
+  :size: 20
+  :left: true
+
+:USER:
+  :desc: Username of the Security Group owner
+  :size: 15
+  :left: true
+
+:GROUP:
+  :desc: Group of the Security Group
+  :size: 15
+  :left: true
+
+:UPDATED:
+  :desc: Number of VMs with updated rules
+  :size: 8
+  :left: false
+
+
+:OUTDATED:
+  :desc: Number of VMs with outdated rules
+  :size: 8
+  :left: false
+
+:ERROR:
+  :desc: Number of VMs that failed to update rules 
+  :size: 8
+  :left: false
+
+:default:
+- :ID
+- :USER
+- :GROUP
+- :NAME
+- :UPDATED
+- :OUTDATED
+- :ERROR

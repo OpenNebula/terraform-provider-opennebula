@@ -1,0 +1,222 @@
+{{! -------------------------------------------------------------------------- }}
+{{! Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                }}
+{{!                                                                            }}
+{{! Licensed under the Apache License, Version 2.0 (the "License"); you may    }}
+{{! not use this file except in compliance with the License. You may obtain    }}
+{{! a copy of the License at                                                   }}
+{{!                                                                            }}
+{{! http://www.apache.org/licenses/LICENSE-2.0                                 }}
+{{!                                                                            }}
+{{! Unless required by applicable law or agreed to in writing, software        }}
+{{! distributed under the License is distributed on an "AS IS" BASIS,          }}
+{{! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   }}
+{{! See the License for the specific language governing permissions and        }}
+{{! limitations under the License.                                             }}
+{{! -------------------------------------------------------------------------- }}
+
+<form data-abide novalidate id="{{formPanelId}}Wizard" class="custom creation">
+  <div class="row">
+    <div class="medium-4 columns">
+      <label for="img_name">
+        {{tr "Name"}}
+      </label>
+      <input required type="text" name="img_name" id="img_name" />
+    </div>
+    <div class="medium-8 columns">
+      <label for="img_desc">
+        {{tr "Description"}}
+      </label>
+      <textarea name="img_desc" id="img_desc" rows="4"></textarea>
+    </div>
+  </div>
+  <div class="row">
+    <div class="medium-4 columns">
+      <label for="img_type">
+          {{tr "Type"}}
+      </label>
+      <select name="img_type" id="img_type">
+        {{#if images}}
+        <option value="OS">{{tr "Operating System image"}}</option>
+        <option value="CDROM">{{tr "Readonly CD-ROM"}}</option>
+        <option value="DATABLOCK">{{tr "Generic storage datablock"}}</option>
+        {{else}}
+        <option value="CONTEXT">{{tr "Context"}}</option>
+        <option value="KERNEL">{{tr "Kernel"}}</option>
+        <option value="RAMDISK">{{tr "Ramdisk"}}</option>
+        {{/if}}
+      </select>
+    </div>
+    <div class="medium-8 columns">
+      <label for="img_datastore">
+        {{tr "Datastore"}}
+      </label>
+      <div id="img_datastore" name="img_datastore"></div>
+    </div>
+  </div>
+  {{#if images}}
+  {{#isTabActionEnabled "images-tab" "Image.persistent"}}
+    <div class="row">
+      <div class="large-4 columns">
+        <div class="row">
+          <div class="large-8 columns">
+            <label>
+              {{tr "This image is persistent"}}
+            </label>
+          </div>
+          <div class="large-4 columns">
+            <select id="img_persistent">
+              <option value=""></option>
+              <option value="YES"> {{tr "YES"}}</option>
+              <option value="NO"> {{tr "NO"}}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  {{/isTabActionEnabled}}
+  {{/if}}
+  <br>
+  <fieldset>
+    <legend>{{tr "Image location"}}</legend>
+    <div class="row" id="src_path_select">
+      <div class="large-12 columns text-center">
+        <input type="radio" name="src_path" id="path_image" value="path">
+        <label for="path_image">{{tr "Path in OpenNebula server"}}</label>
+        <input type="radio" name="src_path" id="upload_image" value="upload">
+        <label for="upload_image">{{tr "Upload"}}</label>
+        {{#if images}}
+        <input type="radio" name="src_path" id="datablock_img" value="datablock">
+        <label for="datablock_img">{{tr "Empty disk image"}}</label>
+        {{/if}}
+      </div>
+    </div>
+    <br>
+    <div class="row">
+      <div class="large-12 columns">
+        <label for="img_path">
+          {{tr "Path"}}
+        </label>
+        <input type="text" name="img_path" id="img_path" />
+      </div>
+    </div>
+    <div class="row">
+      <div id="file-uploader" class="large-12 columns text-center">
+        <label id="file-uploader-label" for="file-uploader-input"></label>
+        <i id="close_image" class="fas fa-times-circle fas fa-lg close_image" hidden="true"></i>
+        <input id="file-uploader-input" type="file"/>
+      </div>
+    </div>
+    <div class="img_size row">
+      <div class="medium-6 columns">
+        <label for="img_size">
+          {{tr "Size"}}
+        </label>
+        <div class="input-group mb_input_wrapper">
+          <div class="input-group-field">
+            <input type="text" name="img_size" id="img_size" />
+          </div>
+          <div class="input-group-button">
+            <select class="mb_input_unit">
+              <option value="MB">{{tr "MB"}}</option>
+              <option value="GB" selected>{{tr "GB"}}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="medium-6 columns only_vcenter">
+        <label for="vcenter_disk_type">
+          {{tr "Disk provisioning type"}}
+        </label>
+        <select name="vcenter_disk_type" id="vcenter_disk_type">
+          <option value="" selected="selected"></option>
+          <option value="thin">Thin</option>
+          <option value="thick">Thick</option>
+          <option value="eagerZeroedThick">Eager Zeroed Thick</option>
+          <option value="custom">custom</option>
+        </select>
+        <div>
+          <input type="text" id="custom_vcenter_disk_type" name="custom_vcenter_disk_type" />
+        </div>
+      </div>
+    </div>
+  </fieldset>
+  {{#if images}}
+  {{#advancedSection (tr "Advanced Options") }}
+    <div class="row">
+      <div class="medium-6 columns">
+        <div class="row only_vcenter">
+          <div class="large-12 columns">
+            <label for="vcenter_adapter_type">
+              {{tr "Bus adapter controller"}}
+            </label>
+            <select name="vcenter_adapter_type" id="vcenter_adapter_type">
+              <option value="" selected="selected"></option>
+              <option value="lsiLogic">lsiLogic</option>
+              <option value="ide">ide</option>
+              <option value="busLogic">busLogic</option>
+              <option value="custom">custom</option>
+            </select>
+            <div>
+              <input type="text" id="custom_vcenter_adapter_type" name="custom_vcenter_adapter_type" />
+            </div>
+          </div>
+        </div>
+        <div class="row not_vcenter">
+          <div class="large-12 columns">
+            <label for="img_dev_prefix">
+              {{tr "BUS"}}
+            </label>
+            <select name="img_dev_prefix" id="img_dev_prefix">
+              <option value="" selected="selected"></option>
+              <option value="vd">Virtio</option>
+              <option value="sd">SCSI/SATA</option>
+              <option value="hd">Parallel ATA (IDE)</option>
+              <option value="custom">custom</option>
+            </select>
+            <div>
+              <input type="text" id="custom_img_dev_prefix" name="custom_img_dev_prefix" />
+            </div>
+          </div>
+        </div>
+        <div class="row not_vcenter">
+          <div class="large-12 columns">
+            <label for="img_driver">
+              {{tr "Image mapping driver"}}
+            </label>
+            <select name="img_driver" id="img_driver">
+              <option value=""></option>
+              <option value="raw">raw</option>
+              <option value="bochs">bochs</option>
+              <option value="qcow2">qcow2</option>
+              <option value="qed">qed</option>
+              <option value="custom">custom</option>
+            </select>
+            <div>
+              <input type="text" id="custom_img_driver" name="custom_img_driver" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="medium-6 columns">
+        <div class="row not_vcenter">
+          <div class="large-12 columns">
+            <label for="img_target">
+              {{tr "Target device"}}
+            </label>
+            <input type="text" name="img_target" id="img_target" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+    <fieldset>
+      <div class="row">
+        <div class="large-12 columns">
+          <legend>{{tr "Custom attributes"}}</legend>
+        </div>
+      </div>
+      {{{customTagsHTML}}}
+    </fieldset>
+  {{/advancedSection}}
+  {{/if}}
+</form>

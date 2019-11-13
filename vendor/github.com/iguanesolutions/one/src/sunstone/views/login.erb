@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>OpenNebula Sunstone Login</title>
+
+    <!--[if IE]><link rel="shortcut icon" href="images/favicon.ico"><![endif]-->
+    <link rel="apple-touch-icon-precomposed" href="images/apple-touch-icon-precomposed.png">
+    <link rel="icon" href="images/favicon.png">
+
+    <link rel="stylesheet" type="text/css" href="css/login.css" />
+
+    <% if $conf[:env] == 'dev' %>
+      <script src="bower_components/requirejs/require.js" data-main="app/login"></script>
+    <% else %>
+      <script src="dist/login.js"></script>
+    <% end %>
+  </head>
+
+  <body>
+
+    <% if (settings.config[:auth] == "x509") || (settings.config[:auth] == "remote") %>
+    <%= erb :_login_x509 %>
+    <% else %>
+    <%= erb :_login_standard %>
+    <% end %>
+
+    <div id="footer" style="overflow:visible;">
+      <a href="http://opennebula.org" target="_blank">OpenNebula <%= OpenNebula::VERSION %></a>
+      by
+      <a href="http://opennebula.systems" target="_blank">OpenNebula Systems</a>
+      .
+    </div>
+  </body>
+</html>

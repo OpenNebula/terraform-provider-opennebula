@@ -10,11 +10,13 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"io"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 )
 
@@ -330,8 +332,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"os": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				MinItems: 0,
-				MaxItems: 8,
+				MaxItems: 1,
 				//Computed:    true,
 				Description: "Definition of OS boot and type for the Virtual Machine",
 				Elem: &schema.Resource{
@@ -370,7 +371,7 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 	if d.Id() != "" {
 		id, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("VM Id (%s) is not an integer", d.Id())
+			return nil, err
 		}
 		vmc = controller.VM(int(id))
 	}
@@ -379,8 +380,7 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 	if d.Id() == "" {
 		gid, err := controller.VMs().ByName(d.Get("name").(string), args...)
 		if err != nil {
-			d.SetId("")
-			return nil, fmt.Errorf("Could not find VM with name %s", d.Get("name").(string))
+			return nil, err
 		}
 		vmc = controller.VM(gid)
 	}
@@ -495,7 +495,21 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
 	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
 	if err != nil {
-		return err
+		switch err.(type) {
+		case *errs.ClientError:
+			clientErr, _ := err.(*errs.ClientError)
+			if clientErr.Code == errs.ClientRespHTTP {
+				response := clientErr.GetHTTPResponse()
+				if response.StatusCode == http.StatusNotFound {
+					log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
+					d.SetId("")
+					return nil
+				}
+			}
+			return err
+		default:
+			return err
+		}
 	}
 
 	// TODO: fix it after 5.10 release
@@ -515,25 +529,42 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	d.Set("state", vm.StateRaw)
 	d.Set("lcmstate", vm.LCMStateRaw)
 	//TODO fix this:
-	//d.Set("ip", vm.VmTemplate.Context.IP)
-	d.Set("permissions", permissionsUnixString(vm.Permissions))
+	err = d.Set("permissions", permissionsUnixString(vm.Permissions))
+	if err != nil {
+		return err
+	}
 
 	//Pull in NIC config from OpenNebula into schema
 	if vm.Template.NICs != nil {
-		d.Set("nic", generateNicMapFromStructs(vm.Template.NICs))
+		err = d.Set("nic", generateNicMapFromStructs(vm.Template.NICs))
+		if err != nil {
+			return err
+		}
 		d.Set("ip", &vm.Template.NICs[0].IP)
+		if err != nil {
+			return err
+		}
 	}
 
 	if vm.Template.Disks != nil {
-		d.Set("disk", generateDiskMapFromStructs(vm.Template.Disks))
+		err = d.Set("disk", generateDiskMapFromStructs(vm.Template.Disks))
+		if err != nil {
+			return err
+		}
 	}
 
 	if vm.Template.OS != nil {
-		d.Set("os", generateOskMapFromStructs(*vm.Template.OS))
+		err = d.Set("os", generateOskMapFromStructs(*vm.Template.OS))
+		if err != nil {
+			return err
+		}
 	}
 
 	if vm.Template.Graphics != nil {
-		d.Set("graphics", generateGraphicskMapFromStructs(*vm.Template.Graphics))
+		err = d.Set("graphics", generateGraphicskMapFromStructs(*vm.Template.Graphics))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

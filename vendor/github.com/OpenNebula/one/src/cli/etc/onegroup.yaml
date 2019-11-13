@@ -1,0 +1,35 @@
+---
+:ID:
+  :desc: ONE identifier for the Group
+  :size: 4
+  :adjust: true
+
+:NAME:
+  :desc: Name of the Group
+  :size: 15
+  :left: true
+  :expand: true
+
+:USERS:
+  :desc: Number of Users in this group
+  :size: 5
+
+:VMS:
+  :desc: Number of VMS
+  :size: 9
+
+:MEMORY:
+  :desc: Total memory allocated to user VMs
+  :size: 17
+
+:CPU:
+  :desc: Total CPU allocated to user VMs
+  :size: 11
+
+:default:
+- :ID
+- :NAME
+- :USERS
+- :VMS
+- :MEMORY
+- :CPU

@@ -1,0 +1,10 @@
+{
+  "action": {
+    "params": {
+      "disk_id": "0",
+      "image_name": "new_image",
+      "type" : "OS"
+    },
+    "perform": "saveas"
+  }
+}
