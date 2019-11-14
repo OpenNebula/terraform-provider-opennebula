@@ -277,7 +277,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"gid"},
-				Description:   "Name of the Group that owns the Virtual Network, If empty, it uses caller group",
+				Description:   "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
 		},
 	}

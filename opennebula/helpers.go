@@ -2,9 +2,8 @@ package opennebula
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
+	"strings"
 )
 
 func inArray(val string, array []string) (index int) {
@@ -22,12 +21,10 @@ func appendTemplate(template, attribute, value string) string {
 	return fmt.Sprintf("%s\n%s = \"%s\"", template, attribute, value)
 }
 
-// ArrayToString convert an array into a string
 func ArrayToString(list []interface{}, delim string) string {
 	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(list)), delim), "[]")
 }
 
-// StringToLockLevel convers a string into a "lock" object
 func StringToLockLevel(str string, lock *shared.LockLevel) error {
 	if str == "USE" {
 		*lock = shared.LockUse
@@ -48,7 +45,6 @@ func StringToLockLevel(str string, lock *shared.LockLevel) error {
 	return fmt.Errorf("Unexpected Lock level %s", str)
 }
 
-// LockLevelToString retuns a string when we provide a "lock" int
 func LockLevelToString(lock int) string {
 	if lock == 1 {
 		return "USE"

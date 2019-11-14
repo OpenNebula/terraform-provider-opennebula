@@ -4,20 +4,18 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
-// ImageTemplate is the definition of an ONE image template
 type ImageTemplate struct {
 	DevPrefix   string `xml:"DEV_PREFIX,omitempty"`
 	Driver      string `xml:"DRIVER,omitempty"`
@@ -402,7 +400,7 @@ func waitForImageState(d *schema.ResourceData, meta interface{}, state string) (
 			if state == "READY" {
 				return image, "ready", nil
 			} else if state == "ERROR" {
-				return image, "error", fmt.Errorf("image ID %v entered error state", d.Id())
+				return image, "error", fmt.Errorf("Image ID %v entered error state.", d.Id())
 			} else {
 				return image, "anythingelse", nil
 			}
@@ -429,7 +427,7 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	imageTypeIDName := map[int]string{
+	image_type_id_name := map[int]string{
 		0: "OS",
 		1: "CDROM",
 		2: "DATABLOCK",
@@ -452,7 +450,7 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
-	if val, ok := imageTypeIDName[imageidx]; ok {
+	if val, ok := image_type_id_name[imageidx]; ok {
 		d.Set("type", val)
 	}
 

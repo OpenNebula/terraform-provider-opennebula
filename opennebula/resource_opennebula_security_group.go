@@ -4,31 +4,28 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"github.com/fatih/structs"
+	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"strconv"
 	"strings"
-
-	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/securitygroup"
 )
 
-// SecurityGroupTemplate represents an OpenNebula security group template
 type SecurityGroupTemplate struct {
 	Description        string              `xml:"DESCRIPTION"`
 	SecurityGroupRules []SecurityGroupRule `xml:"RULE"`
 }
 
-// SecurityGroupRule represents an OpenNebula security group rule
 type SecurityGroupRule struct {
 	Protocol  string `xml:"PROTOCOL"             structs:"protocol"`
 	Range     string `xml:"RANGE,omitempty"      structs:"range,omitempty"`
 	RuleType  string `xml:"RULE_TYPE"            structs:"rule_type,omitempty"`
 	IP        string `xml:"IP,omitempty"         structs:"ip,omitempty"`
 	Size      string `xml:"SIZE,omitempty"       structs:"size,omitempty"`
-	NetworkID string `xml:"NETWORK_ID,omitempty" structs:"network_id,omitempty"`
+	NetworkId string `xml:"NETWORK_ID,omitempty" structs:"network_id,omitempty"`
 	IcmpType  string `xml:"ICMP_TYPE,omitempty"  structs:"icmp_type,omitempty"`
 }
 
@@ -494,7 +491,7 @@ func generateSecurityGroupTemplate(d *schema.ResourceData) (string, error) {
 			Size:      rulesize,
 			Range:     rulerange,
 			IcmpType:  ruleicmptype,
-			NetworkID: rulenetworkid,
+			NetworkId: rulenetworkid,
 		}
 
 		secgrouprules[i] = secgrouprule

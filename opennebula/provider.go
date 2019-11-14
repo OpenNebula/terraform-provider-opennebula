@@ -6,7 +6,6 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
-// Provider is the OpenNebula provider definition
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
