@@ -283,15 +283,15 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		return xmlerr
 	}
 
-	// add template information into image
-	err = ic.Update(template, 1)
-
-	d.SetId(fmt.Sprintf("%v", imageID))
-
 	_, err = waitForImageState(d, meta, "ready")
 	if err != nil {
 		return fmt.Errorf("Error waiting for Image (%s) to be in state READY: %s", d.Id(), err)
 	}
+
+	// add template information into image
+	err = ic.Update(template, 1)
+
+	d.SetId(fmt.Sprintf("%v", imageID))
 
 	ic, err = getImageController(d, meta)
 	if err != nil {
