@@ -870,15 +870,16 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 					Graphics: vmgraphics,
 					OS:       vmos,
 				}
-			}
-			vmtpl = &vmTemplate{
-				CPU:      vmcpu.(float64),
-				Memory:   vmmemory.(int),
-				Context:  vmcontext,
-				NICs:     vmnics,
-				Disks:    vmdisks,
-				Graphics: vmgraphics,
-				OS:       vmos,
+			} else {
+				vmtpl = &vmTemplate{
+					CPU:      vmcpu.(float64),
+					Memory:   vmmemory.(int),
+					Context:  vmcontext,
+					NICs:     vmnics,
+					Disks:    vmdisks,
+					Graphics: vmgraphics,
+					OS:       vmos,
+				}
 			}
 		} else {
 			vmtpl = &vmTemplate{
