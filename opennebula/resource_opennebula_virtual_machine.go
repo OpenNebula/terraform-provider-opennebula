@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fatih/structs"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
@@ -746,6 +747,8 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 				return vm, "done", nil
 			} else if vmState == 3 && vmLcmState == 36 {
 				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
+			} else if vmState == 3 && vmLcmState == 39 {
+				return vm, "prolog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
 			} else {
 				return vm, "anythingelse", nil
 			}
@@ -877,14 +880,15 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 				Graphics: vmgraphics,
 				OS:       vmos,
 			}
-		}
-		vmtpl = &vmTemplate{
-			CPU:      vmcpu.(float64),
-			Context:  vmcontext,
-			NICs:     vmnics,
-			Disks:    vmdisks,
-			Graphics: vmgraphics,
-			OS:       vmos,
+		} else {
+			vmtpl = &vmTemplate{
+				CPU:      vmcpu.(float64),
+				Context:  vmcontext,
+				NICs:     vmnics,
+				Disks:    vmdisks,
+				Graphics: vmgraphics,
+				OS:       vmos,
+			}
 		}
 	} else {
 		vmtpl = &vmTemplate{
