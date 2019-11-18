@@ -14,6 +14,11 @@ func dataOpennebulaTemplate() *schema.Resource {
 				Required:    true,
 				Description: "Name of the Template",
 			},
+			"template": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "template content",
+			},
 		},
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/structs"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -537,32 +536,32 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 
 	//Pull in NIC config from OpenNebula into schema
 	if vm.Template.NICs != nil {
-		err = d.Set("nic", generateNicMapFromStructs(vm.Template.NICs))
+		err = flattenNics(d, vm.Template.NICs)
 		if err != nil {
 			return err
 		}
-		d.Set("ip", &vm.Template.NICs[0].IP)
+		err = d.Set("ip", &vm.Template.NICs[0].IP)
 		if err != nil {
 			return err
 		}
 	}
 
 	if vm.Template.Disks != nil {
-		err = d.Set("disk", generateDiskMapFromStructs(vm.Template.Disks))
+		err = flattenDisks(d, vm.Template.Disks)
 		if err != nil {
 			return err
 		}
 	}
 
 	if vm.Template.OS != nil {
-		err = d.Set("os", generateOskMapFromStructs(*vm.Template.OS))
+		err = flattenOs(d, *vm.Template.OS)
 		if err != nil {
 			return err
 		}
 	}
 
 	if vm.Template.Graphics != nil {
-		err = d.Set("graphics", generateGraphicskMapFromStructs(*vm.Template.Graphics))
+		err = flattenGraphics(d, *vm.Template.Graphics)
 		if err != nil {
 			return err
 		}
@@ -570,44 +569,100 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func generateGraphicskMapFromStructs(graph vm.Graphics) []map[string]interface{} {
+func flattenGraphics(d *schema.ResourceData, graph vm.Graphics) error {
 
 	graphmap := make([]map[string]interface{}, 0)
+	listen := graph.Listen
+	port := graph.Port
+	t := graph.Type
 
-	graphmap = append(graphmap, structs.Map(graph))
+	graphmap = append(graphmap, map[string]interface{}{
+		"listen": listen,
+		"port":   port,
+		"type":   t,
+		"keymap": d.Get("keymap"),
+	})
 
-	return graphmap
+	return d.Set("graphics", graphmap)
 }
 
-func generateOskMapFromStructs(os vm.OS) []map[string]interface{} {
+func flattenOs(d *schema.ResourceData, os vm.OS) error {
 
 	osmap := make([]map[string]interface{}, 0)
 
-	osmap = append(osmap, structs.Map(os))
+	osmap = append(osmap, map[string]interface{}{
+		"arch": os.Arch,
+		"boot": os.Boot,
+	})
 
-	return osmap
+	return d.Set("os", osmap)
 }
 
-func generateDiskMapFromStructs(slice []vm.Disk) []map[string]interface{} {
+func flattenDisks(d *schema.ResourceData, slice []vm.Disk) error {
 
 	diskmap := make([]map[string]interface{}, 0)
 
-	for i := 0; i < len(slice); i++ {
-		diskmap = append(diskmap, structs.Map(slice[i]))
+	for _, disk := range slice {
+		size := disk.Size
+		driver := disk.Driver
+
+		target, _ := disk.Dynamic.GetContentByName("TARGET")
+		imageIdStr, _ := disk.Dynamic.GetContentByName("IMAGE_ID")
+		imageId, err := strconv.ParseInt(imageIdStr, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		diskmap = append(diskmap, map[string]interface{}{
+			"image_id": imageId,
+			"size":     size,
+			"target":   target,
+			"driver":   driver,
+		})
 	}
 
-	return diskmap
+	return d.Set("disk", diskmap)
 }
 
-func generateNicMapFromStructs(slice []vm.Nic) []map[string]interface{} {
+func flattenNics(d *schema.ResourceData, slice []vm.Nic) error {
 
 	nicmap := make([]map[string]interface{}, 0)
 
-	for i := 0; i < len(slice); i++ {
-		nicmap = append(nicmap, structs.Map(slice[i]))
+	for _, nic := range slice {
+		sg := make([]int, 0)
+		ip := nic.IP
+		mac := nic.MAC
+		physicalDevice := nic.PhyDev
+		network := nic.Network
+		nicId := nic.ID
+
+		model, _ := nic.Dynamic.GetContentByName("MODEL")
+		networkIdStr, _ := nic.Dynamic.GetContentByName("NETWORK_ID")
+		networkId, err := strconv.ParseInt(networkIdStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		securityGroupsArray, _ := nic.Dynamic.GetContentByName("SECURITY_GROUPS")
+
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
+
+		nicmap = append(nicmap, map[string]interface{}{
+			"ip":              ip,
+			"mac":             mac,
+			"network_id":      int(networkId),
+			"physical_device": physicalDevice,
+			"network":         network,
+			"nic_id":          nicId,
+			"model":           model,
+			"security_groups": sg,
+		})
 	}
 
-	return nicmap
+	return d.Set("nic", nicmap)
 }
 
 func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interface{}) (bool, error) {
