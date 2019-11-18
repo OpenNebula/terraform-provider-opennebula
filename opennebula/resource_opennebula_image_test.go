@@ -81,10 +81,7 @@ func testAccCheckImageDestroy(s *terraform.State) error {
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		image, _ := ic.Info(false)
 		if image != nil {
-			// Do not try to destroy image to be cloned
-			if image.ID != 11 {
-				return fmt.Errorf("Expected image %s to have been destroyed", rs.Primary.ID)
-			}
+			return fmt.Errorf("Expected image %s to have been destroyed", rs.Primary.ID)
 		}
 	}
 
