@@ -20,9 +20,9 @@ func dataOpennebulaVirtualNetwork() *schema.Resource {
 				Description: "Description of the vnet, in OpenNebula's XML or String format",
 			},
 			"mtu": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				Description:   "MTU of the vnet (defaut: 1500)",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "MTU of the vnet (defaut: 1500)",
 			},
 		},
 	}
