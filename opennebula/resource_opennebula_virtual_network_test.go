@@ -24,9 +24,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 				Config: testAccVirtualNetworkConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test-virtual_network"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "physical_device", "dummy0"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "vxlan"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "vlan_id", "8000046"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "dummy"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "mtu", "1500"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "permissions", "642"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "group", "oneadmin"),
@@ -58,9 +57,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test-virtual_network-renamed"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "physical_device", "dummy0"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "vxlan"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "vlan_id", "8000046"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "dummy"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "mtu", "1500"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "group", "users"),
@@ -87,6 +85,25 @@ func TestAccVirtualNetwork(t *testing.T) {
 						OwnerU: 1,
 						OwnerM: 1,
 						OwnerA: 0,
+						GroupU: 1,
+						GroupM: 1,
+					}),
+				),
+			},
+			{
+				Config:             testAccVirtualNetworkReservationConfig,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "name", "terravnetres"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_size", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "permissions", "660"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "gname"),
+					testAccCheckVirtualNetworkPermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
 						GroupU: 1,
 						GroupM: 1,
 					}),
@@ -243,9 +260,8 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 var testAccVirtualNetworkConfigBasic = `
 resource "opennebula_virtual_network" "test" {
   name = "test-virtual_network"
-  physical_device = "dummy0"
-  type            = "vxlan"
-  vlan_id         = "8000046"
+  type            = "dummy"
+  bridge          = "onebr"
   mtu             = 1500
   gateway         = "172.16.100.1"
   dns             = "172.16.100.1"
@@ -270,9 +286,8 @@ resource "opennebula_virtual_network" "test" {
 var testAccVirtualNetworkConfigUpdate = `
 resource "opennebula_virtual_network" "test" {
   name = "test-virtual_network-renamed"
-  physical_device = "dummy0"
-  type            = "vxlan"
-  vlan_id         = "8000046"
+  type            = "dummy"
+  bridge          = "onebr"
   mtu             = 1500
   gateway         = "172.16.100.254"
   dns             = "172.16.100.254"
@@ -297,5 +312,46 @@ resource "opennebula_virtual_network" "test" {
   clusters = [0]
   permissions = "660"
   group = "users"
+}
+`
+
+var testAccVirtualNetworkReservationConfig = `
+resource "opennebula_virtual_network" "test" {
+  name = "test-virtual_network-renamed"
+  type            = "dummy"
+  bridge          = "onebr"
+  mtu             = 1500
+  gateway         = "172.16.100.254"
+  dns             = "172.16.100.254"
+  network_mask    = "255.255.0.0"
+  ar {
+    ar_type = "IP4"
+    size    = 16
+    mac     = "02:01:ac:10:64:6e"
+    ip4     = "172.16.100.110"
+  }
+  ar {
+    ar_type = "IP4"
+    size    = 13
+    ip4     = "172.16.100.140"
+  }
+  ar {
+    ar_type = "IP6"
+    size    = 2
+    ip6     = "2001:db8:0:85a3::ac1f:8001"
+  }
+  security_groups = [0]
+  clusters = [0]
+  permissions = "660"
+  group = "users"
+}
+
+resource "opennebula_virtual_network" "reservation" {
+    name = "terravnetres"
+    description = "my terraform vnet"
+    reservation_vnet = "${opennebula_virtual_network.test.id}"
+    reservation_size = 1
+    security_groups = [0]
+    permissions = 660
 }
 `
