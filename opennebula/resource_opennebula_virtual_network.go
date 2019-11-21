@@ -668,54 +668,30 @@ func generateVnTemplate(d *schema.ResourceData) (string, error) {
 func generateVnXML(d *schema.ResourceData) (string, error) {
 	vnname := d.Get("name").(string)
 	vnmad := d.Get("type").(string)
-	vnbridge := d.Get("bridge").(string)
-	vnphydev := d.Get("physical_device").(string)
 
 	if vnmad == "" {
 		vnmad = "bridge"
 	}
-	var vntpl *vn.VirtualNetwork
+	vnstring := fmt.Sprintf("NAME = %s\nVN_MAD = %s", vnname, vnmad)
 
 	if validVlanType(vnmad) >= 0 {
 		if d.Get("automatic_vlan_id") == true {
-			vntpl = &vn.VirtualNetwork{
-				Name:            vnname,
-				Bridge:          vnbridge,
-				PhyDev:          vnphydev,
-				VNMad:           vnmad,
-				VlanIDAutomatic: "YES",
-			}
+			vnstring = fmt.Sprintf("%s\nAUTOMATIC_VLAN_ID = YES", vnstring)
 		} else if vlanid, ok := d.GetOk("vlan_id"); ok {
-			vntpl = &vn.VirtualNetwork{
-				Name:   vnname,
-				Bridge: vnbridge,
-				PhyDev: vnphydev,
-				VNMad:  vnmad,
-				VlanID: vlanid.(string),
-			}
+			vnstring = fmt.Sprintf("%s\nVLAN_ID = %s", vnstring, vlanid.(string))
 		} else {
 			return "", fmt.Errorf("You must specify a 'vlan_id' or set the flag 'automatic_vlan_id'")
 		}
-	} else {
-		vntpl = &vn.VirtualNetwork{
-			Name:   vnname,
-			Bridge: vnbridge,
-			PhyDev: vnphydev,
-			VNMad:  vnmad,
-		}
+	}
+	if vnbridge, ok := d.GetOk("bridge"); ok {
+		vnstring = fmt.Sprintf("%s\nBRIDGE = %s", vnstring, vnbridge.(string))
+	}
+	if vnphydev, ok := d.GetOk("physical_device"); ok {
+		vnstring = fmt.Sprintf("%s\nPHYDEV = %s", vnstring, vnphydev.(string))
 	}
 
-	w := &bytes.Buffer{}
-
-	//Encode the VN template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(vntpl); err != nil {
-		return "", err
-	}
-
-	log.Printf("VNET XML: %s", w.String())
-	return w.String(), nil
+	log.Printf("VNET XML: %s", vnstring)
+	return vnstring, nil
 }
 
 func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
