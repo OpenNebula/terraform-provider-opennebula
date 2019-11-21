@@ -34,6 +34,3 @@ before_script:
 
 script:
   - set -o errexit; source .travis/tests/terraform.sh
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash) -t b4d4b95c-bb63-4412-b3aa-6d0cf674d619

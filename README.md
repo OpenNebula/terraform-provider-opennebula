@@ -1,6 +1,6 @@
 # terraform-provider-opennebula
 
-[![Build Status](https://travis-ci.org/OpenNebula/terraform-provider-opennebula.svg?branch=master)](https://travis-ci.org/OpenNebula/terraform-provider-opennebula) [![codecov](https://codecov.io/gh/OpenNebula/terraform-provider-opennebula/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenNebula/terraform-provider-opennebula)
+[![Build Status](https://travis-ci.org/OpenNebula/terraform-provider-opennebula.svg?branch=master)](https://travis-ci.org/OpenNebula/terraform-provider-opennebula)[![Coverage Status](https://coveralls.io/repos/github/OpenNebula/terraform-provider-opennebula/badge.svg)](https://coveralls.io/github/OpenNebula/terraform-provider-opennebula)
 
 ## Description
 
