@@ -226,7 +226,7 @@ func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interf
 	d.SetId(fmt.Sprintf("%v", vdc.ID))
 	d.Set("name", vdc.Name)
 	d.Set("zones", generateZoneMapFromStructs(vdc))
-	d.Set("groups_ids", vdc.GroupsID)
+	d.Set("groups_ids", vdc.Groups.ID)
 
 	return nil
 }

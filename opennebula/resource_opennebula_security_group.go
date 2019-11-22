@@ -265,16 +265,17 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 	d.Set("gname", securitygroup.GName)
 	d.Set("permissions", permissionsUnixString(securitygroup.Permissions))
 
-	d.Set("description", securitygroup.Template.Description)
+	description, _ := securitygroup.Template.GetStr("DESCRITPION")
+	d.Set("description", description)
 
-	if err := d.Set("rule", generateSecurityGroupMapFromStructs(securitygroup.Template.Rules)); err != nil {
+	if err := d.Set("rule", generateSecurityGroupMapFromStructs(securitygroup.Template.GetRules())); err != nil {
 		log.Printf("[WARN] Error setting rule for Security Group %x, error: %s", securitygroup.ID, err)
 	}
 
 	return nil
 }
 
-func generateSecurityGroupMapFromStructs(slice []securitygroup.SecurityGroupRule) []map[string]interface{} {
+func generateSecurityGroupMapFromStructs(slice []securitygroup.Rule) []map[string]interface{} {
 
 	secrulemap := make([]map[string]interface{}, 0)
 

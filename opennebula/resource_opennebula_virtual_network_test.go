@@ -233,7 +233,7 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 			if vn == nil {
 				return fmt.Errorf("Expected virtual network %s to exist when checking permissions", rs.Primary.ID)
 			}
-			secgrouplist, err := vn.Template.Dynamic.GetContentByName("SECURITY_GROUPS")
+			secgrouplist, err := vn.Template.Get("SECURITY_GROUPS")
 			if err != nil {
 				return err
 			}

@@ -82,8 +82,8 @@ func testAccCheckVirtualDataCenterGroups(slice []int) resource.TestCheckFunc {
 			if vdc == nil {
 				return fmt.Errorf("Expected VDC %s to exist when checking permissions", rs.Primary.ID)
 			}
-			if !reflect.DeepEqual(vdc.GroupsID, slice) {
-				return fmt.Errorf("VDC (%+v) Groups are not the expected ones, got %+v instead of %+v", vdc, vdc.GroupsID, slice)
+			if !reflect.DeepEqual(vdc.Groups.ID, slice) {
+				return fmt.Errorf("VDC (%+v) Groups are not the expected ones, got %+v instead of %+v", vdc, vdc.Groups.ID, slice)
 			}
 		}
 		return nil

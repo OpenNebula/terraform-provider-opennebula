@@ -1,6 +1,0 @@
-#!/sbin/runscript
-
-start() {
-    /etc/init.d/vmcontext.rb
-    return 0
-}

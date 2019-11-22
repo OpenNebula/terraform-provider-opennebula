@@ -53,7 +53,7 @@ func Provider() *schema.Provider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	client := goca.NewClient(goca.NewConfig(d.Get("username").(string),
+	client := goca.NewDefaultClient(goca.NewConfig(d.Get("username").(string),
 		d.Get("password").(string),
 		d.Get("endpoint").(string)))
 

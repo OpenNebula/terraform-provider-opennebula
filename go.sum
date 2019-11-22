@@ -13,8 +13,17 @@ github.com/Azure/go-ntlmssp v0.0.0-20180810175552-4a21cbd618b4/go.mod h1:chxPXzS
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ChrisTrenkamp/goxpath v0.0.0-20170922090931-c385f95c6022/go.mod h1:nuWgzSkT5PnyOd+272uUmV0dnAnAn42Mk7PiQC5VzN4=
+github.com/OpenNebula/one v0.0.0-20191121145254-38bb3947207f h1:w2qGy6akosdxVp3hUWJm52V8gwZ3uDOsYBnjNpb06v4=
+github.com/OpenNebula/one v0.0.0-20191125081313-e1ff1d4f2a21 h1:olSRRRPwfEg8RKHFLiycwJAshuEp0PQ0UAL8AJIEuGY=
+github.com/OpenNebula/one v0.0.0-20191125103116-fd2766970d29 h1:PhhubkzQO6fv1gJdFTiaBz2VioUrkr0O+UwESBhR/vA=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191025125900-a1872c503e67 h1:WlF+cN+RPtQvWOxhgz0QKX+HvytiNyFIqXHO1c+2NNE=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191025125900-a1872c503e67/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191121145254-38bb3947207f h1:gthrbOIUjT9Jk0syYTDIDER8Cd0OAlmtGE/GztvSB6o=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191121145254-38bb3947207f/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125081313-e1ff1d4f2a21 h1:/UEp1YILPaCVwGY7vuLymVpa7Hb60oQkdmRyIRlQgIw=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125081313-e1ff1d4f2a21/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125103116-fd2766970d29 h1:MiL+j9UQ7GW7qwy7a2ZGxVN5yOmDq13jqFz4yDKnZcs=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125103116-fd2766970d29/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
 github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
 github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af/go.mod h1:5Jv4cbFiHJMsVxt52+i0Ha45fjshj6wxYr1r19tB9bw=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=

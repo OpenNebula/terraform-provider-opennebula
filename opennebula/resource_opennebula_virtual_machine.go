@@ -17,21 +17,20 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
+	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
 type vmTemplate struct {
-	CPU                float64                `xml:"CPU,omitempty"`
-	VCPU               int                    `xml:"VCPU,omitempty"`
-	Memory             int                    `xml:"MEMORY,omitempty"`
-	NICs               []vmNIC                `xml:"NIC,omitempty"`
-	NICAliases         []vm.NicAlias          `xml:"NIC_ALIAS"`
-	Context            stringMap              `xml:"CONTEXT,omitempty"`
-	Disks              []vmDisk               `xml:"DISK,omitempty"`
-	Graphics           []vmGraphics           `xml:"GRAPHICS,omitempty"`
-	OS                 []vm.OS                `xml:"OS,omitempty"`
-	Snapshots          []vm.Snapshot          `xml:"SNAPSHOT"`
-	SecurityGroupRules []vm.SecurityGroupRule `xml:"SECURITY_GROUP_RULE"`
+	CPU      float64      `xml:"CPU,omitempty"`
+	VCPU     int          `xml:"VCPU,omitempty"`
+	Memory   int          `xml:"MEMORY,omitempty"`
+	NICs     []vmNIC      `xml:"NIC,omitempty"`
+	Context  stringMap    `xml:"CONTEXT,omitempty"`
+	Disks    []vmDisk     `xml:"DISK,omitempty"`
+	Graphics []vmGraphics `xml:"GRAPHICS,omitempty"`
+	OS       []vmOs       `xml:"OS,omitempty"`
 }
 
 type vmNIC struct {
@@ -59,6 +58,11 @@ type vmGraphics struct {
 	Listen string `xml:"LISTEN,omitempty"`
 	Port   string `xml:"PORT"`
 	Type   string `xml:"TYPE,omitempty"`
+}
+
+type vmOs struct {
+	Arch string `xml:"ARCH,omitempty"`
+	Boot string `xml:"BOOT,omitempty"`
 }
 
 //This type and the MarshalXML functions are needed to handle converting the CONTEXT map to xml and back
@@ -534,84 +538,63 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	//Pull in NIC config from OpenNebula into schema
-	if vm.Template.NICs != nil {
-		err = flattenNics(d, vm.Template.NICs)
-		if err != nil {
-			return err
-		}
-		err = d.Set("ip", &vm.Template.NICs[0].IP)
-		if err != nil {
-			return err
-		}
-	}
-
-	if vm.Template.Disks != nil {
-		err = flattenDisks(d, vm.Template.Disks)
-		if err != nil {
-			return err
-		}
-	}
-
-	if vm.Template.OS != nil {
-		err = flattenOs(d, *vm.Template.OS)
-		if err != nil {
-			return err
-		}
-	}
-
-	if vm.Template.Graphics != nil {
-		err = flattenGraphics(d, *vm.Template.Graphics)
-		if err != nil {
-			return err
-		}
+	err = flattenTemplate(d, &vm.Template)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func flattenGraphics(d *schema.ResourceData, graph vm.Graphics) error {
+func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
+	// OS
+	osmap := make([]map[string]interface{}, 0)
+	arch, _ := vmTemplate.GetOS(vmk.Arch)
+	boot, _ := vmTemplate.GetOS(vmk.Boot)
+
+	// Graphics
 	graphmap := make([]map[string]interface{}, 0)
-	listen := graph.Listen
-	port := graph.Port
-	t := graph.Type
+	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
+	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
+	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
+	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
 
+	// Disks
+	diskmap := make([]map[string]interface{}, 0)
+
+	// Nics
+	nicmap := make([]map[string]interface{}, 0)
+
+	// Set OS to resource
+	osmap = append(osmap, map[string]interface{}{
+		"arch": arch,
+		"boot": boot,
+	})
+
+	err := d.Set("os", osmap)
+	if err != nil {
+		return err
+	}
+
+	// Set Graphics to resource
 	graphmap = append(graphmap, map[string]interface{}{
 		"listen": listen,
 		"port":   port,
 		"type":   t,
-		"keymap": d.Get("keymap"),
+		"keymap": keymap,
 	})
 
-	return d.Set("graphics", graphmap)
-}
+	err = d.Set("graphics", graphmap)
+	if err != nil {
+		return err
+	}
 
-func flattenOs(d *schema.ResourceData, os vm.OS) error {
-
-	osmap := make([]map[string]interface{}, 0)
-
-	osmap = append(osmap, map[string]interface{}{
-		"arch": os.Arch,
-		"boot": os.Boot,
-	})
-
-	return d.Set("os", osmap)
-}
-
-func flattenDisks(d *schema.ResourceData, slice []vm.Disk) error {
-
-	diskmap := make([]map[string]interface{}, 0)
-
-	for _, disk := range slice {
-		size := disk.Size
-		driver := disk.Driver
-
-		target, _ := disk.Dynamic.GetContentByName("TARGET")
-		imageIdStr, _ := disk.Dynamic.GetContentByName("IMAGE_ID")
-		imageId, err := strconv.ParseInt(imageIdStr, 10, 64)
-		if err != nil {
-			return err
-		}
+	// Set Disks to Resource
+	for _, disk := range vmTemplate.GetDisks() {
+		size, _ := disk.GetI(shared.Size)
+		driver, _ := disk.Get(shared.Driver)
+		target, _ := disk.Get(shared.TargetDisk)
+		imageId, _ := disk.GetI(shared.ImageID)
 
 		diskmap = append(diskmap, map[string]interface{}{
 			"image_id": imageId,
@@ -621,28 +604,23 @@ func flattenDisks(d *schema.ResourceData, slice []vm.Disk) error {
 		})
 	}
 
-	return d.Set("disk", diskmap)
-}
+	err = d.Set("disk", diskmap)
+	if err != nil {
+		return err
+	}
 
-func flattenNics(d *schema.ResourceData, slice []vm.Nic) error {
-
-	nicmap := make([]map[string]interface{}, 0)
-
-	for _, nic := range slice {
+	// Set Nics to resource
+	for i, nic := range vmTemplate.GetNICs() {
 		sg := make([]int, 0)
-		ip := nic.IP
-		mac := nic.MAC
-		physicalDevice := nic.PhyDev
-		network := nic.Network
-		nicId := nic.ID
+		ip, _ := nic.Get(shared.IP)
+		mac, _ := nic.Get(shared.MAC)
+		physicalDevice, _ := nic.GetStr("PHYDEV")
+		network, _ := nic.Get(shared.Network)
+		nicId, _ := nic.ID()
 
-		model, _ := nic.Dynamic.GetContentByName("MODEL")
-		networkIdStr, _ := nic.Dynamic.GetContentByName("NETWORK_ID")
-		networkId, err := strconv.ParseInt(networkIdStr, 10, 64)
-		if err != nil {
-			return err
-		}
-		securityGroupsArray, _ := nic.Dynamic.GetContentByName("SECURITY_GROUPS")
+		model, _ := nic.Get(shared.Model)
+		networkId, _ := nic.GetI(shared.NetworkID)
+		securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 
 		sgString := strings.Split(securityGroupsArray, ",")
 		for _, s := range sgString {
@@ -653,16 +631,23 @@ func flattenNics(d *schema.ResourceData, slice []vm.Nic) error {
 		nicmap = append(nicmap, map[string]interface{}{
 			"ip":              ip,
 			"mac":             mac,
-			"network_id":      int(networkId),
+			"network_id":      networkId,
 			"physical_device": physicalDevice,
 			"network":         network,
 			"nic_id":          nicId,
 			"model":           model,
 			"security_groups": sg,
 		})
+		if i == 0 {
+			d.Set("ip", ip)
+		}
 	}
 
-	return d.Set("nic", nicmap)
+	err = d.Set("nic", nicmap)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -810,11 +795,14 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 			} else if vmState == 6 {
 				return vm, "done", nil
 			} else if vmState == 3 && vmLcmState == 36 {
-				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
+				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
 			} else if vmState == 3 && vmLcmState == 39 {
-				return vm, "prolog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
+				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+				return vm, "prolog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
 			} else if vmState == 3 && vmLcmState == 40 {
-				return vm, "epilog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vm.UserTemplate.Error)
+				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+				return vm, "epilog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
 			} else {
 				return vm, "anythingelse", nil
 			}
@@ -905,12 +893,12 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 
 	//Generate OS definition
 	os := d.Get("os").(*schema.Set).List()
-	vmos := make([]vm.OS, len(os))
+	vmos := make([]vmOs, len(os))
 	for i := 0; i < len(os); i++ {
 		osconfig := os[i].(map[string]interface{})
 		osarch := osconfig["arch"].(string)
 		osboot := osconfig["boot"].(string)
-		vmo := vm.OS{
+		vmo := vmOs{
 			Arch: osarch,
 			Boot: osboot,
 		}

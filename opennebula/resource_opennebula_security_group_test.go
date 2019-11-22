@@ -17,7 +17,8 @@ func TestAccSecurityGroup(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSecurityGroupConfigBasic,
+				Config:             testAccSecurityGroupConfigBasic,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "testsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "642"),
@@ -31,7 +32,8 @@ func TestAccSecurityGroup(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccSecurityGroupConfigUpdate,
+				Config:             testAccSecurityGroupConfigUpdate,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "renamedsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "660"),
@@ -80,7 +82,7 @@ func testAccSecurityGroupRule(ruleidx int, key, value string) resource.TestCheck
 			if sg == nil {
 				return fmt.Errorf("Expected Security Group %s to exist when checking permissions", rs.Primary.ID)
 			}
-			sgrules := generateSecurityGroupMapFromStructs(sg.Template.Rules)
+			sgrules := generateSecurityGroupMapFromStructs(sg.Template.GetRules())
 
 			var found bool
 

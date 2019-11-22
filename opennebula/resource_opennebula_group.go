@@ -131,7 +131,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"cpu": {
-										Type:        schema.TypeInt,
+										Type:        schema.TypeFloat,
 										Optional:    true,
 										Description: "Maximum number of CPU allowed (default: default quota)",
 										Default:     -1,
@@ -143,7 +143,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 										Default:     -1,
 									},
 									"running_cpu": {
-										Type:        schema.TypeInt,
+										Type:        schema.TypeFloat,
 										Optional:    true,
 										Description: "Maximum number of 'running' CPUs allowed (default: default quota)",
 										Default:     -1,
@@ -304,11 +304,11 @@ func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("name", group.Name)
 	d.Set("template", group.Template)
 	d.Set("delete_on_destruction", d.Get("delete_on_destruction"))
-	err = d.Set("users", group.UsersID)
+	err = d.Set("users", group.Users.ID)
 	if err != nil {
 		return err
 	}
-	err = d.Set("admins", group.AdminsID)
+	err = d.Set("admins", group.Admins.ID)
 	if err != nil {
 		return err
 	}
@@ -369,81 +369,37 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, group *group.Group) err
 	var networkQuotas []map[string]interface{}
 
 	// Get datastore quotas
-	for _, gds := range group.DatastoreQuotas {
+	for _, gds := range group.Datastore {
 		ds := make(map[string]interface{})
 		ds["id"] = gds.ID
-		images, err := strconv.ParseInt(gds.Images, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert datastore_quota.images value: %v, error: %s", gds.Images, err)
-		}
-		ds["images"] = images
-		size, err := strconv.ParseInt(gds.Images, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert datastore_quota.size value: %v, error: %s", gds.Size, err)
-		}
-		ds["size"] = size
+		ds["images"] = gds.Images
+		ds["size"] = gds.Size
 		datastoreQuotas = append(datastoreQuotas, ds)
 	}
 	// Get network quotas
-	for _, gn := range group.NetworkQuotas {
+	for _, gn := range group.Network {
 		n := make(map[string]interface{})
 		n["id"] = gn.ID
-		leases, err := strconv.ParseInt(gn.Leases, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert network_quota.leases value: %v, error: %s", gn.Leases, err)
-		}
-		n["leases"] = leases
+		n["leases"] = gn.Leases
 		networkQuotas = append(networkQuotas, n)
 	}
 	// Get VM quotas
-	for _, gvm := range group.VMQuotas {
-		vm := make(map[string]interface{})
-		cpu, err := strconv.ParseInt(gvm.CPU, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.cpu value: %v, error: %s", gvm.CPU, err)
-		}
-		vm["cpu"] = cpu
-		memory, err := strconv.ParseInt(gvm.Memory, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.memory value: %v, error: %s", gvm.Memory, err)
-		}
-		vm["memory"] = memory
-		runningCpu, err := strconv.ParseInt(gvm.RunningCPU, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.running_cpu value: %v, error: %s", gvm.RunningCPU, err)
-		}
-		vm["running_cpu"] = runningCpu
-		runningMemory, err := strconv.ParseInt(gvm.RunningMemory, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.running_memory value: %v, error: %s", gvm.RunningMemory, err)
-		}
-		vm["running_memory"] = runningMemory
-		vms, err := strconv.ParseInt(gvm.VMs, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.vms value: %v, error: %s", gvm.VMs, err)
-		}
-		vm["vms"] = vms
-		runningVms, err := strconv.ParseInt(gvm.RunningVMs, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.running_vms value: %v, error: %s", gvm.RunningVMs, err)
-		}
-		vm["running_vms"] = runningVms
-		systemDiskSize, err := strconv.ParseInt(gvm.SystemDiskSize, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert vm_quota.system_disk_size value: %v, error: %s", gvm.SystemDiskSize, err)
-		}
-		vm["system_disk_size"] = systemDiskSize
+	vm := make(map[string]interface{})
+	if group.VM != nil {
+		vm["cpu"] = float64(group.VM.CPU)
+		vm["memory"] = group.VM.Memory
+		vm["running_cpu"] = float64(group.VM.RunningCPU)
+		vm["running_memory"] = group.VM.RunningMemory
+		vm["vms"] = group.VM.VMs
+		vm["running_vms"] = group.VM.RunningVMs
+		vm["system_disk_size"] = group.VM.SystemDiskSize
 		vmQuotas = append(vmQuotas, vm)
 	}
 	// Get Image quotas
-	for _, gimg := range group.ImageQuotas {
+	for _, gimg := range group.Image {
 		img := make(map[string]interface{})
 		img["id"] = gimg.ID
-		runningVms, err := strconv.ParseInt(gimg.RVMs, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot convert image_quota.running_vms value: %v, error: %s", gimg.RVMs, err)
-		}
-		img["running_vms"] = runningVms
+		img["running_vms"] = gimg.RVMs
 		imageQuotas = append(imageQuotas, img)
 	}
 
@@ -491,10 +447,10 @@ func generateGroupQuotas(d *schema.ResourceData) string {
 
 	if len(vm) > 0 {
 		vmMap := vm[0].(map[string]interface{})
-		quotastr = fmt.Sprintf("%s\n%s", quotastr, fmt.Sprintf("VM = [\n  CPU = %d,\n  MEMORY = %d,\n  RUNNING_CPU = %d,\n  RUNNING_MEMORY = %d,\n  RUNNING_VMS = %d,\n  SYSTEM_DISK_SIZE = %d,\n  VMS = %d\n]",
-			vmMap["cpu"].(int),
+		quotastr = fmt.Sprintf("%s\n%s", quotastr, fmt.Sprintf("VM = [\n  CPU = %f,\n  MEMORY = %d,\n  RUNNING_CPU = %f,\n  RUNNING_MEMORY = %d,\n  RUNNING_VMS = %d,\n  SYSTEM_DISK_SIZE = %d,\n  VMS = %d\n]",
+			vmMap["cpu"].(float64),
 			vmMap["memory"].(int),
-			vmMap["running_cpu"].(int),
+			vmMap["running_cpu"].(float64),
 			vmMap["running_memory"].(int),
 			vmMap["running_vms"].(int),
 			vmMap["system_disk_size"].(int),

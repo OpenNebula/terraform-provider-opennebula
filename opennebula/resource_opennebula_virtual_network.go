@@ -762,7 +762,7 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	d.Set("reservation_vnet", vn.ParentNetworkID)
 	d.Set("permissions", permissionsUnixString(vn.Permissions))
 
-	secgrouplist, err := vn.Template.Dynamic.GetContentByName("SECURITY_GROUPS")
+	secgrouplist, err := vn.Template.GetStr("SECURITY_GROUPS")
 	if err != nil {
 		return err
 	}
@@ -783,7 +783,7 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	if err != nil {
 		log.Printf("[DEBUG] Error setting security groups on vnet: %s", err)
 	}
-	mtustr, _ := vn.Template.Dynamic.GetContentByName("MTU")
+	mtustr, _ := vn.Template.Get("MTU")
 	if mtustr != "" {
 		mtu, err := strconv.ParseInt(mtustr, 10, 64)
 		if err != nil {
@@ -794,9 +794,9 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 			return err
 		}
 	}
-	desc, _ := vn.Template.Dynamic.GetContentByName("DESCRIPTION")
+	desc, _ := vn.Template.Get("DESCRIPTION")
 	if desc != "" {
-		err = d.Set("description", fmt.Sprintf("%v", desc))
+		err = d.Set("description", desc)
 		if err != nil {
 			return err
 		}

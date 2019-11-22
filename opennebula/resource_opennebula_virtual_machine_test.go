@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	ds "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/datastore"
+	dskeys "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/datastore/keys"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
@@ -91,65 +93,16 @@ func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVirtualMachineDisk(expected []vmDisk) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
-
-		for _, rs := range s.RootModule().Resources {
-			vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
-			vmc := controller.VM(int(vmID))
-			// Get Virtual Machine Info
-			vm, _ := vmc.Info(false)
-			if vm == nil {
-				return fmt.Errorf("Expected virtual_machine %s to exist when checking permissions", rs.Primary.ID)
-			}
-
-			if !reflect.DeepEqual(vm.Template.Disks, expected) {
-				return fmt.Errorf(
-					"Disks virtual_machine %s were expected to be %+v. Instead, they were %+v",
-					rs.Primary.ID,
-					expected,
-					vm.Template.Disks,
-				)
-			}
-		}
-		return nil
-	}
-}
-
-func testAccCheckVirtualMachineNic(expected []vmNIC) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
-
-		for _, rs := range s.RootModule().Resources {
-			vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
-			vmc := controller.VM(int(vmID))
-			// Get Virtual Machine Info
-			vm, _ := vmc.Info(false)
-			if vm == nil {
-				return fmt.Errorf("Expected virtual_machine %s to exist when checking permissions", rs.Primary.ID)
-			}
-
-			if !reflect.DeepEqual(vm.Template.NICs, expected) {
-				return fmt.Errorf(
-					"NICs virtual_machine %s were expected to be %+v. Instead, they were %+v",
-					rs.Primary.ID,
-					expected,
-					vm.Template.NICs,
-				)
-			}
-		}
-		return nil
-	}
-}
-
 func testAccSetDSdummy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if v := os.Getenv("TF_ACC_VM"); v == "1" {
 			controller := testAccProvider.Meta().(*goca.Controller)
-			dstpl := "TM_MAD=dummy\nDS_MAD=dummy"
-			controller.Datastore(0).Update(dstpl, 1)
-			controller.Datastore(1).Update(dstpl, 1)
+
+			dstpl := ds.NewTemplate()
+			dstpl.Add(dskeys.TMMAD, "dummy")
+			dstpl.Add(dskeys.DSMAD, "dummy")
+			controller.Datastore(0).Update(dstpl.String(), 1)
+			controller.Datastore(1).Update(dstpl.String(), 1)
 		}
 		return nil
 	}

@@ -442,15 +442,6 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	image_type_id_name := map[int]string{
-		0: "OS",
-		1: "CDROM",
-		2: "DATABLOCK",
-		3: "KERNEL",
-		4: "RAMDISK",
-		5: "CONTEXT",
-	}
-
 	d.SetId(fmt.Sprintf("%v", image.ID))
 	d.Set("name", image.Name)
 	d.Set("uid", image.UID)
@@ -458,31 +449,29 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("uname", image.UName)
 	d.Set("gname", image.GName)
 	d.Set("permissions", permissionsUnixString(image.Permissions))
-	d.Set("persistent", image.PersistentValue)
+	if image.Permissions != nil {
+		d.Set("persistent", *image.Persistent)
+	}
 	d.Set("path", image.Path)
 
-	imageidx, err := strconv.Atoi(image.Type)
-	if err != nil {
-		return err
-	}
-	if val, ok := image_type_id_name[imageidx]; ok {
-		d.Set("type", val)
+	if inArray(image.Type, imagetypes) >= 0 {
+		d.Set("type", image.Type)
 	}
 
 	d.Set("size", image.Size)
-	devpref, err := image.Template.Dynamic.GetContentByName("DEV_PREFIX")
+	devpref, err := image.Template.GetStr("DEV_PREFIX")
 	if err == nil {
 		d.Set("dev_prefix", devpref)
 	}
-	driver, err := image.Template.Dynamic.GetContentByName("DRIVER")
+	driver, err := image.Template.GetStr("DRIVER")
 	if err == nil {
 		d.Set("driver", driver)
 	}
-	format, err := image.Template.Dynamic.GetContentByName("FORMAT")
+	format, err := image.Template.GetStr("FORMAT")
 	if err == nil {
 		d.Set("format", format)
 	}
-	desc, err := image.Template.Dynamic.GetContentByName("DESCRIPTION")
+	desc, err := image.Template.GetStr("DESCRIPTION")
 	if err == nil {
 		d.Set("description", desc)
 	}
@@ -625,11 +614,11 @@ func generateImageXML(d *schema.ResourceData) (string, error) {
 	}
 
 	imagetplfull := &image.Image{
-		Name:            imagename,
-		Size:            imagesize,
-		Type:            imagetype,
-		PersistentValue: imagepersistent,
-		Path:            imagepath,
+		Name:       imagename,
+		Size:       imagesize,
+		Type:       imagetype,
+		Persistent: &imagepersistent,
+		Path:       imagepath,
 	}
 
 	w := &bytes.Buffer{}
