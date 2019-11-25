@@ -1,4 +1,4 @@
-## 0.1.0 (Unreleased)
+## 0.1.0 (November 25, 2019)
 
 NOTES:
 * First implementation of the provider
