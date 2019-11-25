@@ -1,4 +1,4 @@
-module github.com/OpenNebula/terraform-provider-opennebula
+module github.com/terraform-providers/terraform-provider-opennebula
 
 go 1.13
 

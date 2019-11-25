@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/OpenNebula/terraform-provider-opennebula/opennebula"
+	"github.com/terraform-providers/terraform-provider-opennebula/opennebula"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
