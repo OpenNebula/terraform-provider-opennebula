@@ -1,4 +1,8 @@
 ## 0.1.1 (Unreleased)
+
+BUG FIXES:
+* resource/opennebula_virtual_machine: Start VM on Hold [GH-1]
+
 ## 0.1.0 (November 25, 2019)
 
 NOTES:

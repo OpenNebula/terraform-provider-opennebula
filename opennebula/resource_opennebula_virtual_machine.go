@@ -463,10 +463,15 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	d.SetId(fmt.Sprintf("%v", vmID))
 	vmc := controller.VM(vmID)
 
-	_, err = waitForVmState(d, meta, "running")
+	expectedState := "running"
+	if d.Get("pending").(bool) {
+		expectedState = "hold"
+	}
+
+	_, err = waitForVmState(d, meta, expectedState)
 	if err != nil {
 		return fmt.Errorf(
-			"Error waiting for virtual machine (%s) to be in state RUNNING: %s", d.Id(), err)
+			"Error waiting for virtual machine (%s) to be in state %s: %s", expectedState, d.Id(), err)
 	}
 
 	// Rename the VM with its real name
@@ -794,6 +799,8 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 				return vm, "running", nil
 			} else if vmState == 6 {
 				return vm, "done", nil
+			} else if vmState == 2 && vmLcmState == 0 {
+				return vm, "hold", nil
 			} else if vmState == 3 && vmLcmState == 36 {
 				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
 				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
