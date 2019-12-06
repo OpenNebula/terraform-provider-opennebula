@@ -387,8 +387,11 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			return err
 		}
 
+		// Get Clusters list
+		clusters := getVnetClustersValue(d)
+
 		// Create VNet
-		vnetID, err := controller.VirtualNetworks().Create(vntpl, -1)
+		vnetID, err := controller.VirtualNetworks().Create(vntpl, clusters[0])
 		if err != nil {
 			return err
 		}
@@ -434,9 +437,9 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			}
 		}
 
-		// Set Clusters
-		if _, ok := d.GetOk("clusters"); ok {
-			err := setVnetClusters(d, meta, vnetID)
+		// Set Clusters (first in list is already set)
+		if len(clusters) > 1 {
+			err := setVnetClusters(clusters[1:], meta, vnetID)
 			if err != nil {
 				return err
 			}
@@ -694,7 +697,21 @@ func generateVnXML(d *schema.ResourceData) (string, error) {
 	return vnstring, nil
 }
 
-func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
+func getVnetClustersValue(d *schema.ResourceData) []int {
+	var result = make([]int, 0)
+
+	if clusters, ok := d.GetOk("clusters"); ok {
+		clusterList := clusters.([]interface{})
+		for i := 0; i < len(clusterList); i++ {
+			result = append(result, clusterList[i].(int))
+		}
+	} else {
+		result = append(result, -1)
+	}
+	return result
+}
+
+func setVnetClusters(clusters []int, meta interface{}, id int) error {
 	controller := meta.(*goca.Controller)
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
@@ -702,10 +719,9 @@ func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
 	if err != nil {
 		return err
 	}
-	clusters := d.Get("clusters").([]interface{})
 	log.Printf("Number of clusters: %d", len(clusters))
 	for i := 0; i < len(clusters); i++ {
-		clusterid := clusters[i].(int)
+		clusterid := clusters[i]
 		for j := 0; j < len(clusterPool.Clusters); j++ {
 			if clusterid == clusterPool.Clusters[j].ID {
 				cc := controller.Cluster(clusterPool.Clusters[j].ID)
