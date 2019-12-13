@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -229,7 +228,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Context variables",
 			},
 			"disk": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				//Computed:    true,
 				MinItems:    0,
@@ -286,7 +285,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				},
 			},
 			"nic": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				//Computed:    true,
 				MinItems:    0,
@@ -331,7 +330,6 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceVMNicHash,
 			},
 			"os": {
 				Type:     schema.TypeSet,
@@ -463,10 +461,15 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	d.SetId(fmt.Sprintf("%v", vmID))
 	vmc := controller.VM(vmID)
 
-	_, err = waitForVmState(d, meta, "running")
+	expectedState := "running"
+	if d.Get("pending").(bool) {
+		expectedState = "hold"
+	}
+
+	_, err = waitForVmState(d, meta, expectedState)
 	if err != nil {
 		return fmt.Errorf(
-			"Error waiting for virtual machine (%s) to be in state RUNNING: %s", d.Id(), err)
+			"Error waiting for virtual machine (%s) to be in state %s: %s", expectedState, d.Id(), err)
 	}
 
 	// Rename the VM with its real name
@@ -560,10 +563,10 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
 
 	// Disks
-	diskmap := make([]map[string]interface{}, 0)
+	disklist := make([]interface{}, 0)
 
 	// Nics
-	nicmap := make([]map[string]interface{}, 0)
+	niclist := make([]interface{}, 0)
 
 	// Set OS to resource
 	osmap = append(osmap, map[string]interface{}{
@@ -596,7 +599,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		target, _ := disk.Get(shared.TargetDisk)
 		imageId, _ := disk.GetI(shared.ImageID)
 
-		diskmap = append(diskmap, map[string]interface{}{
+		disklist = append(disklist, map[string]interface{}{
 			"image_id": imageId,
 			"size":     size,
 			"target":   target,
@@ -604,7 +607,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		})
 	}
 
-	err = d.Set("disk", diskmap)
+	err = d.Set("disk", disklist)
 	if err != nil {
 		return err
 	}
@@ -628,7 +631,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			sg = append(sg, int(sgInt))
 		}
 
-		nicmap = append(nicmap, map[string]interface{}{
+		niclist = append(niclist, map[string]interface{}{
 			"ip":              ip,
 			"mac":             mac,
 			"network_id":      networkId,
@@ -643,7 +646,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		}
 	}
 
-	err = d.Set("nic", nicmap)
+	err = d.Set("nic", niclist)
 	if err != nil {
 		return err
 	}
@@ -794,6 +797,8 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 				return vm, "running", nil
 			} else if vmState == 6 {
 				return vm, "done", nil
+			} else if vmState == 2 && vmLcmState == 0 {
+				return vm, "hold", nil
 			} else if vmState == 3 && vmLcmState == 36 {
 				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
 				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
@@ -830,7 +835,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 	}
 
 	//Generate NIC definition
-	nics := d.Get("nic").(*schema.Set).List()
+	nics := d.Get("nic").([]interface{})
 	log.Printf("Number of NICs: %d", len(nics))
 	vmnics := make([]vmNIC, len(nics))
 	for i := 0; i < len(nics); i++ {
@@ -854,7 +859,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 	}
 
 	//Generate DISK definition
-	disks := d.Get("disk").(*schema.Set).List()
+	disks := d.Get("disk").([]interface{})
 	log.Printf("Number of disks: %d", len(disks))
 	vmdisks := make([]vmDisk, len(disks))
 	for i := 0; i < len(disks); i++ {
@@ -966,14 +971,6 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 
 	log.Printf("VM XML: %s", w.String())
 	return w.String(), nil
-}
-
-func resourceVMNicHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["model"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["network_id"].(int)))
-	return hashcode.String(buf.String())
 }
 
 func resourceVMCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {

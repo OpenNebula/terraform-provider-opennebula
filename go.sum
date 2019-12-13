@@ -24,6 +24,10 @@ github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125081313-e1ff1d4f2a21
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125081313-e1ff1d4f2a21/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125103116-fd2766970d29 h1:MiL+j9UQ7GW7qwy7a2ZGxVN5yOmDq13jqFz4yDKnZcs=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191125103116-fd2766970d29/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191126103735-38654b5e2482 h1:TOmWeTE2B14r5shd7ewGK1+wvAKlCO07VjkADldj4jI=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191126103735-38654b5e2482/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191129173730-16884d1c4bd1 h1:MQLUmUcuNmspTDO+PmpX3cL9oMRCw3QVUqy1sUZABY4=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191129173730-16884d1c4bd1/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
 github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
 github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af/go.mod h1:5Jv4cbFiHJMsVxt52+i0Ha45fjshj6wxYr1r19tB9bw=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=

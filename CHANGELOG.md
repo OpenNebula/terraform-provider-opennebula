@@ -1,4 +1,9 @@
 ## 0.1.1 (Unreleased)
+
+BUG FIXES:
+* resource/opennebula_virtual_machine: Start VM on Hold [GH-1]
+* resource/opennbula_virtual_machine: Attach nic or disk in the declared order [GH-5]
+
 ## 0.1.0 (November 25, 2019)
 
 NOTES:
