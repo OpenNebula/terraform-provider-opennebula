@@ -1,8 +1,6 @@
 package opennebula
 
 import (
-	"bytes"
-	"encoding/xml"
 	"fmt"
 	"log"
 	"net"
@@ -16,17 +14,8 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
+	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
 )
-
-type vnetTemplate struct {
-	Description     string `xml:"DESCRIPTION,omitempty"`
-	Security_Groups string `xml:"SECURITY_GROUPS,omitempty"`
-	Mtu             int    `xml:"MTU,omitempty"`
-	Dns             string `xml:"DNS,omitempty"`
-	Gateway         string `xml:"GATEWAY,omitempty"`
-	Network_Mask    string `xml:"NETWORK_MASK,omitempty"`
-	GuestMtu        int    `xml:"GUEST_MTU,omitempty"`
-}
 
 func resourceOpennebulaVirtualNetwork() *schema.Resource {
 	return &schema.Resource{
@@ -397,7 +386,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		log.Printf("[DEBUG] New VNET reservation ID: %d", vnet.ID)
 
 	} else { //New VNET
-		vntpl, err := generateVnXML(d)
+		vnDef, err := generateVn(d)
 		if err != nil {
 			return err
 		}
@@ -406,7 +395,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		clusters := getVnetClustersValue(d)
 
 		// Create VNet
-		vnetID, err := controller.VirtualNetworks().Create(vntpl, clusters[0])
+		vnetID, err := controller.VirtualNetworks().Create(vnDef, clusters[0])
 		if err != nil {
 			return err
 		}
@@ -490,6 +479,9 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 }
 
 func generateAR(armap map[string]interface{}, id int) string {
+
+	ar := vn.NewAddressRange()
+
 	// Generate AR depending on the AR Type
 	artype := armap["ar_type"].(string)
 	arip4 := armap["ip4"].(string)
@@ -501,215 +493,121 @@ func generateAR(armap map[string]interface{}, id int) string {
 	arprefixlength := armap["prefix_length"].(string)
 	arid := strconv.Itoa(id)
 
-	if artype == "IP4" {
-		if armac != "" {
-			var arstring = `AR = [
-                AR_ID = %s,
-		        TYPE = IP4,
-		        IP = %s,
-		        MAC = %s,
-		        SIZE = %d ]`
-			return fmt.Sprintf(arstring, arid, arip4, armac, arsize)
-		}
-		var arstring = `AR = [
-            AR_ID = %s,
-            TYPE = IP4,
-            IP = %s,
-            SIZE = %d ]`
-		return fmt.Sprintf(arstring, arid, arip4, arsize)
-	}
-	if artype == "IP6" {
-		if armac != "" {
-			if argprefix != "" {
-				if arulaprefix != "" {
-					var arstring = `AR = [
-                        AR_ID = %s,
-		                TYPE = IP6,
-		                MAC = %s,
-		                GLOBAL_PREFIX = %s,
-		                ULA_PREFIX = %s,
-		                SIZE = %d ]`
-					return fmt.Sprintf(arstring, arid, armac, argprefix, arulaprefix, arsize)
-				}
-				var arstring = `AR = [
-                    AR_ID = %s,
-		            TYPE = IP6,
-		            MAC = %s,
-		            GLOBAL_PREFIX = %s,
-		            SIZE = %d ]`
-				return fmt.Sprintf(arstring, arid, armac, argprefix, arsize)
-			}
-			var arstring = `AR = [
-                AR_ID = %s,
-		        TYPE = IP6,
-		        MAC = %s,
-		        SIZE = %d ]`
-			return fmt.Sprintf(arstring, arid, armac, arsize)
-		}
-		var arstring = `AR = [
-            AR_ID = %s,
-		    TYPE = IP6,
-		    SIZE = %d ]`
-		return fmt.Sprintf(arstring, arid, arsize)
-	}
-	if artype == "IP6_STATIC" {
-		if armac != "" {
-			var arstring = `AR = [
-                AR_ID = %s,
-		        TYPE = IP6_STATIC,
-		        MAC = %s,
-		        IP6 = %s,
-		        PREFIX_LENGTH = %s,
-		        SIZE = %d ]`
-			return fmt.Sprintf(arstring, arid, armac, arip6, arprefixlength, arsize)
-		}
-		var arstring = `AR = [
-            AR_ID = %s,
-		    TYPE = IP6_STATIC,
-		    IP6 = %s,
-		    PREFIX_LENGTH = %s,
-		    SIZE = %d ]`
-		return fmt.Sprintf(arstring, arid, arip6, arprefixlength, arsize)
-	}
-	if artype == "IP4_6" {
-		if armac != "" {
-			if argprefix != "" {
-				if arulaprefix != "" {
-					var arstring = `AR = [
-                        AR_ID = %s,
-		                TYPE = IP4_6,
-		                IP = %s,
-		                MAC = %s,
-		                GLOBAL_PREFIX = %s,
-		                ULA_PREFIX = %s,
-		                SIZE = %d ]`
-					return fmt.Sprintf(arstring, arid, arip4, armac, argprefix, arulaprefix, arsize)
-				}
-				var arstring = `AR = [
-                    AR_ID = %s,
-		            TYPE = IP4_6,
-		            IP = %s,
-		            MAC = %s,
-		            GLOBAL_PREFIX = %s,
-		            SIZE = %d ]`
-				return fmt.Sprintf(arstring, arid, arip4, armac, argprefix, arsize)
-			}
-			var arstring = `AR = [
-                AR_ID = %s,
-		        TYPE = IP4_6,
-		        IP = %s,
-		        MAC = %s,
-		        SIZE = %d ]`
-			return fmt.Sprintf(arstring, arid, arip4, armac, arsize)
-		}
-		var arstring = `AR = [
-            AR_ID = %s,
-		    TYPE = IP4_6,
-		    IP = %s,
-		    SIZE = %d ]`
-		return fmt.Sprintf(arstring, arid, arip4, arsize)
-	}
-	if artype == "IP4_6_STATIC" {
-		if armac != "" {
-			var arstring = `AR = [
-                AR_ID = %s,
-		        TYPE = IP4_6_STATIC,
-		        IP = %s,
-		        MAC = %s,
-		        IP6 = %s,
-		        PREFIX_LENGTH = %s,
-		        SIZE = %d ]`
-			return fmt.Sprintf(arstring, arid, arip4, armac, arip6, arprefixlength, arsize)
-		}
-		var arstring = `AR = [
-            AR_ID = %s,
-		    TYPE = IP4_6_STATIC,
-		    IP = %s,
-		    IP6 = %s,
-		    PREFIX_LENGTH = %s,
-		    SIZE = %d ]`
-		return fmt.Sprintf(arstring, arid, arip4, arip6, arprefixlength, arsize)
-	}
-	if artype == "ETHER" {
-		if armac != "" {
-			var arstring = `AR = [
-                AR_ID = %s,
-		        TYPE = ETHER,
-		        MAC = %s,
-		        SIZE = %d ]`
-			return fmt.Sprintf(arstring, arid, armac, arsize)
-		}
-		var arstring = `AR = [
-            AR_ID = %s,
-		    TYPE = ETHER,
-		    SIZE = %d ]`
-		return fmt.Sprintf(arstring, arid, arsize)
+	ar.Add(vnk.ARID, arid)
+	ar.Add(vnk.Size, fmt.Sprint(arsize))
+	ar.Add(vnk.Type, artype)
+
+	if armac != "" {
+		ar.Add(vnk.Mac, armac)
 	}
 
-	return ""
+	switch artype {
+	case "IP4":
+		ar.Add(vnk.IP, arip4)
+
+	case "IP6":
+
+		if argprefix != "" {
+			ar.Add(vnk.GlobalPrefix, argprefix)
+		}
+
+		if arulaprefix != "" {
+			ar.Add(vnk.UlaPrefix, arulaprefix)
+		}
+
+	case "IP6_STATIC":
+
+		ar.Add("IP6", arip6)
+		ar.Add(vnk.PrefixLength, arprefixlength)
+
+	case "IP4_6":
+
+		if argprefix != "" {
+			ar.Add(vnk.GlobalPrefix, argprefix)
+		}
+
+		if arulaprefix != "" {
+			ar.Add(vnk.UlaPrefix, arulaprefix)
+		}
+
+		ar.Add(vnk.IP, arip4)
+
+	case "IP4_6_STATIC":
+
+		ar.Add(vnk.IP, arip4)
+		ar.Add("IP6", arip6)
+		ar.Add(vnk.PrefixLength, arprefixlength)
+	}
+
+	return ar.String()
 }
 
 func generateVnTemplate(d *schema.ResourceData) (string, error) {
+
+	tpl := vn.NewTemplate()
+
 	mtu := d.Get("mtu").(int)
-	dns := d.Get("dns").(string)
-	gateway := d.Get("gateway").(string)
-	netmask := d.Get("network_mask").(string)
-	description := d.Get("description").(string)
 	guestmtu := d.Get("guest_mtu").(int)
 
 	if guestmtu > mtu {
 		return "", fmt.Errorf("Invalid: Guest MTU (%v) is greater than MTU (%v)", guestmtu, mtu)
 	}
 
-	vntpl := &vnetTemplate{
-		Description:  description,
-		Mtu:          mtu,
-		GuestMtu:     guestmtu,
-		Dns:          dns,
-		Gateway:      gateway,
-		Network_Mask: netmask,
+	tpl.AddPair("MTU", mtu)
+	tpl.AddPair(string(vnk.GuestMTU), guestmtu)
+
+	if dns, ok := d.GetOk("dns"); ok {
+		tpl.Add(vnk.DNS, dns.(string))
+	}
+	if gw, ok := d.GetOk("gateway"); ok {
+		tpl.Add(vnk.Gateway, gw.(string))
+	}
+	if netMask, ok := d.GetOk("network_mask"); ok {
+		tpl.Add(vnk.NetworkMask, netMask.(string))
+	}
+	if desc, ok := d.GetOk("description"); ok {
+		tpl.Add("DESCRIPTION", desc.(string))
 	}
 
-	w := &bytes.Buffer{}
+	tplStr := tpl.String()
+	log.Printf("[INFO] VNET template: %s", tplStr)
 
-	//Encode the VN template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(vntpl); err != nil {
-		return "", err
-	}
-
-	log.Printf("template XML: %s", w.String())
-	return w.String(), nil
+	return tplStr, nil
 }
 
-func generateVnXML(d *schema.ResourceData) (string, error) {
+func generateVn(d *schema.ResourceData) (string, error) {
 	vnname := d.Get("name").(string)
 	vnmad := d.Get("type").(string)
 
 	if vnmad == "" {
 		vnmad = "bridge"
 	}
-	vnstring := fmt.Sprintf("NAME = %s\nVN_MAD = %s", vnname, vnmad)
+
+	tpl := vn.NewTemplate()
+
+	tpl.Add(vnk.Name, vnname)
+	tpl.Add(vnk.VNMad, vnmad)
 
 	if validVlanType(vnmad) >= 0 {
 		if d.Get("automatic_vlan_id") == true {
-			vnstring = fmt.Sprintf("%s\nAUTOMATIC_VLAN_ID = YES", vnstring)
+			tpl.Add("AUTOMATIC_VLAN_ID", "YES")
 		} else if vlanid, ok := d.GetOk("vlan_id"); ok {
-			vnstring = fmt.Sprintf("%s\nVLAN_ID = %s", vnstring, vlanid.(string))
+			tpl.Add(vnk.VlanID, vlanid.(string))
 		} else {
 			return "", fmt.Errorf("You must specify a 'vlan_id' or set the flag 'automatic_vlan_id'")
 		}
 	}
 	if vnbridge, ok := d.GetOk("bridge"); ok {
-		vnstring = fmt.Sprintf("%s\nBRIDGE = %s", vnstring, vnbridge.(string))
+		tpl.Add(vnk.Bridge, vnbridge.(string))
 	}
 	if vnphydev, ok := d.GetOk("physical_device"); ok {
-		vnstring = fmt.Sprintf("%s\nPHYDEV = %s", vnstring, vnphydev.(string))
+		tpl.Add(vnk.PhyDev, vnphydev.(string))
 	}
 
-	log.Printf("VNET XML: %s", vnstring)
-	return vnstring, nil
+	tplStr := tpl.String()
+	log.Printf("[INFO] VNET definition: %s", tplStr)
+
+	return tplStr, nil
 }
 
 func getVnetClustersValue(d *schema.ResourceData) []int {
