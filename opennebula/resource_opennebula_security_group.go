@@ -1,35 +1,21 @@
 package opennebula
 
 import (
-	"bytes"
-	"encoding/xml"
 	"fmt"
-	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/structs"
+	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/securitygroup"
+	sgk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/securitygroup/keys"
 )
-
-type SecurityGroupTemplate struct {
-	Description        string              `xml:"DESCRIPTION"`
-	SecurityGroupRules []SecurityGroupRule `xml:"RULE"`
-}
-
-type SecurityGroupRule struct {
-	Protocol  string `xml:"PROTOCOL"             structs:"protocol"`
-	Range     string `xml:"RANGE,omitempty"      structs:"range,omitempty"`
-	RuleType  string `xml:"RULE_TYPE"            structs:"rule_type,omitempty"`
-	IP        string `xml:"IP,omitempty"         structs:"ip,omitempty"`
-	Size      string `xml:"SIZE,omitempty"       structs:"size,omitempty"`
-	NetworkId string `xml:"NETWORK_ID,omitempty" structs:"network_id,omitempty"`
-	IcmpType  string `xml:"ICMP_TYPE,omitempty"  structs:"icmp_type,omitempty"`
-}
 
 func resourceOpennebulaSecurityGroup() *schema.Resource {
 	return &schema.Resource{
@@ -304,28 +290,31 @@ func resourceOpennebulaSecurityGroupExists(d *schema.ResourceData, meta interfac
 func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	secgroupxml, xmlerr := generateSecurityGroupXML(d)
-	if xmlerr != nil {
-		return xmlerr
+	secGroupDef, err := generateSecurityGroup(d)
+	if err != nil {
+		return err
 	}
 
-	securitygroupID, err := controller.SecurityGroups().Create(secgroupxml)
+	secGroupID, err := controller.SecurityGroups().Create(secGroupDef)
 	if err != nil {
 		log.Printf("[ERROR] Security group creation failed, error: %s", err)
 		return err
 	}
 
-	sgc := controller.SecurityGroup(securitygroupID)
+	sgc := controller.SecurityGroup(secGroupID)
 
-	template, xmlerr := generateSecurityGroupTemplate(d)
+	secGroupTpl, xmlerr := generateSecurityGroupTemplate(d)
 	if xmlerr != nil {
 		return xmlerr
 	}
 
 	// add template information into Security group
-	err = sgc.Update(template, 1)
+	err = sgc.Update(secGroupTpl, 1)
+	if err != nil {
+		return err
+	}
 
-	d.SetId(fmt.Sprintf("%v", securitygroupID))
+	d.SetId(fmt.Sprintf("%v", secGroupID))
 
 	// Change Permissions
 	if perms, ok := d.GetOk("permissions"); ok {
@@ -441,100 +430,64 @@ func resourceOpennebulaSecurityGroupDelete(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func generateSecurityGroupXML(d *schema.ResourceData) (string, error) {
+func generateSecurityGroup(d *schema.ResourceData) (string, error) {
 	secgroupname := d.Get("name").(string)
 
-	securitygroup := &securitygroup.SecurityGroup{
-		Name: secgroupname,
-	}
+	tpl := securitygroup.NewTemplate()
+	tpl.Add(sgk.Name, secgroupname)
 
-	w := &bytes.Buffer{}
+	tplStr := tpl.String()
+	log.Printf("[INFO] Security Group definition: %s", tplStr)
 
-	//Encode the Security Group template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(securitygroup); err != nil {
-		return "", err
-	}
-
-	log.Printf("Security Group XML: %s", w.String())
-	return w.String(), nil
+	return tplStr, nil
 }
 
 func generateSecurityGroupTemplate(d *schema.ResourceData) (string, error) {
 	//Generate rules definition
 	rules := d.Get("rule").(*schema.Set).List()
 	log.Printf("Number of Security Group rules: %d", len(rules))
-	secgrouprules := make([]SecurityGroupRule, len(rules))
+
+	tpl := securitygroup.NewTemplate()
 
 	for i := 0; i < len(rules); i++ {
 		ruleconfig := rules[i].(map[string]interface{})
+		rule := tpl.AddRule()
 
-		var ruleprotocol string
-		var ruletype string
-		var ruleip string
-		var rulesize string
-		var rulerange string
-		var ruleicmptype string
-		var rulenetworkid string
+		for k, v := range ruleconfig {
 
-		if ruleconfig["protocol"] != nil {
-			ruleprotocol = ruleconfig["protocol"].(string)
+			if isEmptyValue(reflect.ValueOf(v)) {
+				continue
+			}
+
+			switch k {
+			case "protocol":
+				rule.Add(sgk.Protocol, v.(string))
+			case "rule_type":
+				rule.Add(sgk.RuleType, v.(string))
+			case "ip":
+				rule.Add(sgk.IP, v.(string))
+			case "size":
+				rule.Add(sgk.Size, v.(string))
+			case "range":
+				rule.Add(sgk.Range, v.(string))
+			case "icmp_type":
+				rule.Add(sgk.IcmpType, v.(string))
+			case "network_id":
+				rule.Add(sgk.NetworkID, v.(string))
+			}
+
 		}
 
-		if ruleconfig["rule_type"] != nil {
-			ruletype = ruleconfig["rule_type"].(string)
-		}
-
-		if ruleconfig["ip"] != nil {
-			ruleip = ruleconfig["ip"].(string)
-		}
-
-		if ruleconfig["size"] != nil {
-			rulesize = ruleconfig["size"].(string)
-		}
-
-		if ruleconfig["range"] != nil {
-			rulerange = ruleconfig["range"].(string)
-		}
-
-		if ruleconfig["icmp_type"] != nil {
-			ruleicmptype = ruleconfig["icmp_type"].(string)
-		}
-
-		if ruleconfig["network_id"] != nil {
-			rulenetworkid = ruleconfig["network_id"].(string)
-		}
-
-		secgrouprule := SecurityGroupRule{
-			Protocol:  ruleprotocol,
-			RuleType:  ruletype,
-			IP:        ruleip,
-			Size:      rulesize,
-			Range:     rulerange,
-			IcmpType:  ruleicmptype,
-			NetworkId: rulenetworkid,
-		}
-
-		secgrouprules[i] = secgrouprule
 	}
 
-	secgroupdescription := d.Get("description").(string)
-
-	template := &SecurityGroupTemplate{
-		Description:        secgroupdescription,
-		SecurityGroupRules: secgrouprules,
+	description := d.Get("description").(string)
+	if len(description) > 0 {
+		tpl.Add(sgk.Description, description)
 	}
 
-	w := &bytes.Buffer{}
+	tplStr := tpl.String()
+	log.Printf("[INFO] Security Group template: %s", tplStr)
 
-	//Encode the Security Group template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(template); err != nil {
-		return "", err
-	}
+	return tplStr, nil
 
-	log.Printf("Security Group XML: %s", w.String())
-	return w.String(), nil
 }
