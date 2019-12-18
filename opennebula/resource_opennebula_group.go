@@ -1,15 +1,19 @@
 package opennebula
 
 import (
+	"bytes"
+	"encoding/xml"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/group"
+	shared "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
 func resourceOpennebulaGroup() *schema.Resource {
@@ -392,9 +396,9 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, group *group.Group) err
 	// Get VM quotas
 	vm := make(map[string]interface{})
 	if group.VM != nil {
-		vm["cpu"] = float64(group.VM.CPU)
+		vm["cpu"] = group.VM.CPU
 		vm["memory"] = group.VM.Memory
-		vm["running_cpu"] = float64(group.VM.RunningCPU)
+		vm["running_cpu"] = group.VM.RunningCPU
 		vm["running_memory"] = group.VM.RunningMemory
 		vm["vms"] = group.VM.VMs
 		vm["running_vms"] = group.VM.RunningVMs
@@ -422,46 +426,66 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, group *group.Group) err
 func generateGroupQuotas(d *schema.ResourceData) string {
 	quotas := d.Get("quotas").(*schema.Set).List()
 
+	tpl := shared.Quotas{}
+
 	quotasMap := quotas[0].(map[string]interface{})
 	datastore := quotasMap["datastore_quotas"].([]interface{})
 	network := quotasMap["network_quotas"].([]interface{})
 	image := quotasMap["image_quotas"].([]interface{})
 	vm := quotasMap["vm_quotas"].(*schema.Set).List()
-	quotastr := ""
 
+	tpl.Datastore = make([]shared.DatastoreQuota, len(datastore))
 	for i := 0; i < len(datastore); i++ {
 		datastoreMap := datastore[i].(map[string]interface{})
-		quotastr = fmt.Sprintf("%s\n%s", quotastr, fmt.Sprintf("DATASTORE = [\n  ID = %d,\n  IMAGE = %d,\n  SIZE = %d\n]",
-			datastoreMap["id"].(int),
-			datastoreMap["images"].(int),
-			datastoreMap["size"].(int)))
+
+		tpl.Datastore[i] = shared.DatastoreQuota{
+			ID:     datastoreMap["id"].(int),
+			Images: datastoreMap["images"].(int),
+			Size:   datastoreMap["size"].(int),
+		}
 	}
 
+	tpl.Network = make([]shared.NetworkQuota, len(network))
 	for i := 0; i < len(network); i++ {
 		networkMap := network[i].(map[string]interface{})
-		quotastr = fmt.Sprintf("%s\n%s", quotastr, fmt.Sprintf("NETWORK = [\n  ID = %d,\n  LEASES = %d\n]",
-			networkMap["id"].(int),
-			networkMap["leases"].(int)))
+		tpl.Network[i] = shared.NetworkQuota{
+			ID:     networkMap["id"].(int),
+			Leases: networkMap["leases"].(int),
+		}
 	}
 
+	tpl.Image = make([]shared.ImageQuota, len(image))
 	for i := 0; i < len(image); i++ {
 		imageMap := image[i].(map[string]interface{})
-		quotastr = fmt.Sprintf("%s\n%s", quotastr, fmt.Sprintf("IMAGE = [\n  ID = %d,\n  RVMS = %d\n]",
-			imageMap["id"].(int),
-			imageMap["running_vms"].(int)))
+		tpl.Image[i] = shared.ImageQuota{
+			ID:   imageMap["id"].(int),
+			RVMs: imageMap["running_vms"].(int),
+		}
 	}
 
 	if len(vm) > 0 {
 		vmMap := vm[0].(map[string]interface{})
-		quotastr = fmt.Sprintf("%s\n%s", quotastr, fmt.Sprintf("VM = [\n  CPU = %f,\n  MEMORY = %d,\n  RUNNING_CPU = %f,\n  RUNNING_MEMORY = %d,\n  RUNNING_VMS = %d,\n  SYSTEM_DISK_SIZE = %d,\n  VMS = %d\n]",
-			vmMap["cpu"].(float64),
-			vmMap["memory"].(int),
-			vmMap["running_cpu"].(float64),
-			vmMap["running_memory"].(int),
-			vmMap["running_vms"].(int),
-			vmMap["system_disk_size"].(int),
-			vmMap["vms"].(int)))
+
+		tpl.VM = &shared.VMQuota{
+			CPU:            float32(vmMap["cpu"].(float64)),
+			Memory:         vmMap["memory"].(int),
+			RunningCPU:     float32(vmMap["running_cpu"].(float64)),
+			RunningMemory:  vmMap["running_memory"].(int),
+			RunningVMs:     vmMap["running_vms"].(int),
+			SystemDiskSize: int64(vmMap["system_disk_size"].(int)),
+			VMs:            vmMap["vms"].(int),
+		}
 	}
 
-	return quotastr
+	w := &bytes.Buffer{}
+
+	//Encode the VN template schema to XML
+	enc := xml.NewEncoder(w)
+	//enc.Indent("", "  ")
+	if err := enc.Encode(tpl); err != nil {
+		return ""
+	}
+
+	log.Printf("[INFO] Quotas definition: %s", w.String())
+	return w.String()
 }
