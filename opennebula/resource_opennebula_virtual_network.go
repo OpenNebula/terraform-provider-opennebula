@@ -764,40 +764,38 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
+	tpl := vn.NewTemplate()
+	changes := false
+
 	if d.HasChange("description") {
-		err := vnc.Update(fmt.Sprintf("DESCRIPTION =\"%s\"", d.Get("description").(string)), 1)
-		if err != nil {
-			return err
-		}
+		tpl.Add("DESCRIPTION", d.Get("description").(string))
+		changes = true
 	}
 
 	if d.HasChange("gateway") {
-		err := vnc.Update(fmt.Sprintf("GATEWAY = \"%s\"", d.Get("gateway").(string)), 1)
-		if err != nil {
-			return err
-		}
+		tpl.Add(vnk.Gateway, d.Get("gateway").(string))
+		changes = true
 	}
 
 	if d.HasChange("dns") {
-		err := vnc.Update(fmt.Sprintf("DNS = \"%s\"", d.Get("dns").(string)), 1)
-		if err != nil {
-			return err
-		}
+		tpl.Add(vnk.DNS, d.Get("dns").(string))
+		changes = true
 	}
 
 	if d.HasChange("network_mask") {
-		err := vnc.Update(fmt.Sprintf("NETWORK_MASK = \"%s\"", d.Get("network_mask").(string)), 1)
-		if err != nil {
-			return err
-		}
-
+		tpl.Add(vnk.NetworkMask, d.Get("network_mask").(string))
+		changes = true
 	}
 
 	if d.HasChange("security_groups") {
 		securitygroups := d.Get("security_groups")
 		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
+		tpl.Add(vnk.SecGroups, secgrouplist)
+		changes = true
+	}
 
-		err := vnc.Update(fmt.Sprintf("SECURITY_GROUPS=\"%s\"", secgrouplist), 1)
+	if changes {
+		err := vnc.Update(tpl.String(), 1)
 		if err != nil {
 			return err
 		}
