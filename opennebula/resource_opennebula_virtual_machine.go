@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
@@ -363,8 +364,16 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		// if template id is set, instantiate a VM from this template
 		tc := controller.Template(v.(int))
 
+		// retrieve the context of the template
+		tpl, err := tc.Info(true, false)
+		if err != nil {
+			return err
+		}
+
+		tplContext, _ := tpl.Template.GetVector(vmk.ContextVec)
+
 		// customize template except for memory and cpu.
-		vmDef, err := generateVm(d)
+		vmDef, err := generateVm(d, tplContext)
 		if err != nil {
 			return err
 		}
@@ -380,7 +389,7 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			return fmt.Errorf("memory is mandatory as template_id is not used")
 		}
 
-		vmDef, err := generateVm(d)
+		vmDef, err := generateVm(d, nil)
 		if err != nil {
 			return err
 		}
@@ -780,7 +789,7 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 	return stateConf.WaitForState()
 }
 
-func generateVm(d *schema.ResourceData) (string, error) {
+func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) {
 
 	tpl := vm.NewTemplate()
 
@@ -789,8 +798,26 @@ func generateVm(d *schema.ResourceData) (string, error) {
 	log.Printf("Number of CONTEXT vars: %d", len(context))
 	log.Printf("CONTEXT Map: %s", context)
 
-	for key, value := range context {
-		tpl.AddCtx(vmk.Context(key), fmt.Sprint(value))
+	if tplContext != nil {
+
+		// Update existing context:
+		// - add new pairs
+		// - update pair when the key already exist
+		// - other pairs are left unchanged
+		for key, value := range context {
+			keyUp := strings.ToUpper(key)
+			tplContext.Del(keyUp)
+			tplContext.AddPair(keyUp, value)
+		}
+
+		tpl.Elements = append(tpl.Elements, tplContext)
+	} else {
+
+		// Add new context elements to the template
+		for key, value := range context {
+			keyUp := strings.ToUpper(key)
+			tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
+		}
 	}
 
 	//Generate NIC definition
