@@ -50,6 +50,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Description of the Security Group Rule Set",
 			},
 			"permissions": {
@@ -139,26 +140,31 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "IP (or starting IP if used with 'size') to apply the rule to",
 							Optional:    true,
+							Computed:    true,
 						},
 						"size": {
 							Type:        schema.TypeString,
 							Description: "Number of IPs to apply the rule from, starting with 'ip'",
 							Optional:    true,
+							Computed:    true,
 						},
 						"range": {
 							Type:        schema.TypeString,
 							Description: "Comma separated list of ports and port ranges",
 							Optional:    true,
+							Computed:    true,
 						},
 						"icmp_type": {
 							Type:        schema.TypeString,
 							Description: "Type of ICMP traffic to apply to when 'protocol' is ICMP",
 							Optional:    true,
+							Computed:    true,
 						},
 						"network_id": {
 							Type:        schema.TypeString,
 							Description: "VNET ID to be used as the source/destination IP addresses",
 							Optional:    true,
+							Computed:    true,
 						},
 					},
 				},

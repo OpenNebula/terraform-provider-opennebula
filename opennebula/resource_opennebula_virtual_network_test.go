@@ -53,8 +53,7 @@ func TestAccVirtualNetwork(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccVirtualNetworkConfigUpdate,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualNetworkConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test-virtual_network-renamed"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
