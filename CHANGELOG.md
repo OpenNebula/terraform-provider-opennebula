@@ -3,6 +3,8 @@
 BUG FIXES:
 * resource/opennebula_virtual_machine: Start VM on Hold [GH-1]
 * resource/opennbula_virtual_machine: Attach nic or disk in the declared order [GH-5]
+* all ressources: Fix changes detected on update while parameters are not set [GH-2]
+* resource/opennebula_virtual_network: Fix setting of cluster id on Virtual Network Creation [GH-6]
 
 ## 0.1.0 (November 25, 2019)
 
