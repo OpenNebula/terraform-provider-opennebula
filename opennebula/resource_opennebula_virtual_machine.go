@@ -132,12 +132,8 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
-			},
-			"instance": {
-				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Final name of the VM instance",
+				Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
 			},
 			"template_id": {
 				Type:        schema.TypeInt,
@@ -184,7 +180,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			},
 			"gid": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Computed:    true,
 				Description: "ID of the group that will own the VM",
 			},
 			"uname": {
@@ -210,29 +206,31 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"cpu": {
 				Type:        schema.TypeFloat,
 				Optional:    true,
+				Computed:    true,
 				Description: "Amount of CPU quota assigned to the virtual machine",
 			},
 			"vcpu": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Computed:    true,
 				Description: "Number of virtual CPUs assigned to the virtual machine",
 			},
 			"memory": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Computed:    true,
 				Description: "Amount of memory (RAM) in MB assigned to the virtual machine",
 			},
 			"context": {
 				Type:        schema.TypeMap,
 				Optional:    true,
+				Computed:    true,
 				Description: "Context variables",
 			},
 			"disk": {
-				Type:     schema.TypeList,
-				Optional: true,
-				//Computed:    true,
-				MinItems:    0,
-				MaxItems:    8,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
 				Description: "Definition of disks assigned to the Virtual Machine",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -242,25 +240,28 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 						},
 						"size": {
 							Type:     schema.TypeInt,
+							Computed: true,
 							Optional: true,
 						},
 						"target": {
 							Type:     schema.TypeString,
+							Computed: true,
 							Optional: true,
 						},
 						"driver": {
 							Type:     schema.TypeString,
+							Computed: true,
 							Optional: true,
 						},
 					},
 				},
 			},
 			"graphics": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MinItems: 0,
-				MaxItems: 1,
-				//Computed:    true,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Computed:    true,
+				MinItems:    0,
+				MaxItems:    1,
 				Description: "Definition of graphics adapter assigned to the Virtual Machine",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -270,6 +271,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 						},
 						"port": {
 							Type:     schema.TypeString,
+							Computed: true,
 							Optional: true,
 						},
 						"type": {
@@ -285,24 +287,25 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				},
 			},
 			"nic": {
-				Type:     schema.TypeList,
-				Optional: true,
-				//Computed:    true,
-				MinItems:    0,
-				MaxItems:    8,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
 				Description: "Definition of network adapter(s) assigned to the Virtual Machine",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ip": {
 							Type:     schema.TypeString,
+							Computed: true,
 							Optional: true,
 						},
 						"mac": {
 							Type:     schema.TypeString,
 							Computed: true,
+							Optional: true,
 						},
 						"model": {
 							Type:     schema.TypeString,
+							Computed: true,
 							Optional: true,
 						},
 						"network_id": {
@@ -315,11 +318,13 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 						},
 						"physical_device": {
 							Type:     schema.TypeString,
+							Computed: true,
 							Optional: true,
 						},
 						"security_groups": {
 							Type:     schema.TypeList,
 							Optional: true,
+							Computed: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
@@ -334,6 +339,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"os": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				//Computed:    true,
 				Description: "Definition of OS boot and type for the Virtual Machine",
@@ -356,10 +362,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Primary IP address assigned by OpenNebula",
 			},
 			"group": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"gid"},
-				Description:   "Name of the Group that onws the VM, If empty, it uses caller group",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
 		},
 	}
@@ -527,7 +532,6 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(fmt.Sprintf("%v", vm.ID))
-	d.Set("instance", vm.Name)
 	d.Set("name", vm.Name)
 	d.Set("uid", vm.UID)
 	d.Set("gid", vm.GID)

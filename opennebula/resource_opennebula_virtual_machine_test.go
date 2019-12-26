@@ -22,8 +22,7 @@ func TestAccVirtualMachine(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccVirtualMachineTemplateConfigBasic,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachineTemplateConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
@@ -34,7 +33,6 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "instance"),
 					testAccCheckVirtualMachinePermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -44,8 +42,7 @@ func TestAccVirtualMachine(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccVirtualMachineConfigUpdate,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachineConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
@@ -57,7 +54,6 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "instance"),
 					testAccCheckVirtualMachinePermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -90,7 +86,6 @@ func TestAccVirtualMachinePending(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "instance"),
 					testAccCheckVirtualMachinePermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,

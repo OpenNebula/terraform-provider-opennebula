@@ -49,6 +49,7 @@ func resourceOpennebulaImage() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Description of the Image, in OpenNebula's XML or String format",
 			},
 			"permissions": {
