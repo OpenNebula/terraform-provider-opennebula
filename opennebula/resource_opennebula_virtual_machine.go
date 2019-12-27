@@ -135,6 +135,12 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Computed:    true,
 				Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
 			},
+			"instance": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Final name of the VM instance",
+				Deprecated:  "use 'name' instead",
+			},
 			"template_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,

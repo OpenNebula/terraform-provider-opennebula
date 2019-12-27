@@ -6,6 +6,9 @@ BUG FIXES:
 * all ressources: Fix changes detected on update while parameters are not set [GH-2]
 * resource/opennebula_virtual_network: Fix setting of cluster id on Virtual Network Creation [GH-6]
 
+DEPRECATION:
+* resource/opennebula_virtual_machine: Remove `instance` parameter as it is redundant with `name`
+
 ## 0.1.0 (November 25, 2019)
 
 NOTES:
