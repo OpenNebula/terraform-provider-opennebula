@@ -22,6 +22,7 @@ import (
 )
 
 type vmTemplate struct {
+	Name     string       `xml:"NAME,omitempty"`
 	CPU      float64      `xml:"CPU,omitempty"`
 	VCPU     int          `xml:"VCPU,omitempty"`
 	Memory   int          `xml:"MEMORY,omitempty"`
@@ -483,14 +484,6 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			"Error waiting for virtual machine (%s) to be in state %s: %s", expectedState, d.Id(), err)
 	}
 
-	// Rename the VM with its real name
-	if d.Get("name") != nil {
-		err := vmc.Rename(d.Get("name").(string))
-		if err != nil {
-			return err
-		}
-	}
-
 	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = vmc.Chmod(permissionUnix(perms.(string)))
@@ -832,6 +825,9 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 
 func generateVmXML(d *schema.ResourceData) (string, error) {
 
+	// Retrieve Name
+	name := d.Get("name").(string)
+
 	//Generate CONTEXT definition
 	//context := d.Get("context").(*schema.Set).List()
 	context := d.Get("context").(map[string]interface{})
@@ -930,6 +926,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 		if vmmemory, ok = d.GetOk("memory"); ok {
 			if vmvcpu, ok = d.GetOk("vcpu"); ok {
 				vmtpl = &vmTemplate{
+					Name:     name,
 					VCPU:     vmvcpu.(int),
 					CPU:      vmcpu.(float64),
 					Memory:   vmmemory.(int),
@@ -941,6 +938,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 				}
 			} else {
 				vmtpl = &vmTemplate{
+					Name:     name,
 					CPU:      vmcpu.(float64),
 					Memory:   vmmemory.(int),
 					Context:  vmcontext,
@@ -952,6 +950,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 			}
 		} else {
 			vmtpl = &vmTemplate{
+				Name:     name,
 				CPU:      vmcpu.(float64),
 				Context:  vmcontext,
 				NICs:     vmnics,
@@ -962,6 +961,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 		}
 	} else {
 		vmtpl = &vmTemplate{
+			Name:     name,
 			Context:  vmcontext,
 			NICs:     vmnics,
 			Disks:    vmdisks,
