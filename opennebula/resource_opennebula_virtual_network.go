@@ -48,6 +48,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Description of the vnet, in OpenNebula's XML or String format",
 			},
 			"permissions": {
@@ -81,10 +82,9 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Description: "ID of the user that will own the vnet",
 			},
 			"gid": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ConflictsWith: []string{"group"},
-				Description:   "ID of the group that will own the vnet",
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "ID of the group that will own the vnet",
 			},
 			"uname": {
 				Type:        schema.TypeString,
@@ -130,6 +130,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"clusters": {
 				Type:          schema.TypeList,
 				Optional:      true,
+				Computed:      true,
 				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 				Elem: &schema.Schema{
@@ -139,12 +140,14 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"vlan_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				Description:   "VLAN ID. Only if 'Type' is : 802.1Q, vxlan or ovswich and if 'automatic_vlan_id' is not set",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "automatic_vlan_id"},
 			},
 			"automatic_vlan_id": {
 				Type:          schema.TypeBool,
 				Optional:      true,
+				Computed:      true,
 				Description:   "If set, let OpenNebula to attribute VLAN ID",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "vlan_id"},
 			},
@@ -165,18 +168,21 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"gateway": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				Description:   "Gateway IP if necessary",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"network_mask": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				Description:   "Network Mask",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"dns": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				Description:   "DNS IP if necessary",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
@@ -207,6 +213,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 						"ip4": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "Start IPv4 of the range to be allocated (Required if IP4 or IP4_6).",
 						},
 						"size": {
@@ -217,26 +224,31 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 						"ip6": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "Start IPv6 of the range to be allocated (Required if IP6_STATIC or IP4_6_STATIC)",
 						},
 						"mac": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "Start MAC of the range to be allocated",
 						},
 						"global_prefix": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "Global prefix for IP6 or IP4_6",
 						},
 						"ula_prefix": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "ULA prefix for IP6 or IP4_6",
 						},
 						"prefix_length": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Computed:    true,
 							Description: "Prefix lenght Only needed for IP6_STATIC or IP4_6_STATIC",
 						},
 					},
@@ -245,41 +257,44 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"hold_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
+				Computed:      true,
 				Description:   "Carve a network reservation of this size from the reservation starting from `ip_hold`",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"ip_hold": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				Description:   "Start IP of the range to be held",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"reservation_vnet": {
 				Type:          schema.TypeInt,
 				Optional:      true,
+				Computed:      true,
 				Description:   "Create a reservation from this VNET ID",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"reservation_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
+				Computed:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"security_groups": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Description: "List of Security Group IDs to be applied to the VNET",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
 			},
 			"group": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"gid"},
-				Description:   "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
 		},
 	}
@@ -387,8 +402,11 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			return err
 		}
 
+		// Get Clusters list
+		clusters := getVnetClustersValue(d)
+
 		// Create VNet
-		vnetID, err := controller.VirtualNetworks().Create(vntpl, -1)
+		vnetID, err := controller.VirtualNetworks().Create(vntpl, clusters[0])
 		if err != nil {
 			return err
 		}
@@ -434,9 +452,9 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			}
 		}
 
-		// Set Clusters
-		if _, ok := d.GetOk("clusters"); ok {
-			err := setVnetClusters(d, meta, vnetID)
+		// Set Clusters (first in list is already set)
+		if len(clusters) > 1 {
+			err := setVnetClusters(clusters[1:], meta, vnetID)
 			if err != nil {
 				return err
 			}
@@ -694,7 +712,21 @@ func generateVnXML(d *schema.ResourceData) (string, error) {
 	return vnstring, nil
 }
 
-func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
+func getVnetClustersValue(d *schema.ResourceData) []int {
+	var result = make([]int, 0)
+
+	if clusters, ok := d.GetOk("clusters"); ok {
+		clusterList := clusters.([]interface{})
+		for i := 0; i < len(clusterList); i++ {
+			result = append(result, clusterList[i].(int))
+		}
+	} else {
+		result = append(result, -1)
+	}
+	return result
+}
+
+func setVnetClusters(clusters []int, meta interface{}, id int) error {
 	controller := meta.(*goca.Controller)
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
@@ -702,10 +734,9 @@ func setVnetClusters(d *schema.ResourceData, meta interface{}, id int) error {
 	if err != nil {
 		return err
 	}
-	clusters := d.Get("clusters").([]interface{})
 	log.Printf("Number of clusters: %d", len(clusters))
 	for i := 0; i < len(clusters); i++ {
-		clusterid := clusters[i].(int)
+		clusterid := clusters[i]
 		for j := 0; j < len(clusterPool.Clusters); j++ {
 			if clusterid == clusterPool.Clusters[j].ID {
 				cc := controller.Cluster(clusterPool.Clusters[j].ID)

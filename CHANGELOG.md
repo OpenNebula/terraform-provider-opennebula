@@ -1,4 +1,15 @@
-## 0.1.1 (Unreleased)
+## 0.2.0 (Unreleased)
+## 0.1.1 (January 06, 2020)
+
+BUG FIXES:
+* resource/opennebula_virtual_machine: Start VM on Hold ([#1](https://github.com/terraform-providers/terraform-provider-opennebula/issues/1))
+* resource/opennbula_virtual_machine: Attach nic or disk in the declared order ([#5](https://github.com/terraform-providers/terraform-provider-opennebula/issues/5))
+* all ressources: Fix changes detected on update while parameters are not set ([#2](https://github.com/terraform-providers/terraform-provider-opennebula/issues/2))
+* resource/opennebula_virtual_network: Fix setting of cluster id on Virtual Network Creation ([#6](https://github.com/terraform-providers/terraform-provider-opennebula/issues/6))
+
+DEPRECATION:
+* resource/opennebula_virtual_machine: Remove `instance` parameter as it is redundant with `name`
+
 ## 0.1.0 (November 25, 2019)
 
 NOTES:

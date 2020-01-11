@@ -19,7 +19,6 @@ export OPENNEBULA_ENDPOINT="http://localhost:2633/RPC2"
 export OPENNEBULA_USERNAME="oneadmin"
 export OPENNEBULA_PASSWORD="opennebula"
 export TF_ACC=1
-COVERALLS_TOKEN="OmSTDPr8V5yjqBS9BthcpPJfC911d77ib"
 
 # install dep dependencies manager
 #curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
@@ -32,9 +31,4 @@ go get github.com/mattn/goveralls
 make build
 
 # Run tests
-cd opennebula && go test -coverprofile=profile.out -v
-if [ -f profile.out ]; then
-    $(go env GOPATH | awk 'BEGIN{FS=":"} {print $1}')/bin/goveralls -coverprofile=profile.out -service=travis-ci -repotoken $COVERALLS_TOKEN
-    go tool cover -func=profile.out
-    rm profile.out
-fi
+make testacc

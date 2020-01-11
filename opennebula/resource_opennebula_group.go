@@ -39,6 +39,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 			"users": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Description: "List of user IDs part of the group",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
@@ -47,6 +48,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 			"admins": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Description: "List of Admin user IDs part of the group",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
@@ -55,12 +57,14 @@ func resourceOpennebulaGroup() *schema.Resource {
 			"quotas": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true,
 				Description: "Define group quota",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"datastore_quotas": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							Description: "Datastore quotas",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -107,6 +111,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 						"image_quotas": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							Description: "Image quotas",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -127,6 +132,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 						"vm_quotas": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							Computed:    true,
 							Description: "VM quotas",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{

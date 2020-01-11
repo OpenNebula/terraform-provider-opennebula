@@ -22,8 +22,7 @@ func TestAccVirtualMachine(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccVirtualMachineTemplateConfigBasic,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachineTemplateConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
@@ -34,7 +33,6 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "instance"),
 					testAccCheckVirtualMachinePermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -44,8 +42,7 @@ func TestAccVirtualMachine(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccVirtualMachineConfigUpdate,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachineConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
@@ -57,7 +54,6 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "instance"),
 					testAccCheckVirtualMachinePermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -71,6 +67,36 @@ func TestAccVirtualMachine(t *testing.T) {
 	})
 }
 
+func TestAccVirtualMachinePending(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVirtualMachinePending,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "virtual_machine_pending"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "128"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "0.1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "pending", "true"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
+					testAccCheckVirtualMachinePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						OtherM: 1,
+					}),
+				),
+			},
+		},
+	})
+}
 func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
 	controller := testAccProvider.Meta().(*goca.Controller)
 
@@ -168,6 +194,33 @@ resource "opennebula_virtual_machine" "test" {
   permissions = "660"
   memory = 196
   cpu = 0.2
+
+  context = {
+    NETWORK  = "YES"
+    SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+}
+`
+
+var testAccVirtualMachinePending = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "virtual_machine_pending"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
+  pending = true
 
   context = {
     NETWORK  = "YES"

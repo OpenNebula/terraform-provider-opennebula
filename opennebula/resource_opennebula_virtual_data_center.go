@@ -46,6 +46,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 			"group_ids": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Description: "List of Group IDs to be added into the VDC",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
@@ -66,6 +67,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 						"host_ids": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							Description: "List of Host IDs from the Zone to add in the VDC",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
@@ -74,6 +76,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 						"datastore_ids": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							Description: "List of Datastore IDs from the Zone to add in the VDC",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
@@ -82,6 +85,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 						"vnet_ids": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							Description: "List of VNET IDs from the Zone to add in the VDC",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
@@ -90,6 +94,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 						"cluster_ids": {
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							Description: "List of cluster IDs from the Zone to add in the VDC",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
