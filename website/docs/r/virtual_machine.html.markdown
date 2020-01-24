@@ -139,6 +139,7 @@ To import an existing virtual machine #42 into Terraform, add this declaration t
 resource "opennebula_virtual_machine" "importvm" {
     name = "importedvm"
 }
+```
 
 And then run:
 
