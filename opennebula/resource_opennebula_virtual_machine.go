@@ -416,14 +416,6 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			"Error waiting for virtual machine (%s) to be in state %s: %s", expectedState, d.Id(), err)
 	}
 
-	// Rename the VM with its real name
-	if d.Get("name") != nil {
-		err := vmc.Rename(d.Get("name").(string))
-		if err != nil {
-			return err
-		}
-	}
-
 	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = vmc.Chmod(permissionUnix(perms.(string)))
@@ -792,6 +784,10 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) {
 
 	tpl := vm.NewTemplate()
+
+	if d.Get("name") != nil {
+		tpl.Add(vmk.Name, d.Get("name").(string))
+	}
 
 	//Generate CONTEXT definition
 	context := d.Get("context").(map[string]interface{})
