@@ -30,6 +30,7 @@ type vmTemplate struct {
 	Disks    []vmDisk     `xml:"DISK,omitempty"`
 	Graphics []vmGraphics `xml:"GRAPHICS,omitempty"`
 	OS       []vmOs       `xml:"OS,omitempty"`
+	VMGroup  []vmGroup    `xml:"VMGROUP,omitempty"`
 }
 
 type vmNIC struct {
@@ -62,6 +63,11 @@ type vmGraphics struct {
 type vmOs struct {
 	Arch string `xml:"ARCH,omitempty"`
 	Boot string `xml:"BOOT,omitempty"`
+}
+
+type vmGroup struct {
+	ID   int    `xml:"VMGROUP_ID"`
+	Role string `xml:"ROLE"`
 }
 
 //This type and the MarshalXML functions are needed to handle converting the CONTEXT map to xml and back
@@ -372,6 +378,27 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
+			"vmgroup": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				MinItems:    0,
+				MaxItems:    1,
+				Description: "Virtual Machine Group to associate with during VM creation only. If it changes, a New VM is created",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"vmgroup_id": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"role": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -560,46 +587,68 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 
 func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
+	var err error
+
+	// VM Group
+	vmgMap := make([]map[string]interface{}, 0, 1)
+	vmgIdStr, _ := vmTemplate.GetStrFromVec("VMGROUP", "VMGROUP_ID")
+	vmgid, _ := strconv.ParseInt(vmgIdStr, 10, 32)
+	vmgRole, _ := vmTemplate.GetStrFromVec("VMGROUP", "ROLE")
+
 	// OS
-	osmap := make([]map[string]interface{}, 0)
+	osMap := make([]map[string]interface{}, 0, 1)
 	arch, _ := vmTemplate.GetOS(vmk.Arch)
 	boot, _ := vmTemplate.GetOS(vmk.Boot)
 
 	// Graphics
-	graphmap := make([]map[string]interface{}, 0)
+	graphMap := make([]map[string]interface{}, 0, 1)
 	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
 	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
 	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
 
 	// Disks
-	disklist := make([]interface{}, 0)
+	diskList := make([]interface{}, 0, 1)
 
 	// Nics
-	niclist := make([]interface{}, 0)
+	nicList := make([]interface{}, 0, 1)
+
+	// Set OVM Group to resource
+	if vmgIdStr != "" {
+		vmgMap = append(vmgMap, map[string]interface{}{
+			"vmgroup_id": vmgid,
+			"role":       vmgRole,
+		})
+		err = d.Set("vmgroup", vmgMap)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Set OS to resource
-	osmap = append(osmap, map[string]interface{}{
-		"arch": arch,
-		"boot": boot,
-	})
-
-	err := d.Set("os", osmap)
-	if err != nil {
-		return err
+	if arch != "" {
+		osMap = append(osMap, map[string]interface{}{
+			"arch": arch,
+			"boot": boot,
+		})
+		err = d.Set("os", osMap)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Set Graphics to resource
-	graphmap = append(graphmap, map[string]interface{}{
-		"listen": listen,
-		"port":   port,
-		"type":   t,
-		"keymap": keymap,
-	})
-
-	err = d.Set("graphics", graphmap)
-	if err != nil {
-		return err
+	if port != "" {
+		graphMap = append(graphMap, map[string]interface{}{
+			"listen": listen,
+			"port":   port,
+			"type":   t,
+			"keymap": keymap,
+		})
+		err = d.Set("graphics", graphMap)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Set Disks to Resource
@@ -609,7 +658,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		target, _ := disk.Get(shared.TargetDisk)
 		imageId, _ := disk.GetI(shared.ImageID)
 
-		disklist = append(disklist, map[string]interface{}{
+		diskList = append(diskList, map[string]interface{}{
 			"image_id": imageId,
 			"size":     size,
 			"target":   target,
@@ -617,9 +666,11 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		})
 	}
 
-	err = d.Set("disk", disklist)
-	if err != nil {
-		return err
+	if len(diskList) > 0 {
+		err = d.Set("disk", diskList)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Set Nics to resource
@@ -641,7 +692,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			sg = append(sg, int(sgInt))
 		}
 
-		niclist = append(niclist, map[string]interface{}{
+		nicList = append(nicList, map[string]interface{}{
 			"ip":              ip,
 			"mac":             mac,
 			"network_id":      networkId,
@@ -656,9 +707,11 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		}
 	}
 
-	err = d.Set("nic", niclist)
-	if err != nil {
-		return err
+	if len(nicList) > 0 {
+		err = d.Set("nic", nicList)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -920,6 +973,20 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 		vmos[i] = vmo
 	}
 
+	//Generate VM Group definition
+	vmgroup := d.Get("vmgroup").(*schema.Set).List()
+	vmvmg := make([]vmGroup, len(vmgroup))
+	for i := 0; i < len(vmgroup); i++ {
+		vmgconfig := vmgroup[i].(map[string]interface{})
+		vmgid := vmgconfig["vmgroup_id"].(int)
+		vmgRole := vmgconfig["role"].(string)
+		vmg := vmGroup{
+			ID:   vmgid,
+			Role: vmgRole,
+		}
+		vmvmg[i] = vmg
+	}
+
 	//Pull all the bits together into the main VM template
 	var vmvcpu interface{}
 	var vmcpu interface{}
@@ -938,6 +1005,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 					Disks:    vmdisks,
 					Graphics: vmgraphics,
 					OS:       vmos,
+					VMGroup:  vmvmg,
 				}
 			} else {
 				vmtpl = &vmTemplate{
@@ -948,6 +1016,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 					Disks:    vmdisks,
 					Graphics: vmgraphics,
 					OS:       vmos,
+					VMGroup:  vmvmg,
 				}
 			}
 		} else {
@@ -958,6 +1027,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 				Disks:    vmdisks,
 				Graphics: vmgraphics,
 				OS:       vmos,
+				VMGroup:  vmvmg,
 			}
 		}
 	} else {
@@ -967,6 +1037,7 @@ func generateVmXML(d *schema.ResourceData) (string, error) {
 			Disks:    vmdisks,
 			Graphics: vmgraphics,
 			OS:       vmos,
+			VMGroup:  vmvmg,
 		}
 	}
 

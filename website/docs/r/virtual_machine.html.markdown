@@ -58,6 +58,11 @@ resource "opennebula_virtual_machine" "demo" {
     network_id = "${var.vnetid}"
     security_groups = ["${opennebula_security_group.mysecgroup.id}"]
   }
+
+  vmgroup {
+    vmgroup_id = 42
+    role = "vmgroup-role"
+  }
 }
 ```
 
@@ -77,6 +82,7 @@ The following arguments are supported:
 * `os` - (Optional) See [OS parameters](#os-vm) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-vm) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-vm) below for details.
+* `vmgroup` - (Optional) See [VM group parameters](#os-vmg) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
 
 ### Graphics parameters
@@ -118,6 +124,13 @@ Minimum 1 item. Maximum 8 items.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
 
 Minimum 1 item. Maximum 8 items.
+
+### VM group parameters
+
+`vmgroup` supports the following arguments:
+
+* `vmgroup_id` - (Required) ID of the VM group to use.
+* `role` - (Required) role of the VM group to use.
 
 ## Attribute Reference
 
