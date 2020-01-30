@@ -225,7 +225,7 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("uname", tpl.UName)
 	d.Set("gname", tpl.GName)
 	d.Set("reg_time", tpl.RegTime)
-	d.Set("permissions", permissionsUnixString(tpl.Permissions))
+	d.Set("permissions", permissionsUnixString(*tpl.Permissions))
 
 	// Get Human readable tpl information
 	tplstr := tpl.Template.String()

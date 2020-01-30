@@ -74,26 +74,14 @@ func (dc *DocumentsController) ByName(name string, args ...int) (int, error) {
 // Info returns a document pool. A connection to OpenNebula is
 // performed.
 func (dc *DocumentsController) Info(args ...int) (*document.Pool, error) {
-	var who, start, end int
 
-	switch len(args) {
-	case 0:
-		who = parameters.PoolWhoMine
-		start = -1
-		end = -1
-	case 1:
-		who = args[0]
-		start = -1
-		end = -1
-	case 3:
-		who = args[0]
-		start = args[1]
-		end = args[2]
-	default:
-		return nil, errors.New("Wrong number of arguments")
+	fArgs, err := handleArgs(args)
+	if err != nil {
+		return nil, err
 	}
+	fArgs = append(fArgs, dc.dType)
 
-	response, err := dc.c.Client.Call("one.documentpool.info", who, start, end, dc.dType)
+	response, err := dc.c.Client.Call("one.documentpool.info", fArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +143,9 @@ func (dc *DocumentController) Update(tpl string, uType parameters.UpdateType) er
 }
 
 // Chmod changes the permission bits of a document.
-func (dc *DocumentController) Chmod(perm *shared.Permissions) error {
-	_, err := dc.c.Client.Call("one.document.chmod", perm.ToArgs(dc.ID)...)
+func (dc *DocumentController) Chmod(perm shared.Permissions) error {
+	args := append([]interface{}{dc.ID}, perm.ToArgs()...)
+	_, err := dc.c.Client.Call("one.document.chmod", args...)
 	return err
 }
 

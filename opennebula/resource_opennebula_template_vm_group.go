@@ -215,8 +215,7 @@ func resourceOpennebulaVMGroupCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Change Permissions only if Permissions are set
 	if perms, ok := d.GetOk("permissions"); ok {
-		p := permissionUnix(perms.(string))
-		err = vmgc.Chmod(p.OwnerU, p.OwnerM, p.OwnerA, p.GroupU, p.GroupM, p.GroupA, p.OtherU, p.OwnerM, p.OtherA)
+		err = vmgc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
 			log.Printf("[ERROR] template permissions change failed, error: %s", err)
 			return err
@@ -265,7 +264,7 @@ func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("gid", vmg.GID)
 	d.Set("uname", vmg.UName)
 	d.Set("gname", vmg.GName)
-	d.Set("permissions", permissionsUnixString(vmg.Permissions))
+	d.Set("permissions", permissionsUnixString(*vmg.Permissions))
 
 	// Get Human readable vmg information
 	err = flattenVMGroupRoles(d, vmg.Roles)
@@ -352,8 +351,7 @@ func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("permissions") {
 		if perms, ok := d.GetOk("permissions"); ok {
-			p := permissionUnix(perms.(string))
-			err = vmgc.Chmod(p.OwnerU, p.OwnerM, p.OwnerA, p.GroupU, p.GroupM, p.GroupA, p.OtherU, p.OtherM, p.OtherA)
+			err = vmgc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
 				return err
 			}

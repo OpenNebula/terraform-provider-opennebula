@@ -173,8 +173,8 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 				return fmt.Errorf(
 					"Permissions for virtual_network %s were expected to be %s. Instead, they were %s",
 					rs.Primary.ID,
-					permissionsUnixString(expected),
-					permissionsUnixString(vn.Permissions),
+					permissionsUnixString(*expected),
+					permissionsUnixString(*vn.Permissions),
 				)
 			}
 		}

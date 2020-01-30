@@ -255,7 +255,7 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 	d.Set("gid", securitygroup.GID)
 	d.Set("uname", securitygroup.UName)
 	d.Set("gname", securitygroup.GName)
-	d.Set("permissions", permissionsUnixString(securitygroup.Permissions))
+	d.Set("permissions", permissionsUnixString(*securitygroup.Permissions))
 
 	description, _ := securitygroup.Template.GetStr("DESCRITPION")
 	d.Set("description", description)

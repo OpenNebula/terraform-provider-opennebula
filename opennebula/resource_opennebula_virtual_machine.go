@@ -471,7 +471,7 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	d.Set("state", vm.StateRaw)
 	d.Set("lcmstate", vm.LCMStateRaw)
 	//TODO fix this:
-	err = d.Set("permissions", permissionsUnixString(vm.Permissions))
+	err = d.Set("permissions", permissionsUnixString(*vm.Permissions))
 	if err != nil {
 		return err
 	}

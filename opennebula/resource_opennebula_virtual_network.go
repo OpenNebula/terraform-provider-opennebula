@@ -689,7 +689,7 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	}
 	d.Set("type", vn.VNMad)
 	d.Set("reservation_vnet", vn.ParentNetworkID)
-	d.Set("permissions", permissionsUnixString(vn.Permissions))
+	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
 	secgrouplist, err := vn.Template.GetStr("SECURITY_GROUPS")
 	if err != nil {

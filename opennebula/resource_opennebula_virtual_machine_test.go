@@ -151,8 +151,8 @@ func testAccCheckVirtualMachinePermissions(expected *shared.Permissions) resourc
 				return fmt.Errorf(
 					"Permissions for virtual_machine %s were expected to be %s. Instead, they were %s",
 					rs.Primary.ID,
-					permissionsUnixString(expected),
-					permissionsUnixString(vm.Permissions),
+					permissionsUnixString(*expected),
+					permissionsUnixString(*vm.Permissions),
 				)
 			}
 		}
