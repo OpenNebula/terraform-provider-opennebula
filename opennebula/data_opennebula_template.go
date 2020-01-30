@@ -1,7 +1,7 @@
 package opennebula
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataOpennebulaTemplate() *schema.Resource {
