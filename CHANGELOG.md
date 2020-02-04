@@ -1,4 +1,11 @@
 ## 0.2.0 (Unreleased)
+
+FEATURES:
+* **New Data Source**: `opennebula_virtual_machine_group`: First implementation
+* **New Resource**: `opennebula_virtual_machine_group`: First implementation ([onevmgroup](http://docs.opennebula.org/5.10/integration/system_interfaces/api.html#onevmgroup)),
+OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
+* resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
+
 ## 0.1.1 (January 06, 2020)
 
 BUG FIXES:
