@@ -2,13 +2,15 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
 )
@@ -403,32 +405,29 @@ func resourceOpennebulaVMGroupDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func generateVMGroup(d *schema.ResourceData) (string, error) {
-	name := d.Get("name").(string)
+
+	tpl := dynamic.NewTemplate()
+
+	tpl.AddPair("NAME", d.Get("name").(string))
+
+	// Add Roles to the template
 	roles := d.Get("role").([]interface{})
+	for _, r := range roles {
 
-	vmg := fmt.Sprintf("NAME = %s \n", name)
-
-	for i, r := range roles {
 		role := r.(map[string]interface{})
-		rname := role["name"].(string)
 		rHostAff := ArrayToString(role["host_affined"].([]interface{}), ",")
 		rHostAntiAff := ArrayToString(role["host_anti_affined"].([]interface{}), ",")
-		rPolicy := role["policy"].(string)
 
-		vmg = fmt.Sprintf("%sROLE = [NAME = %s", vmg, rname)
-		if rHostAff != "" {
-			vmg = fmt.Sprintf("%s, HOST_AFFINED = %s", vmg, rHostAff)
-		} else if rHostAntiAff != "" {
-			vmg = fmt.Sprintf("%s, HOST_ANTI_AFFINED = %s", vmg, rHostAntiAff)
-		} else {
-			vmg = fmt.Sprintf("%s, POLICY = %s", vmg, rPolicy)
-		}
-		if i < (len(roles) - 1) {
-			vmg = fmt.Sprintf("%s\n", vmg)
-		}
-		vmg = fmt.Sprintf("%s]\n", vmg)
+		roleTpl := tpl.AddVector("ROLE")
+		roleTpl.AddPair("NAME", role["name"].(string))
+		roleTpl.AddPair("HOST_AFFINED", rHostAff)
+		roleTpl.AddPair("HOST_ANTI_AFFINED", rHostAntiAff)
+		roleTpl.AddPair("POLICY", role["policy"].(string))
+
 	}
 
-	log.Printf("VMGroup: %s", vmg)
-	return vmg, nil
+	tplStr := tpl.String()
+	log.Printf("[INFO] VM group definition: %s", tplStr)
+
+	return tplStr, nil
 }
