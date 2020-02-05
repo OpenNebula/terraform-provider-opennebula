@@ -1,12 +1,10 @@
 package opennebula
 
 import (
-	"bytes"
-	"encoding/xml"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -20,107 +18,6 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
-
-type vmTemplate struct {
-	CPU      float64      `xml:"CPU,omitempty"`
-	VCPU     int          `xml:"VCPU,omitempty"`
-	Memory   int          `xml:"MEMORY,omitempty"`
-	NICs     []vmNIC      `xml:"NIC,omitempty"`
-	Context  stringMap    `xml:"CONTEXT,omitempty"`
-	Disks    []vmDisk     `xml:"DISK,omitempty"`
-	Graphics []vmGraphics `xml:"GRAPHICS,omitempty"`
-	OS       []vmOs       `xml:"OS,omitempty"`
-	VMGroup  []vmGroup    `xml:"VMGROUP,omitempty"`
-}
-
-type vmNIC struct {
-	ID              int    `xml:"NIC_ID,omitempty"`
-	IP              string `xml:"IP,omitempty"`
-	Model           string `xml:"MODEL,omitempty"`
-	MAC             string `xml:"MAC,omitempty"`
-	Network_ID      int    `xml:"NETWORK_ID"`
-	PhyDev          string `xml:"PHYDEV"`
-	Network         string `xml:"NETWORK"`
-	Security_Groups string `xml:"SECURITY_GROUPS,omitempty"`
-}
-
-type vmDisk struct {
-	ID       string `xml:"DISK_ID,omitempty"`
-	Image_ID int    `xml:"IMAGE_ID"`
-	Image    string `xml:"IMAGE"`
-	Size     int    `xml:"SIZE,omitempty"`
-	Target   string `xml:"TARGET,omitempty"`
-	Driver   string `xml:"DRIVER,omitempty"`
-}
-
-type vmGraphics struct {
-	Keymap string `xml:"KEYMAP,omitempty"`
-	Listen string `xml:"LISTEN,omitempty"`
-	Port   string `xml:"PORT"`
-	Type   string `xml:"TYPE,omitempty"`
-}
-
-type vmOs struct {
-	Arch string `xml:"ARCH,omitempty"`
-	Boot string `xml:"BOOT,omitempty"`
-}
-
-type vmGroup struct {
-	ID   int    `xml:"VMGROUP_ID"`
-	Role string `xml:"ROLE"`
-}
-
-//This type and the MarshalXML functions are needed to handle converting the CONTEXT map to xml and back
-//From: https://stackoverflow.com/questions/30928770/marshall-map-to-xml-in-go/33110881
-type stringMap map[string]string
-type xmlMapEntry struct {
-	XMLName xml.Name
-	Value   string `xml:",chardata"`
-}
-
-// MarshalXML marshals the map to XML, with each key in the map being a
-// tag and it's corresponding value being it's contents.
-func (m stringMap) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if len(m) == 0 {
-		return nil
-	}
-
-	err := e.EncodeToken(start)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range m {
-		e.Encode(xmlMapEntry{XMLName: xml.Name{Local: k}, Value: v})
-	}
-
-	return e.EncodeToken(start.End())
-}
-
-// UnmarshalXML unmarshals the XML into a map of string to strings,
-// creating a key in the map for each tag and setting it's value to the
-// tags contents.
-//
-// The fact this function is on the pointer of Map is important, so that
-// if m is nil it can be initialized, which is often the case if m is
-// nested in another xml structurel. This is also why the first thing done
-// on the first line is initialize it.
-func (m *stringMap) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	*m = stringMap{}
-	for {
-		var e xmlMapEntry
-
-		err := d.Decode(&e)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		(*m)[e.XMLName.Local] = e.Value
-	}
-	return nil
-}
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {
 	return &schema.Resource{
@@ -467,14 +364,14 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		tc := controller.Template(v.(int))
 
 		// customize template except for memory and cpu.
-		vmxml, xmlerr := generateVmXML(d)
-		if xmlerr != nil {
-			return xmlerr
+		vmDef, err := generateVm(d)
+		if err != nil {
+			return err
 		}
 
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
-		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmxml, false)
+		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmDef, false)
 	} else {
 		if _, ok := d.GetOk("cpu"); !ok {
 			return fmt.Errorf("cpu is mandatory as template_id is not used")
@@ -483,13 +380,13 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			return fmt.Errorf("memory is mandatory as template_id is not used")
 		}
 
-		vmxml, xmlerr := generateVmXML(d)
-		if xmlerr != nil {
-			return xmlerr
+		vmDef, err := generateVm(d)
+		if err != nil {
+			return err
 		}
 
 		// Create VM not in pending state
-		vmID, err = controller.VMs().Create(vmxml, d.Get("pending").(bool))
+		vmID, err = controller.VMs().Create(vmDef, d.Get("pending").(bool))
 	}
 
 	if err != nil {
@@ -883,175 +780,143 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 	return stateConf.WaitForState()
 }
 
-func generateVmXML(d *schema.ResourceData) (string, error) {
+func generateVm(d *schema.ResourceData) (string, error) {
+
+	tpl := vm.NewTemplate()
 
 	//Generate CONTEXT definition
-	//context := d.Get("context").(*schema.Set).List()
 	context := d.Get("context").(map[string]interface{})
 	log.Printf("Number of CONTEXT vars: %d", len(context))
 	log.Printf("CONTEXT Map: %s", context)
 
-	vmcontext := make(stringMap)
 	for key, value := range context {
-		//contextvar = v.(map[string]interface{})
-		vmcontext[key] = fmt.Sprint(value)
+		tpl.AddCtx(vmk.Context(key), fmt.Sprint(value))
 	}
 
 	//Generate NIC definition
 	nics := d.Get("nic").([]interface{})
 	log.Printf("Number of NICs: %d", len(nics))
-	vmnics := make([]vmNIC, len(nics))
+
 	for i := 0; i < len(nics); i++ {
 		nicconfig := nics[i].(map[string]interface{})
-		nicip := nicconfig["ip"].(string)
-		nicmac := nicconfig["mac"].(string)
-		nicmodel := nicconfig["model"].(string)
-		nicphydev := nicconfig["physical_device"].(string)
-		nicnetworkid := nicconfig["network_id"].(int)
-		nicsecgroups := ArrayToString(nicconfig["security_groups"].([]interface{}), ",")
+		nic := tpl.AddNIC()
 
-		vmnic := vmNIC{
-			IP:              nicip,
-			MAC:             nicmac,
-			Model:           nicmodel,
-			PhyDev:          nicphydev,
-			Network_ID:      nicnetworkid,
-			Security_Groups: nicsecgroups,
+		for k, v := range nicconfig {
+
+			if k == "network_id" {
+				nic.Add(shared.NetworkID, strconv.Itoa(v.(int)))
+				continue
+			}
+
+			if isEmptyValue(reflect.ValueOf(v)) {
+				continue
+			}
+
+			switch k {
+			case "ip":
+				nic.Add(shared.IP, v.(string))
+			case "mac":
+				nic.Add(shared.MAC, v.(string))
+			case "model":
+				nic.Add(shared.Model, v.(string))
+			case "physical_device":
+				nic.Add("PHYDEV", v.(string))
+			case "security_groups":
+				nicsecgroups := ArrayToString(v.([]interface{}), ",")
+				nic.Add(shared.SecurityGroups, nicsecgroups)
+			}
 		}
-		vmnics[i] = vmnic
+
 	}
 
 	//Generate DISK definition
 	disks := d.Get("disk").([]interface{})
 	log.Printf("Number of disks: %d", len(disks))
-	vmdisks := make([]vmDisk, len(disks))
-	for i := 0; i < len(disks); i++ {
-		diskconfig := disks[i].(map[string]interface{})
-		diskimageid := diskconfig["image_id"].(int)
-		disksize := diskconfig["size"].(int)
-		disktarget := diskconfig["target"].(string)
-		diskdriver := diskconfig["driver"].(string)
 
-		vmdisk := vmDisk{
-			Image_ID: diskimageid,
-			Size:     disksize,
-			Target:   disktarget,
-			Driver:   diskdriver,
+	for i := 0; i < len(disks); i++ {
+
+		diskconfig := disks[i].(map[string]interface{})
+		disk := tpl.AddDisk()
+
+		for k, v := range diskconfig {
+
+			if isEmptyValue(reflect.ValueOf(v)) {
+				continue
+			}
+
+			switch k {
+			case "target":
+				disk.Add(shared.TargetDisk, v.(string))
+			case "driver":
+				disk.Add(shared.Driver, v.(string))
+			case "size":
+				disk.Add(shared.Size, strconv.Itoa(v.(int)))
+			case "image_id":
+				disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
+			}
 		}
-		vmdisks[i] = vmdisk
 	}
 
 	//Generate GRAPHICS definition
 	graphics := d.Get("graphics").(*schema.Set).List()
-	vmgraphics := make([]vmGraphics, len(graphics))
 	for i := 0; i < len(graphics); i++ {
 		graphicsconfig := graphics[i].(map[string]interface{})
-		gfxlisten := graphicsconfig["listen"].(string)
-		gfxtype := graphicsconfig["type"].(string)
-		gfxport := graphicsconfig["port"].(string)
-		gfxkeymap := graphicsconfig["keymap"].(string)
-		vmgraphic := vmGraphics{
-			Listen: gfxlisten,
-			Port:   gfxport,
-			Type:   gfxtype,
-			Keymap: gfxkeymap,
+
+		for k, v := range graphicsconfig {
+
+			if isEmptyValue(reflect.ValueOf(v)) {
+				continue
+			}
+
+			switch k {
+			case "listen":
+				tpl.AddIOGraphic(vmk.Listen, v.(string))
+			case "type":
+				tpl.AddIOGraphic(vmk.GraphicType, v.(string))
+			case "port":
+				tpl.AddIOGraphic(vmk.Port, v.(string))
+			case "keymap":
+				tpl.AddIOGraphic(vmk.Keymap, v.(string))
+			}
+
 		}
-		vmgraphics[i] = vmgraphic
 	}
 
 	//Generate OS definition
 	os := d.Get("os").(*schema.Set).List()
-	vmos := make([]vmOs, len(os))
+	//vmos := make([]vmOs, len(os))
 	for i := 0; i < len(os); i++ {
 		osconfig := os[i].(map[string]interface{})
-		osarch := osconfig["arch"].(string)
-		osboot := osconfig["boot"].(string)
-		vmo := vmOs{
-			Arch: osarch,
-			Boot: osboot,
-		}
-		vmos[i] = vmo
+		tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
+		tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
 	}
 
 	//Generate VM Group definition
 	vmgroup := d.Get("vmgroup").(*schema.Set).List()
-	vmvmg := make([]vmGroup, len(vmgroup))
 	for i := 0; i < len(vmgroup); i++ {
 		vmgconfig := vmgroup[i].(map[string]interface{})
-		vmgid := vmgconfig["vmgroup_id"].(int)
-		vmgRole := vmgconfig["role"].(string)
-		vmg := vmGroup{
-			ID:   vmgid,
-			Role: vmgRole,
-		}
-		vmvmg[i] = vmg
+		vmgroupTpl := tpl.AddVector("VMGROUP")
+		vmgroupTpl.AddPair("VMGROUP_ID", vmgconfig["vmgroup_id"].(int))
+		vmgroupTpl.AddPair("ROLE", vmgconfig["role"].(string))
 	}
 
-	//Pull all the bits together into the main VM template
-	var vmvcpu interface{}
-	var vmcpu interface{}
-	var vmmemory interface{}
-	var vmtpl *vmTemplate
-	var ok bool
-	if vmcpu, ok = d.GetOk("cpu"); ok {
-		if vmmemory, ok = d.GetOk("memory"); ok {
-			if vmvcpu, ok = d.GetOk("vcpu"); ok {
-				vmtpl = &vmTemplate{
-					VCPU:     vmvcpu.(int),
-					CPU:      vmcpu.(float64),
-					Memory:   vmmemory.(int),
-					Context:  vmcontext,
-					NICs:     vmnics,
-					Disks:    vmdisks,
-					Graphics: vmgraphics,
-					OS:       vmos,
-					VMGroup:  vmvmg,
-				}
-			} else {
-				vmtpl = &vmTemplate{
-					CPU:      vmcpu.(float64),
-					Memory:   vmmemory.(int),
-					Context:  vmcontext,
-					NICs:     vmnics,
-					Disks:    vmdisks,
-					Graphics: vmgraphics,
-					OS:       vmos,
-					VMGroup:  vmvmg,
-				}
-			}
-		} else {
-			vmtpl = &vmTemplate{
-				CPU:      vmcpu.(float64),
-				Context:  vmcontext,
-				NICs:     vmnics,
-				Disks:    vmdisks,
-				Graphics: vmgraphics,
-				OS:       vmos,
-				VMGroup:  vmvmg,
-			}
-		}
-	} else {
-		vmtpl = &vmTemplate{
-			Context:  vmcontext,
-			NICs:     vmnics,
-			Disks:    vmdisks,
-			Graphics: vmgraphics,
-			OS:       vmos,
-			VMGroup:  vmvmg,
-		}
+	vmcpu, ok := d.GetOk("cpu")
+	if ok {
+		tpl.CPU(vmcpu.(float64))
+	}
+	vmmemory, ok := d.GetOk("memory")
+	if ok {
+		tpl.Memory(vmmemory.(int))
+	}
+	vmvcpu, ok := d.GetOk("vcpu")
+	if ok {
+		tpl.VCPU(vmvcpu.(int))
 	}
 
-	w := &bytes.Buffer{}
+	tplStr := tpl.String()
+	log.Printf("[INFO] VM definition: %s", tplStr)
 
-	//Encode the VM template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(vmtpl); err != nil {
-		return "", err
-	}
-
-	log.Printf("VM XML: %s", w.String())
-	return w.String(), nil
+	return tplStr, nil
 }
 
 func resourceVMCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {
