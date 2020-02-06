@@ -1,19 +1,18 @@
 package opennebula
 
 import (
-	"bytes"
-	"encoding/xml"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/kylelemons/godebug/pretty"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
-	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
+	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
 func resourceOpennebulaTemplate() *schema.Resource {
@@ -150,12 +149,12 @@ func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
 func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	tpl, xmlerr := generateTemplateXML(d)
-	if xmlerr != nil {
-		return xmlerr
+	tplDef, err := generateTemplate(d)
+	if err != nil {
+		return err
 	}
 
-	tplID, err := controller.Templates().Create(tpl)
+	tplID, err := controller.Templates().Create(tplDef)
 	if err != nil {
 		log.Printf("[ERROR] Template creation failed, error: %s", err)
 		return err
@@ -226,10 +225,10 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("uname", tpl.UName)
 	d.Set("gname", tpl.GName)
 	d.Set("reg_time", tpl.RegTime)
-	d.Set("permissions", permissionsUnixString(tpl.Permissions))
+	d.Set("permissions", permissionsUnixString(*tpl.Permissions))
 
 	// Get Human readable tpl information
-	tplstr := pretty.Sprint(tpl.Template)
+	tplstr := tpl.Template.String()
 
 	err = d.Set("template", tplstr)
 	if err != nil {
@@ -326,22 +325,15 @@ func resourceOpennebulaTemplateDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func generateTemplateXML(d *schema.ResourceData) (string, error) {
+func generateTemplate(d *schema.ResourceData) (string, error) {
 	name := d.Get("name").(string)
 
-	tpl := &template.Template{
-		Name: name,
-	}
+	tpl := vm.NewTemplate()
 
-	w := &bytes.Buffer{}
+	tpl.Add(vmk.Name, name)
 
-	//Encode the Template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(tpl); err != nil {
-		return "", err
-	}
+	tplStr := tpl.String()
+	log.Printf("[INFO] Template definitions: %s", tplStr)
 
-	log.Printf("Template XML: %s", w.String())
-	return w.String(), nil
+	return tplStr, nil
 }

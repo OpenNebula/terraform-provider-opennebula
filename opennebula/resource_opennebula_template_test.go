@@ -82,8 +82,8 @@ func testAccCheckTemplatePermissions(expected *shared.Permissions) resource.Test
 				return fmt.Errorf(
 					"Permissions for template %s were expected to be %s. Instead, they were %s",
 					rs.Primary.ID,
-					permissionsUnixString(expected),
-					permissionsUnixString(template.Permissions),
+					permissionsUnixString(*expected),
+					permissionsUnixString(*template.Permissions),
 				)
 			}
 		}

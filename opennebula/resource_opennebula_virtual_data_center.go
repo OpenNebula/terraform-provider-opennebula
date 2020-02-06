@@ -1,16 +1,16 @@
 package opennebula
 
 import (
-	"bytes"
-	"encoding/xml"
 	"fmt"
-	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/fatih/structs"
+	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vdc"
 )
@@ -135,12 +135,12 @@ func getVDCController(d *schema.ResourceData, meta interface{}) (*goca.VDCContro
 func resourceOpennebulaVirtualDataCenterCreate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	vdcxml, xmlerr := generateVDCXML(d)
-	if xmlerr != nil {
-		return xmlerr
+	vdcDef, err := generateVDC(d)
+	if err != nil {
+		return err
 	}
 
-	vdcID, err := controller.VDCs().Create(vdcxml, -1)
+	vdcID, err := controller.VDCs().Create(vdcDef, -1)
 	if err != nil {
 		return err
 	}
@@ -471,22 +471,15 @@ func resourceOpennebulaVirtualDataCenterDelete(d *schema.ResourceData, meta inte
 	return nil
 }
 
-func generateVDCXML(d *schema.ResourceData) (string, error) {
-	vdcname := d.Get("name").(string)
+func generateVDC(d *schema.ResourceData) (string, error) {
 
-	vdc := &vdc.VDC{
-		Name: vdcname,
-	}
+	tpl := dyn.NewTemplate()
 
-	w := &bytes.Buffer{}
+	name := d.Get("name").(string)
+	tpl.AddPair("NAME", name)
 
-	//Encode the Security Group template schema to XML
-	enc := xml.NewEncoder(w)
-	//enc.Indent("", "  ")
-	if err := enc.Encode(vdc); err != nil {
-		return "", err
-	}
+	tplStr := tpl.String()
+	log.Printf("[INFO] VDC definition: %s", tplStr)
 
-	log.Printf("VDC XML: %s", w.String())
-	return w.String(), nil
+	return tplStr, nil
 }

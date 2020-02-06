@@ -161,8 +161,8 @@ func testAccCheckVMGroupPermissions(expected *shared.Permissions) resource.TestC
 				return fmt.Errorf(
 					"Permissions for VM Group %s were expected to be %s. Instead, they were %s",
 					rs.Primary.ID,
-					permissionsUnixString(expected),
-					permissionsUnixString(vmg.Permissions),
+					permissionsUnixString(*expected),
+					permissionsUnixString(*vmg.Permissions),
 				)
 			}
 		}

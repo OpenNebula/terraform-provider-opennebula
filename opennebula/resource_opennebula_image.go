@@ -1,30 +1,22 @@
 package opennebula
 
 import (
-	"bytes"
-	"encoding/xml"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
+	imk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image/keys"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
-
-type ImageTemplate struct {
-	DevPrefix   string `xml:"DEV_PREFIX,omitempty"`
-	Driver      string `xml:"DRIVER,omitempty"`
-	Format      string `xml:"FORMAT,omitempty"`
-	Target      string `xml:"TARGET,omitempty"`
-	Description string `xml:"DESCRIPTION,omitempty"`
-}
 
 var imagetypes = []string{"OS", "CDROM", "DATABLOCK", "KERNEL", "RAMDISK", "CONTEXT"}
 var locktypes = []string{"USE", "MANAGE", "ADMIN", "ALL", "UNLOCK"}
@@ -266,12 +258,12 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 	} else { //Otherwise allocate a new image
 		var err error
 
-		imagexml, xmlerr := generateImageXML(d)
-		if xmlerr != nil {
-			return xmlerr
+		imgDef, err := generateImage(d)
+		if err != nil {
+			return err
 		}
 
-		imageID, err = controller.Images().Create(imagexml, uint(d.Get("datastore_id").(int)))
+		imageID, err = controller.Images().Create(imgDef, uint(d.Get("datastore_id").(int)))
 		if err != nil {
 			return err
 		}
@@ -279,9 +271,9 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 
 	ic := controller.Image(imageID)
 
-	template, xmlerr := generateImageTemplate(d)
-	if xmlerr != nil {
-		return xmlerr
+	imgTpl, err := generateImageTemplate(d)
+	if err != nil {
+		return err
 	}
 
 	_, err = waitForImageState(d, meta, "ready")
@@ -290,7 +282,7 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// add template information into image
-	err = ic.Update(template, 1)
+	err = ic.Update(imgTpl, 1)
 
 	d.SetId(fmt.Sprintf("%v", imageID))
 
@@ -449,7 +441,7 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("gid", image.GID)
 	d.Set("uname", image.UName)
 	d.Set("gname", image.GName)
-	d.Set("permissions", permissionsUnixString(image.Permissions))
+	d.Set("permissions", permissionsUnixString(*image.Permissions))
 	if image.Permissions != nil {
 		d.Set("persistent", *image.Persistent)
 	}
@@ -589,96 +581,62 @@ func resourceOpennebulaImageDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func generateImageXML(d *schema.ResourceData) (string, error) {
+func generateImage(d *schema.ResourceData) (string, error) {
 
-	var imagetype string
-	var imagesize int
-	var imagepersistent int
-	var imagepath string
+	tpl := image.NewTemplate()
 
-	imagename := d.Get("name").(string)
+	imgName := d.Get("name").(string)
+	tpl.Add(imk.Name, imgName)
 
 	if val, ok := d.GetOk("type"); ok {
-		imagetype = val.(string)
+		tpl.Add(imk.Type, val.(string))
 	}
 
 	if d.Get("persistent").(bool) {
-		imagepersistent = 1
+		tpl.Add(imk.Persistent, "1")
 	}
 
 	if val, ok := d.GetOk("size"); ok {
-		imagesize = val.(int)
+		imgSize := fmt.Sprint(val.(int))
+		tpl.Add(imk.Size, imgSize)
 	}
 
 	if val, ok := d.GetOk("path"); ok {
-		imagepath = val.(string)
+		tpl.Add(imk.Path, val.(string))
 	}
 
-	imagetplfull := &image.Image{
-		Name:       imagename,
-		Size:       imagesize,
-		Type:       imagetype,
-		Persistent: &imagepersistent,
-		Path:       imagepath,
-	}
+	tplStr := tpl.String()
+	log.Printf("[INFO] Image definition: %s", tplStr)
 
-	w := &bytes.Buffer{}
-
-	//Encode the Image template schema to XML
-	enc := xml.NewEncoder(w)
-	if err := enc.Encode(imagetplfull); err != nil {
-		return "", err
-	}
-
-	log.Printf("[INFO] Image Definition XML: %s", w.String())
-	return w.String(), nil
+	return tplStr, nil
 }
 
 func generateImageTemplate(d *schema.ResourceData) (string, error) {
 
-	var imagedescription string
-	var imagedevprefix string
-	var imagedriver string
-	//var imagedisktype string
-	var imageformat string
-	var imagetarget string
+	tpl := image.NewTemplate()
 
 	if val, ok := d.GetOk("description"); ok {
-		imagedescription = val.(string)
+		tpl.Add("DESCRIPTION", val.(string))
 	}
 
 	if val, ok := d.GetOk("dev_prefix"); ok {
-		imagedevprefix = val.(string)
+		tpl.Add(imk.DevPrefix, val.(string))
 	}
 
 	if val, ok := d.GetOk("driver"); ok {
-		imagedriver = val.(string)
+		tpl.Add(imk.Driver, val.(string))
 	}
 
 	if val, ok := d.GetOk("format"); ok {
-		imageformat = val.(string)
+		tpl.Add("FORMAT", val.(string))
 	}
 
 	if val, ok := d.GetOk("target"); ok {
-		imagetarget = val.(string)
+		tpl.Add(imk.Target, val.(string))
 	}
 
-	imagetpl := &ImageTemplate{
-		DevPrefix:   imagedevprefix,
-		Driver:      imagedriver,
-		Format:      imageformat,
-		Target:      imagetarget,
-		Description: imagedescription,
-	}
+	str := tpl.String()
+	log.Printf("[INFO] Image template: %s", str)
 
-	w := &bytes.Buffer{}
-
-	//Encode the Image template schema to XML
-	enc := xml.NewEncoder(w)
-	if err := enc.Encode(imagetpl); err != nil {
-		return "", err
-	}
-
-	log.Printf("[INFO] Image Template XML: %s", w.String())
-	return w.String(), nil
+	return str, nil
 }

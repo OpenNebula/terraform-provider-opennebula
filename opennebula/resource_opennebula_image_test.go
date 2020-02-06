@@ -110,8 +110,8 @@ func testAccCheckImagePermissions(expected *shared.Permissions, resourcename str
 				return fmt.Errorf(
 					"Permissions for image %s were expected to be %s. Instead, they were %s",
 					rs.Primary.ID,
-					permissionsUnixString(expected),
-					permissionsUnixString(image.Permissions),
+					permissionsUnixString(*expected),
+					permissionsUnixString(*image.Permissions),
 				)
 			}
 		}

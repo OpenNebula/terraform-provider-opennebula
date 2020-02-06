@@ -20,7 +20,6 @@ import (
 	"encoding/xml"
 	"errors"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
 )
@@ -71,26 +70,13 @@ func (c *VMGroupsController) ByName(name string, args ...int) (int, error) {
 // Info returns a vm group pool. A connection to OpenNebula is
 // performed.
 func (vc *VMGroupsController) Info(args ...int) (*vmgroup.Pool, error) {
-	var who, start, end int
 
-	switch len(args) {
-	case 0:
-		who = parameters.PoolWhoMine
-		start = -1
-		end = -1
-	case 1:
-		who = args[0]
-		start = -1
-		end = -1
-	case 3:
-		who = args[0]
-		start = args[1]
-		end = args[2]
-	default:
-		return nil, errors.New("Wrong number of arguments")
+	fArgs, err := handleArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
-	response, err := vc.c.Client.Call("one.vmgrouppool.info", who, start, end)
+	response, err := vc.c.Client.Call("one.vmgrouppool.info", fArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -151,17 +137,9 @@ func (vc *VMGroupController) Update(tpl string, uType int) error {
 }
 
 // Chmod changes the permission bits of a vmGroup.
-// * uu: USER USE bit. If set to -1, it will not change.
-// * um: USER MANAGE bit. If set to -1, it will not change.
-// * ua: USER ADMIN bit. If set to -1, it will not change.
-// * gu: GROUP USE bit. If set to -1, it will not change.
-// * gm: GROUP MANAGE bit. If set to -1, it will not change.
-// * ga: GROUP ADMIN bit. If set to -1, it will not change.
-// * ou: OTHER USE bit. If set to -1, it will not change.
-// * om: OTHER MANAGE bit. If set to -1, it will not change.
-// * oa: OTHER ADMIN bit. If set to -1, it will not change.
-func (vc *VMGroupController) Chmod(uu, um, ua, gu, gm, ga, ou, om, oa int) error {
-	_, err := vc.c.Client.Call("one.vmgroup.chmod", vc.ID, uu, um, ua, gu, gm, ga, ou, om, oa)
+func (vc *VMGroupController) Chmod(perm shared.Permissions) error {
+	args := append([]interface{}{vc.ID}, perm.ToArgs()...)
+	_, err := vc.c.Client.Call("one.vmgroup.chmod", args...)
 	return err
 }
 

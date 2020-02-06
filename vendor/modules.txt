@@ -6,7 +6,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 cloud.google.com/go/storage
-# github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191129173730-16884d1c4bd1
+# github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200130171820-20a5d5e5c706
 github.com/OpenNebula/one/src/oca/go/src/goca
 github.com/OpenNebula/one/src/oca/go/src/goca/dynamic
 github.com/OpenNebula/one/src/oca/go/src/goca/errors
@@ -229,11 +229,8 @@ github.com/hashicorp/terraform-svchost/disco
 github.com/hashicorp/yamux
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
-# github.com/kolo/xmlrpc v0.0.0-20190717152603-07c4ee3fd181
+# github.com/kolo/xmlrpc v0.0.0-20190909154602-56d5ec7c422e
 github.com/kolo/xmlrpc
-# github.com/kylelemons/godebug v1.1.0
-github.com/kylelemons/godebug/diff
-github.com/kylelemons/godebug/pretty
 # github.com/mattn/go-colorable v0.1.1
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.5
