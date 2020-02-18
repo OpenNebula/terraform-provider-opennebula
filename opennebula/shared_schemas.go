@@ -108,7 +108,7 @@ func contextSchema() *schema.Schema {
 
 func graphicsSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:        schema.TypeSet,
+		Type:        schema.TypeList,
 		Optional:    true,
 		Computed:    true,
 		MaxItems:    1,
@@ -140,7 +140,7 @@ func graphicsSchema() *schema.Schema {
 
 func osSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:        schema.TypeSet,
+		Type:        schema.TypeList,
 		Optional:    true,
 		Computed:    true,
 		MaxItems:    1,
@@ -189,7 +189,7 @@ func memorySchema() *schema.Schema {
 
 func vmGroupSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:        schema.TypeSet,
+		Type:        schema.TypeList,
 		Optional:    true,
 		Computed:    true,
 		ForceNew:    true,
@@ -277,7 +277,7 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	}
 
 	//Generate GRAPHICS definition
-	graphics := d.Get("graphics").(*schema.Set).List()
+	graphics := d.Get("graphics").([]interface{})
 	for i := 0; i < len(graphics); i++ {
 		graphicsconfig := graphics[i].(map[string]interface{})
 
@@ -302,7 +302,7 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	}
 
 	//Generate OS definition
-	os := d.Get("os").(*schema.Set).List()
+	os := d.Get("os").([]interface{})
 	for i := 0; i < len(os); i++ {
 		osconfig := os[i].(map[string]interface{})
 		tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
@@ -310,7 +310,7 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	}
 
 	//Generate VM Group definition
-	vmgroup := d.Get("vmgroup").(*schema.Set).List()
+	vmgroup := d.Get("vmgroup").([]interface{})
 	for i := 0; i < len(vmgroup); i++ {
 		vmgconfig := vmgroup[i].(map[string]interface{})
 		vmgroupTpl := tpl.AddVector("VMGROUP")
