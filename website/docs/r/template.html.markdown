@@ -50,9 +50,9 @@ OS = [
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine template.
-* `template` - (Required) Text describing the OpenNebula template object, in Opennebula's XML string format.
 * `permissions` - (Optional) Permissions applied on template. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
 * `group` - (Optional) Name of the group which owns the template. Defaults to the caller primary group.
+* `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 
 ## Attribute Reference
 
