@@ -7,7 +7,7 @@ OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terrafo
 * resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
 
 ENHANCEMENTS:
-* all resources: use Goca dynamic templates to build entitiies
+* all resources: use Goca dynamic templates to build entities
 * all resources: update permissions to follow Goca changes
 * resource/opennebula_virtual_machine: keep context from template, then override redefined pairs
 

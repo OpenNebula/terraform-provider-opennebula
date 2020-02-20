@@ -22,7 +22,6 @@ data "template_file" "templatetpl" {
 
 resource "opennebula_template" "mytemplate" {
   name = "mytemplate"
-  template = "${data.template_file.templatetpl.rendered}"
   group = "terraform"
   permissions = "660"
 }
@@ -33,7 +32,7 @@ with template file `template-tpl.txt`:
 CPU = 1
 VCPU = 1
 MEMORY = 512
-Context =  [
+CONTEXT =  [
   DNS_HOSTNAME = "YES",
   NETWORK = "YES",
   SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]"
