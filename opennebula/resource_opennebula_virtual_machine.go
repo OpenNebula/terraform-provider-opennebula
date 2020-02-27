@@ -120,6 +120,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"nic":      nicSchema(),
 			"os":       osSchema(),
 			"vmgroup":  vmGroupSchema(),
+			"tags":     tagsSchema(),
 			"ip": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -309,10 +310,44 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	err = flattenTemplate(d, &vm.Template)
+	err = flattenTemplate(d, &vm.Template, false)
 	if err != nil {
 		return err
 	}
+
+	err = flattenTags(d, &vm.UserTemplate)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flattenTags(d *schema.ResourceData, vmUserTpl *vm.UserTemplate) error {
+
+	tags := make(map[string]interface{})
+	for i, _ := range vmUserTpl.Elements {
+		pair, ok := vmUserTpl.Elements[i].(*dyn.Pair)
+		if !ok {
+			continue
+		}
+
+		// Get only tags from userTemplate
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, _ := range tagsInterface {
+			if strings.ToUpper(k) == pair.Key() {
+				tags[k] = pair.Value
+			}
+		}
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -373,6 +408,19 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			return err
 		}
 		log.Printf("[INFO] Successfully updated group for VM %s\n", vm.Name)
+	}
+
+	if d.HasChange("tags") {
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, v := range tagsInterface {
+			vm.UserTemplate.Del(strings.ToUpper(k))
+			vm.UserTemplate.AddPair(strings.ToUpper(k), v.(string))
+		}
+
+		err = vmc.Update(vm.UserTemplate.String(), 1)
+		if err != nil {
+			return err
+		}
 	}
 
 	// We succeeded, disable partial mode. This causes Terraform to save

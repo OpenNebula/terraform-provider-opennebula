@@ -32,6 +32,9 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -58,6 +61,10 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.version", "2"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -155,6 +162,10 @@ resource "opennebula_template" "template" {
 	boot = ""
   }
 
+  tags = {
+    env = "prod"
+    customer = "test"
+  }
 }
 `
 
@@ -184,5 +195,10 @@ resource "opennebula_template" "template" {
 	boot = ""
   }
 
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
+  }
 }
 `
