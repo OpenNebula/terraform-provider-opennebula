@@ -34,9 +34,20 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			},
 			"template": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 				Description: "Description of the template, in OpenNebula's XML or String format",
+				Deprecated:  "use other schema sections instead.",
 			},
+			"cpu":      cpuSchema(),
+			"vcpu":     vcpuSchema(),
+			"memory":   memorySchema(),
+			"context":  contextSchema(),
+			"disk":     diskSchema(),
+			"graphics": graphicsSchema(),
+			"nic":      nicSchema(),
+			"os":       osSchema(),
+			"vmgroup":  vmGroupSchema(),
 			"permissions": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -163,9 +174,12 @@ func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) 
 	tc := controller.Template(tplID)
 
 	// add template information into Template
-	err = tc.Update(d.Get("template").(string), 0)
-	if err != nil {
-		return err
+	template := d.Get("template").(string)
+	if len(template) > 0 {
+		err = tc.Update(template, 1)
+		if err != nil {
+			return err
+		}
 	}
 
 	d.SetId(fmt.Sprintf("%v", tplID))
@@ -235,6 +249,10 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	err = flattenTemplate(d, &tpl.Template)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -331,6 +349,19 @@ func generateTemplate(d *schema.ResourceData) (string, error) {
 	tpl := vm.NewTemplate()
 
 	tpl.Add(vmk.Name, name)
+
+	//Generate CONTEXT definition
+	context := d.Get("context").(map[string]interface{})
+	log.Printf("Number of CONTEXT vars: %d", len(context))
+	log.Printf("CONTEXT Map: %s", context)
+
+	// Add new context elements to the template
+	for key, value := range context {
+		keyUp := strings.ToUpper(key)
+		tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
+	}
+
+	generateVMTemplate(d, tpl)
 
 	tplStr := tpl.String()
 	log.Printf("[INFO] Template definitions: %s", tplStr)

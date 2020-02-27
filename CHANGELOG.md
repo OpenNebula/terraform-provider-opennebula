@@ -5,11 +5,16 @@ FEATURES:
 * **New Resource**: `opennebula_virtual_machine_group`: First implementation ([onevmgroup](http://docs.opennebula.org/5.10/integration/system_interfaces/api.html#onevmgroup)),
 OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
 * resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
+* resource/opennebula_template: Associate a VM group.
 
 ENHANCEMENTS:
-* all resources: use Goca dynamic templates to build entitiies
+* all resources: use Goca dynamic templates to build entities
 * all resources: update permissions to follow Goca changes
 * resource/opennebula_virtual_machine: keep context from template, then override redefined pairs
+* resource/opennebula_template: share with VM resource the schemas parts: cpu, vcpu, memory, context, graphics, os, disk, nic, vmgroup
+
+DEPRECATION:
+* resource/opennebula_template: Remove `template` parameter to reproduce resource/opennebula_virtual_machine details schema
 
 ## 0.1.1 (January 06, 2020)
 

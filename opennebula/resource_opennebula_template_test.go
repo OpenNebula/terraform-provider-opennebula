@@ -19,12 +19,19 @@ func TestAccTemplate(t *testing.T) {
 		CheckDestroy: testAccCheckTemplateDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccTemplateConfigBasic,
-				ExpectNonEmptyPlan: true,
+				Config: testAccTemplateConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "0.5"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -38,12 +45,19 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccTemplateConfigUpdate,
-				ExpectNonEmptyPlan: true,
+				Config: testAccTemplateConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "642"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -121,24 +135,26 @@ resource "opennebula_template" "template" {
   name = "terra-tpl"
   permissions = "660"
   group = "oneadmin"
-  template = <<-EOT
-    CPU = "0.5"
-    VCPU = "1"
-    MEMORY = "512"
-    CONTEXT = [
-      DNS_HOSTNAME = "yes",
-      NETWORK = "YES"
-    ]
-    DISK = []
-    GRAPHICS = [
-      KEYMAP = "en-us",
-      LISTEN = "0.0.0.0",
-      TYPE = "VNC"
-    ]
-    OS = [
-      ARCH = "x86_64",
-      BOOT = "" ]
-    EOT
+  cpu = "0.5"
+  vcpu = "1"
+  memory = "512"
+
+  context = {
+    dns_hostname = "yes"
+    network = "YES"
+  }
+
+  graphics {
+    keymap = "en-us"
+    listen = "0.0.0.0"
+    type = "VNC"
+  }
+
+  os {
+    arch = "x86_64"
+	boot = ""
+  }
+
 }
 `
 
@@ -147,23 +163,26 @@ resource "opennebula_template" "template" {
   name = "terratplupdate"
   permissions = "642"
   group = "oneadmin"
-  template = <<-EOT
-    CPU = "1"
-    VCPU = "1"
-    MEMORY = "768"
-    CONTEXT = [
-      DNS_HOSTNAME = "yes",
-      NETWORK = "YES"
-    ]
-    DISK = []
-    GRAPHICS = [
-      KEYMAP = "en-us",
-      LISTEN = "0.0.0.0",
-      TYPE = "VNC"
-    ]
-    OS = [
-      ARCH = "x86_64",
-      BOOT = "" ]
-    EOT
+
+  cpu = "1"
+  vcpu = "1"
+  memory = "768"
+
+  context = {
+	dns_hostname = "yes"
+	network = "YES"
+  }
+
+  graphics {
+	keymap = "en-us"
+	listen = "0.0.0.0"
+	type = "VNC"
+  }
+
+  os {
+	arch = "x86_64"
+	boot = ""
+  }
+
 }
 `

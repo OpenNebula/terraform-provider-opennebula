@@ -16,9 +16,6 @@ a new virtual machine will be created. When destroyed, that virtual machine will
 ## Example Usage
 
 ```hcl
-data "template_file" "cloudinit" {
-  template = "${file("cloud-init.yaml")}"
-}
 
 resource "opennebula_virtual_machine" "demo" {
   count = 2
@@ -32,7 +29,7 @@ resource "opennebula_virtual_machine" "demo" {
   context {
     NETWORK = "YES"
     HOSTNAME = "$NAME"
-    USER_DATA = "${data.template_file.cloudinit.rendered}"
+    START_SCRIPT="yum upgrade"
   }
 
   graphics {
@@ -72,12 +69,12 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine.
 * `permissions` - (Optional) Permissions applied on virtual machine. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
-* `template_id` - (Optional) If set, VM are instantiated from the template ID.
+* `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details.
 * `pending` - (Optional) Pending state during VM creation. Defaults to `false`.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if `template_****id` is not set**.
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if `template_****id` is not set**.
-* `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include at a minimum: NETWORK = "YES" and SET_HOSTNAME = "$NAME.
+* `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include at a minimum: NETWORK = "YES" and SET_HOSTNAME = "$NAME. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-vm) below for details.
 * `os` - (Optional) See [OS parameters](#os-vm) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-vm) below for details.
@@ -143,6 +140,13 @@ The following attribute are exported:
 * `gname` - Group Name which owns the virtual machine.
 * `state` - State of the virtual machine.
 * `lcmstate` - LCM State of the virtual machine.
+
+## Instantiate from a template
+
+When the attribute `template_id` is set, here is the behavior:
+
+For all parameters excepted context: parameters present in VM overrides parameters defined in template.
+For context: it merges them.
 
 ## Import
 
