@@ -25,6 +25,9 @@ resource "opennebula_virtual_machine_group" "test" {
     host_anti_affined = [ 0 ]
     policy = "ANTI_AFFINED"
   }
+  tags = {
+    environment = "dev"
+  }
 }
 ```
 
@@ -36,6 +39,7 @@ The following arguments are supported:
 * `permissions` - (Optional) Permissions applied on virtual machine group. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
 * `role` - (Required) List of roles. See [Role parameters](#role-parameters) below for details.
 * `group` - (Optional) Name of the group which owns the virtual machine group. Defaults to the caller primary group.
+* `tags` - (Optional) Virtual Machine group tags.
 
 ### Role parameters
 

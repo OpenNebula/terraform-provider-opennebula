@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
-	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
 )
@@ -142,6 +142,7 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template VM Group, If empty, it uses caller group",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -272,6 +273,35 @@ func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
+	err = flattenVMGroupTags(d, &vmg.Template)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flattenVMGroupTags(d *schema.ResourceData, t *dyn.Template) error {
+
+	tags := make(map[string]interface{})
+	var err error
+	// Get only tags from userTemplate
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tags[k], err = t.GetStr(strings.ToUpper(k))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -367,6 +397,19 @@ func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[INFO] Successfully updated group for VMGroup %s\n", vmg.Name)
 	}
 
+	if d.HasChange("tags") {
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, v := range tagsInterface {
+			vmg.Template.Del(strings.ToUpper(k))
+			vmg.Template.AddPair(strings.ToUpper(k), v.(string))
+		}
+
+		err = vmgc.Update(vmg.Template.String(), 1)
+		if err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("role") && d.Get("role") != "" {
 		var err error
 
@@ -404,7 +447,7 @@ func resourceOpennebulaVMGroupDelete(d *schema.ResourceData, meta interface{}) e
 
 func generateVMGroup(d *schema.ResourceData) (string, error) {
 
-	tpl := dynamic.NewTemplate()
+	tpl := dyn.NewTemplate()
 
 	tpl.AddPair("NAME", d.Get("name").(string))
 
@@ -422,6 +465,11 @@ func generateVMGroup(d *schema.ResourceData) (string, error) {
 		roleTpl.AddPair("HOST_ANTI_AFFINED", rHostAntiAff)
 		roleTpl.AddPair("POLICY", role["policy"].(string))
 
+	}
+
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
 	}
 
 	tplStr := tpl.String()

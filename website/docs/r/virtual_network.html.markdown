@@ -51,6 +51,9 @@ resource "opennebula_virtual_network" "vnet" {
     clusters = [{
         id = 0
     }]
+    tags = {
+      environment = "dev"
+    }
 }
 ```
 
@@ -79,6 +82,7 @@ The following arguments are supported:
 * `hold_size` - (Optional) Carve a network reservation of this size from the reservation starting from `ip_hold`. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ip_hold` - (Optional) Start IP of the range to be held. Conflicts with `reservation_vnet` and `reservation_size`.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
+* `tags` - (Optional) Virtual Network tags.
 
 ### Address Range parameters
 
