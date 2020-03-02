@@ -14,6 +14,7 @@ func dataOpennebulaSecurityGroup() *schema.Resource {
 				Required:    true,
 				Description: "Name of the Security Group",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }

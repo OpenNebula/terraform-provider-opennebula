@@ -33,6 +33,9 @@ resource "opennebula_security_group" "mysecgroup" {
         protocol = "ICMP"
         rule_type = "INBOUND"
     }
+    tags = {
+      environment = "dev"
+    }
 }
 ```
 
@@ -46,6 +49,7 @@ The following arguments are supported:
 * `commit` - (Optional) Flag to commit changes on Virtual Machine on security group update. Defaults to `true`.
 * `rule` - (Required) List of rules. See [Rules parameters](#rules) below for details
 * `group` - (Optional) Name of the group which owns the security group. Defaults to the caller primary group.
+* `tags` - (Optional) Security group tags.
 
 ### Rules parameters
 

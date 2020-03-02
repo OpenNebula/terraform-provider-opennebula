@@ -17,33 +17,40 @@ func TestAccSecurityGroup(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccSecurityGroupConfigBasic,
-				ExpectNonEmptyPlan: true,
+				Config: testAccSecurityGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "testsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "642"),
-					testAccSecurityGroupRule(0, "PROTOCOL", "ALL"),
-					testAccSecurityGroupRule(0, "RULE_TYPE", "OUTBOUND"),
-					testAccSecurityGroupRule(1, "PROTOCOL", "TCP"),
-					testAccSecurityGroupRule(1, "RULE_TYPE", "INBOUND"),
-					testAccSecurityGroupRule(1, "RANGE", "22"),
-					testAccSecurityGroupRule(2, "PROTOCOL", "ICMP"),
-					testAccSecurityGroupRule(2, "RULE_TYPE", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.#", "3"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.0.protocol", "ALL"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.0.rule_type", "OUTBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.protocol", "TCP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.rule_type", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.range", "22"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.2.protocol", "ICMP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.2.rule_type", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.customer", "test"),
 				),
 			},
 			{
-				Config:             testAccSecurityGroupConfigUpdate,
-				ExpectNonEmptyPlan: true,
+				Config: testAccSecurityGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "renamedsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "660"),
-					testAccSecurityGroupRule(0, "PROTOCOL", "ALL"),
-					testAccSecurityGroupRule(0, "RULE_TYPE", "OUTBOUND"),
-					testAccSecurityGroupRule(1, "PROTOCOL", "TCP"),
-					testAccSecurityGroupRule(1, "RULE_TYPE", "INBOUND"),
-					testAccSecurityGroupRule(1, "RANGE", "80"),
-					testAccSecurityGroupRule(2, "PROTOCOL", "ICMP"),
-					testAccSecurityGroupRule(2, "RULE_TYPE", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.#", "3"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.0.protocol", "ALL"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.0.rule_type", "OUTBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.protocol", "TCP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.rule_type", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.range", "80"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.2.protocol", "ICMP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.2.rule_type", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.version", "2"),
 				),
 			},
 		},
@@ -123,6 +130,10 @@ resource "opennebula_security_group" "mysecgroup" {
         protocol = "ICMP"
         rule_type = "INBOUND"
     }
+    tags = {
+      env = "prod"
+      customer = "test"
+    }
 }
 `
 
@@ -143,6 +154,11 @@ resource "opennebula_security_group" "mysecgroup" {
     rule {
         protocol = "ICMP"
         rule_type = "INBOUND"
+    }
+    tags = {
+      env = "dev"
+      customer = "test"
+      version = "2"
     }
 }
 `

@@ -86,7 +86,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 				Description: "Name of the group that will own the Security Group",
 			},
 			"rule": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Required:    true,
 				MinItems:    1,
 				Description: "List of rules to be in the Security Group",
@@ -167,6 +167,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 				ConflictsWith: []string{"gid"},
 				Description:   "Name of the Group that onws the Security Group, If empty, it uses caller group",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -257,11 +258,40 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 	d.Set("gname", securitygroup.GName)
 	d.Set("permissions", permissionsUnixString(*securitygroup.Permissions))
 
-	description, _ := securitygroup.Template.GetStr("DESCRITPION")
+	description, _ := securitygroup.Template.Get(sgk.Description)
 	d.Set("description", description)
 
 	if err := d.Set("rule", generateSecurityGroupMapFromStructs(securitygroup.Template.GetRules())); err != nil {
 		log.Printf("[WARN] Error setting rule for Security Group %x, error: %s", securitygroup.ID, err)
+	}
+
+	err = flattenSecurityGroupTags(d, &securitygroup.Template)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flattenSecurityGroupTags(d *schema.ResourceData, sgTpl *securitygroup.Template) error {
+
+	tags := make(map[string]interface{})
+	var err error
+	// Get only tags from userTemplate
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tags[k], err = sgTpl.GetStr(strings.ToUpper(k))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -303,10 +333,7 @@ func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interfac
 
 	sgc := controller.SecurityGroup(secGroupID)
 
-	secGroupTpl, xmlerr := generateSecurityGroupTemplate(d)
-	if xmlerr != nil {
-		return xmlerr
-	}
+	secGroupTpl := generateSecurityGroupTemplate(d)
 
 	// add template information into Security group
 	err = sgc.Update(secGroupTpl, 1)
@@ -352,6 +379,42 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
+	tpl := securitygroup.Template
+	changes := false
+
+	if d.HasChange("rule") && d.Get("rule") != "" {
+		generateSecurityGroupRules(d, &tpl)
+		changes = true
+	}
+
+	if d.HasChange("tags") {
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, v := range tagsInterface {
+			tpl.Del(strings.ToUpper(k))
+			tpl.AddPair(strings.ToUpper(k), v)
+		}
+		changes = true
+	}
+
+	if changes {
+		err = sgc.Update(tpl.String(), 0)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[INFO] Successfully updated Security Group template %s\n", securitygroup.Name)
+
+		//Commit changes to running VMs if desired
+		if d.Get("commit") == true {
+			// Only update outdated VMs not all
+			err = sgc.Commit(true)
+			if err != nil {
+				return err
+			}
+
+			log.Printf("[INFO] Successfully commited Security Group %s changes to outdated Virtual Machines\n", securitygroup.Name)
+		}
+	}
 
 	if d.HasChange("name") {
 		err := sgc.Rename(d.Get("name").(string))
@@ -378,34 +441,6 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 			return err
 		}
 		log.Printf("[INFO] Successfully updated group for Security Group %s\n", securitygroup.Name)
-	}
-
-	if d.HasChange("rule") && d.Get("rule") != "" {
-		var err error
-
-		secgroupxml, xmlerr := generateSecurityGroupTemplate(d)
-		if xmlerr != nil {
-			return xmlerr
-		}
-
-		err = sgc.Update(secgroupxml, 0)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("[INFO] Successfully updated Security Group template %s\n", securitygroup.Name)
-
-		//Commit changes to running VMs if desired
-		if d.Get("commit") == true {
-			// Only update outdated VMs not all
-			err = sgc.Commit(true)
-			if err != nil {
-				return err
-			}
-
-			log.Printf("[INFO] Successfully commited Security Group %s changes to outdated Virtual Machines\n", securitygroup.Name)
-		}
-
 	}
 
 	// We succeeded, disable partial mode. This causes Terraform to save
@@ -442,12 +477,10 @@ func generateSecurityGroup(d *schema.ResourceData) (string, error) {
 	return tplStr, nil
 }
 
-func generateSecurityGroupTemplate(d *schema.ResourceData) (string, error) {
+func generateSecurityGroupRules(d *schema.ResourceData, tpl *securitygroup.Template) {
 	//Generate rules definition
-	rules := d.Get("rule").(*schema.Set).List()
+	rules := d.Get("rule").([]interface{})
 	log.Printf("Number of Security Group rules: %d", len(rules))
-
-	tpl := securitygroup.NewTemplate()
 
 	for i := 0; i < len(rules); i++ {
 		ruleconfig := rules[i].(map[string]interface{})
@@ -475,19 +508,29 @@ func generateSecurityGroupTemplate(d *schema.ResourceData) (string, error) {
 			case "network_id":
 				rule.Add(sgk.NetworkID, v.(string))
 			}
-
 		}
-
 	}
+
+}
+
+func generateSecurityGroupTemplate(d *schema.ResourceData) string {
+	tpl := securitygroup.NewTemplate()
+
+	generateSecurityGroupRules(d, tpl)
 
 	description := d.Get("description").(string)
 	if len(description) > 0 {
 		tpl.Add(sgk.Description, description)
 	}
 
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
 	tplStr := tpl.String()
 	log.Printf("[INFO] Security Group template: %s", tplStr)
 
-	return tplStr, nil
+	return tplStr
 
 }
