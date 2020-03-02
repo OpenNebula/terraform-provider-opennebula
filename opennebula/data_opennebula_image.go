@@ -14,6 +14,7 @@ func dataOpennebulaImage() *schema.Resource {
 				Required:    true,
 				Description: "Name of the Image",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
