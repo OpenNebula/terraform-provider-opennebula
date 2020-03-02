@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
@@ -176,7 +177,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"ar": {
-				Type:          schema.TypeSet,
+				Type:          schema.TypeList,
 				Optional:      true,
 				MinItems:      1,
 				Description:   "List of Address Ranges to be part of the Virtual Network",
@@ -285,6 +286,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -430,7 +432,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		}
 
 		// Address Ranges
-		ars := d.Get("ar").(*schema.Set).List()
+		ars := d.Get("ar").([]interface{})
 
 		for i, arinterface := range ars {
 			armap := arinterface.(map[string]interface{})
@@ -569,6 +571,11 @@ func generateVnTemplate(d *schema.ResourceData) (string, error) {
 		tpl.Add("DESCRIPTION", desc.(string))
 	}
 
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
 	tplStr := tpl.String()
 	log.Printf("[INFO] VNET template: %s", tplStr)
 
@@ -691,49 +698,90 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	d.Set("reservation_vnet", vn.ParentNetworkID)
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
-	secgrouplist, err := vn.Template.GetStr("SECURITY_GROUPS")
+	err = flattenVnetTemplate(d, &vn.Template)
 	if err != nil {
 		return err
-	}
-	secgroups_str := strings.Split(secgrouplist, ",")
-	secgroups_int := []int{}
-
-	for _, i := range secgroups_str {
-		if i != "" {
-			j, err := strconv.Atoi(i)
-			if err != nil {
-				return err
-			}
-			secgroups_int = append(secgroups_int, j)
-		}
-	}
-
-	err = d.Set("security_groups", secgroups_int)
-	if err != nil {
-		log.Printf("[DEBUG] Error setting security groups on vnet: %s", err)
-	}
-	mtustr, _ := vn.Template.Get("MTU")
-	if mtustr != "" {
-		mtu, err := strconv.ParseInt(mtustr, 10, 64)
-		if err != nil {
-			return err
-		}
-		err = d.Set("mtu", mtu)
-		if err != nil {
-			return err
-		}
-	}
-	desc, _ := vn.Template.Get("DESCRIPTION")
-	if desc != "" {
-		err = d.Set("description", desc)
-		if err != nil {
-			return err
-		}
 	}
 
 	if err := d.Set("ar", generateARMapFromStructs(vn.ARs)); err != nil {
 		log.Printf("[WARN] Error setting ar for Virtual Network %x, error: %s", vn.ID, err)
 	}
+	return nil
+}
+
+func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
+
+	tags := make(map[string]interface{})
+	for i, _ := range vnTpl.Elements {
+		pair, ok := vnTpl.Elements[i].(*dyn.Pair)
+		if !ok {
+			continue
+		}
+
+		switch pair.Key() {
+		case "SECURITY_GROUPS":
+			secgrouplist, err := vnTpl.GetStr("SECURITY_GROUPS")
+			if err != nil {
+				return err
+			}
+			secgroups_str := strings.Split(secgrouplist, ",")
+			secgroups_int := []int{}
+
+			for _, i := range secgroups_str {
+				if i != "" {
+					j, err := strconv.Atoi(i)
+					if err != nil {
+						return err
+					}
+					secgroups_int = append(secgroups_int, j)
+				}
+			}
+
+			err = d.Set("security_groups", secgroups_int)
+			if err != nil {
+				log.Printf("[DEBUG] Error setting security groups on vnet: %s", err)
+			}
+		case "MTU":
+			mtustr, _ := vnTpl.Get("MTU")
+			if mtustr != "" {
+				mtu, err := strconv.ParseInt(mtustr, 10, 64)
+				if err != nil {
+					return err
+				}
+				err = d.Set("mtu", mtu)
+				if err != nil {
+					return err
+				}
+			}
+		case "DESCRIPTION":
+			desc, err := vnTpl.Get("DESCRIPTION")
+			if desc != "" {
+				err = d.Set("description", desc)
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			// Get only tags from userTemplate
+			if tagsInterface, ok := d.GetOk("tags"); ok {
+				var err error
+				for k, _ := range tagsInterface.(map[string]interface{}) {
+					tags[k], err = vnTpl.GetStr(strings.ToUpper(k))
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -794,6 +842,15 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		changes = true
 	}
 
+	if d.HasChange("tags") {
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, v := range tagsInterface {
+			tpl.Del(strings.ToUpper(k))
+			tpl.AddPair(strings.ToUpper(k), v)
+		}
+		changes = true
+	}
+
 	if changes {
 		err := vnc.Update(tpl.String(), 1)
 		if err != nil {
@@ -844,7 +901,7 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	if d.HasChange("ar") {
 		_, narsset := d.GetChange("ar")
 
-		nars := narsset.(*schema.Set).List()
+		nars := narsset.([]interface{})
 		vnars := vn.ARs
 
 		// Delete Old ARs
