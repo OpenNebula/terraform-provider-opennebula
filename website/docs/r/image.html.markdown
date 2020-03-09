@@ -40,6 +40,9 @@ resource "opennebula_image" "osimage" {
     driver = "qcow2"
     permissions = "660"
     group = "terraform"
+    tags = {
+      environment = "dev"
+    }
 }
 ```
 
@@ -47,14 +50,17 @@ Allocate a new persistent 1GB datablock image:
 ```hcl
 resource "opennebula_image" "datablockimage" {
     name = "terra-datablock"
-   description = "Terraform datablock"
-   datastore_id = 103
-   persistent = true
-   type = "DATABLOCK"
-   size = "1000"
-   dev_prefix = "vd"
-   driver = "qcow2"
-   group = "terraform"
+    description = "Terraform datablock"
+    datastore_id = 103
+    persistent = true
+    type = "DATABLOCK"
+    size = "1000"
+    dev_prefix = "vd"
+    driver = "qcow2"
+    group = "terraform"
+    tags = {
+      environment = "dev"
+    }
 }
 ```
 
@@ -66,6 +72,9 @@ resource "opennebula_image" "contextfile" {
     datastore_id = 2
     type = "CONTEXT"
     path = "http://server/myscript.sh"
+    tags = {
+      environment = "dev"
+    }
 }
 ```
 
@@ -77,6 +86,9 @@ resource "opennebula_image" "cdimage" {
     datastore_id = 103
     type = "CDROM"
     path = "http://server/mini.iso"
+    tags = {
+      environment = "dev"
+    }
 }
 ```
 
@@ -99,6 +111,7 @@ The following arguments are supported:
 * `driver` - (Optional) OpenNebula Driver to use.
 * `format` - (Optional) Image format. Example: `raw`, `qcow2`.
 * `group` - (Optional) Name of the group which owns the image. Defaults to the caller primary group.
+* `tags` - (Optional) Image tags
 
 
 ## Attribute Reference

@@ -58,6 +58,10 @@ resource "opennebula_template" "mytemplate" {
     vmgroup_id = 42
     role = "vmgroup-role"
   }
+
+  tags = {
+    environment = "dev"
+  }
 }
 ```
 
@@ -77,6 +81,7 @@ The following arguments are supported:
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#os-parameters) below for details. Changing this argument triggers a new resource.
+* `tags` - (Optional) Template tags.
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 
 ### Graphics parameters

@@ -60,6 +60,10 @@ resource "opennebula_virtual_machine" "demo" {
     vmgroup_id = 42
     role = "vmgroup-role"
   }
+
+  tags = {
+    environment = "dev"
+  }
 }
 ```
 
@@ -81,6 +85,7 @@ The following arguments are supported:
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-vm) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#os-vmg) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
+* `tags` - (Optional) Virtual Machine tags.
 
 ### Graphics parameters
 

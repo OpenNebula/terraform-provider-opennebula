@@ -16,9 +16,13 @@ func dataOpennebulaTemplate() *schema.Resource {
 			},
 			"template": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
-				Description: "template content",
+				Description: "Description of the template, in OpenNebula's XML or String format",
+				Deprecated:  "use other schema sections instead.",
 			},
+			"os":      osSchema(),
+			"vmgroup": vmGroupSchema(),
 		},
 	}
 }

@@ -48,6 +48,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			"nic":      nicSchema(),
 			"os":       osSchema(),
 			"vmgroup":  vmGroupSchema(),
+			"tags":     tagsSchema(),
 			"permissions": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -249,10 +250,11 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	err = flattenTemplate(d, &tpl.Template)
+	err = flattenTemplate(d, &tpl.Template, true)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -322,6 +324,19 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 			return err
 		}
 		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
+	}
+
+	if d.HasChange("tags") {
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, v := range tagsInterface {
+			tpl.Template.Del(strings.ToUpper(k))
+			tpl.Template.AddPair(strings.ToUpper(k), v.(string))
+		}
+
+		err = tc.Update(tpl.Template.String(), 1)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

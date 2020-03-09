@@ -210,6 +210,18 @@ func vmGroupSchema() *schema.Schema {
 	}
 }
 
+func tagsSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    true,
+		Computed:    true,
+		Description: "Add custom tags to the resource",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	}
+}
+
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	//Generate NIC definition
@@ -331,9 +343,14 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 		tpl.VCPU(vmvcpu.(int))
 	}
 
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
 }
 
-func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
+func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bool) error {
 
 	var err error
 
@@ -459,6 +476,26 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		err = d.Set("nic", nicList)
 		if err != nil {
 			return err
+		}
+	}
+
+	if tplTags {
+		tags := make(map[string]interface{})
+		// Get only tags from userTemplate
+		if tagsInterface, ok := d.GetOk("tags"); ok {
+			for k, _ := range tagsInterface.(map[string]interface{}) {
+				tags[k], err = vmTemplate.GetStr(strings.ToUpper(k))
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(tags) > 0 {
+			err := d.Set("tags", tags)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

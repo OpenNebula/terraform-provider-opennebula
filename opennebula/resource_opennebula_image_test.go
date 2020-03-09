@@ -29,6 +29,9 @@ func TestAccImage(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "dev_prefix", "vd"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "driver", "qcow2"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "permissions", "742"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.customer", "test"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uname"),
@@ -53,6 +56,10 @@ func TestAccImage(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "dev_prefix", "vd"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "driver", "qcow2"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.version", "2"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uname"),
@@ -131,6 +138,10 @@ resource "opennebula_image" "testimage" {
    dev_prefix = "vd"
    permissions = "742"
    driver = "qcow2"
+   tags = {
+     env = "prod"
+     customer = "test"
+   }
 }
 `
 
@@ -145,5 +156,10 @@ resource "opennebula_image" "testimage" {
    dev_prefix = "vd"
    permissions = 660
    driver = "qcow2"
+   tags = {
+     env = "dev"
+     customer = "test"
+     version = "2"
+   }
 }
 `

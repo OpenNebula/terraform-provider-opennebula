@@ -24,6 +24,7 @@ func dataOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:    true,
 				Description: "MTU of the vnet (defaut: 1500)",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }

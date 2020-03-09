@@ -14,6 +14,7 @@ func dataOpennebulaVMGroup() *schema.Resource {
 				Required:    true,
 				Description: "Name of the Virtual Machine Group",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }

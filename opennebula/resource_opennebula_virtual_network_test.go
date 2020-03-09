@@ -36,13 +36,16 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
-					testAccCheckVirtualNetworkARnumber(2),
-					testAccVirtualNetworkAR(0, "ar_type", "IP4"),
-					testAccVirtualNetworkAR(0, "size", "16"),
-					testAccVirtualNetworkAR(0, "ip4", "172.16.100.110"),
-					testAccVirtualNetworkAR(1, "ar_type", "IP4"),
-					testAccVirtualNetworkAR(1, "size", "12"),
-					testAccVirtualNetworkAR(1, "ip4", "172.16.100.130"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.size", "12"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ip4", "172.16.100.130"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
 					testAccVirtualNetworkSG([]int{0}),
 					testAccCheckVirtualNetworkPermissions(&shared.Permissions{
 						OwnerU: 1,
@@ -68,17 +71,21 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
-					testAccVirtualNetworkAR(0, "ar_type", "IP4"),
-					testAccVirtualNetworkAR(0, "size", "16"),
-					testAccVirtualNetworkAR(0, "ip4", "172.16.100.110"),
-					testAccVirtualNetworkAR(0, "mac", "02:01:ac:10:64:6e"),
-					testAccVirtualNetworkAR(1, "ar_type", "IP4"),
-					testAccVirtualNetworkAR(1, "size", "13"),
-					testAccVirtualNetworkAR(1, "ip4", "172.16.100.130"),
-					testAccVirtualNetworkAR(2, "ar_type", "IP6"),
-					testAccVirtualNetworkAR(2, "size", "2"),
-					testAccVirtualNetworkAR(2, "ip6", "2001:db8:0:85a3::ac1f:8001"),
-					testAccCheckVirtualNetworkARnumber(3),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.mac", "02:01:ac:10:64:6e"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.size", "13"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ip4", "172.16.100.140"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.ar_type", "IP6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.ip6", "2001:db8:0:85a3::ac1f:8001"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.version", "2"),
 					testAccVirtualNetworkSG([]int{0}),
 					testAccCheckVirtualNetworkPermissions(&shared.Permissions{
 						OwnerU: 1,
@@ -130,30 +137,6 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVirtualNetworkARnumber(expectedARs int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
-
-		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
-			vnc := controller.VirtualNetwork(int(vnID))
-			// Get Virtual Network Info
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vn, _ := vnc.Info(false)
-			if vn == nil {
-				return fmt.Errorf("Expected virtual network %s to exist", rs.Primary.ID)
-			}
-
-			if len(vn.ARs) != expectedARs {
-				return fmt.Errorf("Expected ARs number: %d, got: %d", expectedARs, len(vn.ARs))
-			}
-		}
-
-		return nil
-	}
-}
-
 func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		controller := testAccProvider.Meta().(*goca.Controller)
@@ -179,41 +162,6 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 			}
 		}
 
-		return nil
-	}
-}
-
-func testAccVirtualNetworkAR(aridx int, key, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
-
-		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
-			vnc := controller.VirtualNetwork(int(vnID))
-			// Get Virtual Network Info
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vn, _ := vnc.Info(false)
-			if vn == nil {
-				return fmt.Errorf("Expected virtual network %s to exist when checking permissions", rs.Primary.ID)
-			}
-			ars := generateARMapFromStructs(vn.ARs)
-
-			var found bool
-
-			for i, ar := range ars {
-				if i == aridx {
-					if ar[key] != nil && ar[key].(string) != value {
-						return fmt.Errorf("Expected %s = %s for AR ID %d, got %s = %s", key, value, aridx, key, ar[key].(string))
-					}
-					found = true
-				}
-			}
-
-			if !found {
-				return fmt.Errorf("AR id %d with %s = %s does not exist", aridx, key, value)
-			}
-		}
 		return nil
 	}
 }
@@ -279,6 +227,10 @@ resource "opennebula_virtual_network" "test" {
   group = "oneadmin"
   security_groups = [0]
   clusters = [0]
+  tags = {
+    env = "prod"
+    customer = "test"
+  }
 }
 `
 
@@ -311,6 +263,11 @@ resource "opennebula_virtual_network" "test" {
   clusters = [0]
   permissions = "660"
   group = "users"
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
+  }
 }
 `
 

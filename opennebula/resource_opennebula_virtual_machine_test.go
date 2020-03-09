@@ -36,6 +36,9 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
@@ -64,6 +67,10 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "2"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
@@ -88,7 +95,8 @@ func TestAccVirtualMachinePending(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVirtualMachinePending,
+				Config:             testAccVirtualMachinePending,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "virtual_machine_pending"),
@@ -198,6 +206,11 @@ resource "opennebula_virtual_machine" "test" {
     arch = "x86_64"
     boot = ""
   }
+
+  tags = {
+    env = "prod"
+    customer = "test"
+  }
 }
 `
 
@@ -223,6 +236,12 @@ resource "opennebula_virtual_machine" "test" {
   os {
     arch = "x86_64"
     boot = ""
+  }
+
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
   }
 }
 `

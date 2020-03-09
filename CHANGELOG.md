@@ -6,6 +6,12 @@ FEATURES:
 OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
 * resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
 * resource/opennebula_template: Associate a VM group.
+* resource/opennebula_image: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
+* resource/opennebula_security_group: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
+* resource/opennebula_template: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_machine: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_machine_group: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_network: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
 
 ENHANCEMENTS:
 * all resources: use Goca dynamic templates to build entities

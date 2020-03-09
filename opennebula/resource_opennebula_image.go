@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	imk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image/keys"
@@ -185,6 +186,7 @@ func resourceOpennebulaImage() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Image, If empty, it uses caller group",
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -451,23 +453,55 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 		d.Set("type", image.Type)
 	}
 
-	d.Set("size", image.Size)
-	devpref, err := image.Template.GetStr("DEV_PREFIX")
-	if err == nil {
-		d.Set("dev_prefix", devpref)
+	tags := make(map[string]interface{})
+	for i, _ := range image.Template.Elements {
+		pair, ok := image.Template.Elements[i].(*dyn.Pair)
+		if !ok {
+			continue
+		}
+
+		switch pair.Key() {
+		case "DEV_PREFIX":
+			devpref, err := image.Template.GetStr("DEV_PREFIX")
+			if err == nil {
+				d.Set("dev_prefix", devpref)
+			}
+
+		case "DRIVER":
+			driver, err := image.Template.GetStr("DRIVER")
+			if err == nil {
+				d.Set("driver", driver)
+			}
+
+		case "FORMAT":
+			format, err := image.Template.GetStr("FORMAT")
+			if err == nil {
+				d.Set("format", format)
+			}
+
+		case "DESCRIPTION":
+			desc, err := image.Template.GetStr("DESCRIPTION")
+			if err == nil {
+				d.Set("description", desc)
+			}
+		default:
+			if tagsInterface, ok := d.GetOk("tags"); ok {
+				for k, _ := range tagsInterface.(map[string]interface{}) {
+					if strings.ToUpper(k) == pair.Key() {
+						tags[k] = pair.Value
+					}
+				}
+			}
+		}
 	}
-	driver, err := image.Template.GetStr("DRIVER")
-	if err == nil {
-		d.Set("driver", driver)
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
+		}
 	}
-	format, err := image.Template.GetStr("FORMAT")
-	if err == nil {
-		d.Set("format", format)
-	}
-	desc, err := image.Template.GetStr("DESCRIPTION")
-	if err == nil {
-		d.Set("description", desc)
-	}
+
 	if image.LockInfos != nil {
 		d.Set("lock", LockLevelToString(image.LockInfos.Locked))
 	}
@@ -558,6 +592,19 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		log.Printf("[INFO] Successfully updated Image Type %s\n", image.Name)
 	}
 
+	if d.HasChange("tags") {
+		tagsInterface := d.Get("tags").(map[string]interface{})
+		for k, v := range tagsInterface {
+			image.Template.Del(strings.ToUpper(k))
+			image.Template.AddPair(strings.ToUpper(k), v)
+		}
+
+		err = ic.Update(image.Template.String(), 1)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -633,6 +680,11 @@ func generateImageTemplate(d *schema.ResourceData) (string, error) {
 
 	if val, ok := d.GetOk("target"); ok {
 		tpl.Add(imk.Target, val.(string))
+	}
+
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
 	}
 
 	str := tpl.String()
