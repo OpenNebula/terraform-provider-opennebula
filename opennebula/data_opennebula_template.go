@@ -21,8 +21,16 @@ func dataOpennebulaTemplate() *schema.Resource {
 				Description: "Description of the template, in OpenNebula's XML or String format",
 				Deprecated:  "use other schema sections instead.",
 			},
-			"os":      osSchema(),
-			"vmgroup": vmGroupSchema(),
+			"cpu":      cpuSchema(),
+			"vcpu":     vcpuSchema(),
+			"memory":   memorySchema(),
+			"context":  contextSchema(),
+			"disk":     diskSchema(),
+			"graphics": graphicsSchema(),
+			"nic":      nicSchema(),
+			"os":       osSchema(),
+			"vmgroup":  vmGroupSchema(),
+			"tags":     tagsSchema(),
 		},
 	}
 }
