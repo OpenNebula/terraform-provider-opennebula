@@ -23,6 +23,9 @@ ENHANCEMENTS:
 DEPRECATION:
 * resource/opennebula_template: Remove `template` parameter to reproduce resource/opennebula_virtual_machine details schema
 
+BUG FIXES:
+* data/opennebula_template: Fix missing parameters on Read ([#29](https://github.com/terraform-providers/terraform-provider-opennebula/issues/29))
+
 ## 0.1.1 (January 06, 2020)
 
 BUG FIXES:
