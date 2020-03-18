@@ -54,11 +54,11 @@ Current definition of these resources are supported:
 * Virtual Data Center [onevdc](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevdc)
 * Virtual Machine [onevm](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevm)
 * Virtual Network [onevnet](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onevnet)
+* ACL [oneacl](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneacl)
 
 ## Limitations
 
 Following OpenNebula Objects **are not** currently supported:
-* ACL [oneacl](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneacl)
 * Accounting [oneacct](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#oneacct)
 * Hosts Management [onehost](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onehost)
 * Clusters [onecluster](https://docs.opennebula.org/5.8/integration/system_interfaces/api.html#onecluster)
