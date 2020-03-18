@@ -45,6 +45,9 @@ func resourceOpennebulaACL() *schema.Resource {
 		Create: resourceOpennebulaACLCreate,
 		Read:   resourceOpennebulaACLRead,
 		Delete: resourceOpennebulaACLDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"user": {
