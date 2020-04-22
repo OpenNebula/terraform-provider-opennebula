@@ -15,6 +15,7 @@ import (
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
+	vmpack "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
@@ -110,6 +111,25 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Current LCM state of the VM",
+			},
+			"desired_state": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     false,
+				Description: "The desired state of the VM, which can be running, stopped, suspended, undeployed or poweroff; Do not use together with pending option",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					requestedValue := v.(string)
+					acceptableValues := []string{"running", "stopped", "suspended", "undeployed", "poweroff"}
+
+					for _, value := range acceptableValues {
+						if requestedValue == value {
+							return
+						}
+					}
+
+					errors = append(errors, fmt.Errorf("The desired state of the VM can be running, stopped, suspended, undeployed or poweroff; not %s", requestedValue))
+					return
+				},
 			},
 			"cpu":      cpuSchema(),
 			"vcpu":     vcpuSchema(),
@@ -264,6 +284,29 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		if err != nil {
 			return err
 		}
+	}
+
+	// If the user requested a desired state except running at creation, handle this request after starting the VM
+	desiredState := d.Get("desired_state").(string)
+	switch desiredState {
+	case "running":
+	case "stopped":
+		err = vmc.Stop()
+	case "suspended":
+		err = vmc.Suspend()
+	case "undeployed":
+		err = vmc.Undeploy()
+	case "poweroff":
+		err = vmc.Poweroff()
+	default:
+		err = fmt.Errorf("Error in the plugin code: Validated user's desired_state %s, but cannot handle it", desiredState)
+	}
+	if err != nil {
+		return err
+	}
+	_, err = waitForVmState(d, meta, desiredState)
+	if err != nil {
+		return err
 	}
 
 	return resourceOpennebulaVirtualMachineRead(d, meta)
@@ -423,6 +466,50 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
+	// Check the user's request for turning off the VM and handle the request
+	stringStateToNumber := map[string]vmpack.State{"running": 3, "stopped": 4, "suspended": 5, "poweroff": 8, "undeployed": 9}
+	desiredState := d.Get("desired_state").(string)
+	desiredStateNumber := stringStateToNumber[desiredState]
+	if desiredStateNumber == 0 {
+		return fmt.Errorf("Error in the plugin code: Validated user's desired_state %s, but cannot handle it", desiredState)
+	}
+
+	vmState, _, _ := vm.State()
+	// respect the pending flag
+	if vmState != desiredStateNumber && vmState != vmpack.Hold {
+
+		// if the vm isn't active, then resume it before applying the desired state
+		if vmState != vmpack.Active {
+			if err = vmc.Resume(); err != nil {
+				return err
+			}
+			if _, err = waitForVmState(d, meta, "running"); err != nil {
+				return err
+			}
+		}
+
+		switch desiredStateNumber {
+		case vmpack.Active:
+		case vmpack.Stopped:
+			err = vmc.Stop()
+		case vmpack.Suspended:
+			err = vmc.Suspend()
+		case vmpack.Undeployed:
+			err = vmc.Undeploy()
+		case vmpack.Poweroff:
+			err = vmc.Poweroff()
+		default:
+			err = fmt.Errorf("Error in the plugin code: Validated user's desired_state %s, but cannot handle it", desiredState)
+		}
+		if err != nil {
+			return err
+		}
+		_, err = waitForVmState(d, meta, desiredState)
+		if err != nil {
+			return err
+		}
+	}
+
 	// We succeeded, disable partial mode. This causes Terraform to save
 	// save all fields again.
 	d.Partial(false)
@@ -506,8 +593,16 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 			log.Printf("VM %v is currently in state %v and in LCM state %v", vm.ID, vmState, vmLcmState)
 			if vmState == 3 && vmLcmState == 3 {
 				return vm, "running", nil
+			} else if vmState == 4 {
+				return vm, "stopped", nil
+			} else if vmState == 5 {
+				return vm, "suspended", nil
 			} else if vmState == 6 {
 				return vm, "done", nil
+			} else if vmState == 8 {
+				return vm, "poweroff", nil
+			} else if vmState == 9 {
+				return vm, "undeployed", nil
 			} else if vmState == 2 && vmLcmState == 0 {
 				return vm, "hold", nil
 			} else if vmState == 3 && vmLcmState == 36 {
