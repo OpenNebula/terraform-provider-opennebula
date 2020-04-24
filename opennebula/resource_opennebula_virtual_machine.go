@@ -115,11 +115,11 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"desired_state": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     false,
+				Default:     "ignore",
 				Description: "The desired state of the VM, which can be running, stopped, suspended, undeployed or poweroff; Do not use together with pending option",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					requestedValue := v.(string)
-					acceptableValues := []string{"running", "stopped", "suspended", "undeployed", "poweroff"}
+					acceptableValues := []string{"ignore", "running", "stopped", "suspended", "undeployed", "poweroff"}
 
 					for _, value := range acceptableValues {
 						if requestedValue == value {
@@ -286,10 +286,11 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	// If the user requested a desired state except running at creation, handle this request after starting the VM
+	// If the user requested a desired state except ignore or running at creation, handle this request after starting the VM.
 	desiredState := d.Get("desired_state").(string)
 	switch desiredState {
-	case "running":
+	case "ignore", "running":
+		// Do not release the VM during creation to respect the pending flag.
 	case "stopped":
 		err = vmc.Stop()
 	case "suspended":
@@ -304,9 +305,11 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	if err != nil {
 		return err
 	}
-	_, err = waitForVmState(d, meta, desiredState)
-	if err != nil {
-		return err
+	if desiredState != "ignore" && desiredState != "running" {
+		_, err = waitForVmState(d, meta, desiredState)
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceOpennebulaVirtualMachineRead(d, meta)
@@ -466,8 +469,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	// Check the user's request for turning off the VM and handle the request
-	stringStateToNumber := map[string]vmpack.State{"running": 3, "stopped": 4, "suspended": 5, "poweroff": 8, "undeployed": 9}
+	// Check the user's request for turning off the VM and handle the request.
+	stringStateToNumber := map[string]vmpack.State{"ignore": -1, "running": 3, "stopped": 4, "suspended": 5, "poweroff": 8, "undeployed": 9}
 	desiredState := d.Get("desired_state").(string)
 	desiredStateNumber := stringStateToNumber[desiredState]
 	if desiredStateNumber == 0 {
@@ -475,11 +478,16 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	vmState, _, _ := vm.State()
-	// respect the pending flag
-	if vmState != desiredStateNumber && vmState != vmpack.Hold {
+	// Ignore changing the state if the number is -1 (ignore).
+	if desiredStateNumber != -1 && desiredStateNumber != vmState {
 
-		// if the vm isn't active, then resume it before applying the desired state
-		if vmState != vmpack.Active {
+		if vmState == vmpack.Hold {
+			// Assume the user used both pending and desired_state on purpose, and release the VM.
+			if err = vmc.Release(); err != nil {
+				return err
+			}
+		} else if vmState != vmpack.Active {
+			// If the vm isn't active, then resume it before applying the desired state.
 			if err = vmc.Resume(); err != nil {
 				return err
 			}
