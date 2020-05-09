@@ -50,6 +50,7 @@ The following arguments are supported:
 ## Attribute Reference
 
 The following attribute is exported:
+
 * `id` - ID of the virtual data center.
 
 ## Import

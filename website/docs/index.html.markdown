@@ -18,6 +18,7 @@ Use the navigation to the left to read about the available resources.
 ## Example Usage
 
 **terraform.tfvars:**
+
 ```hcl
 one_endpoint = "http://frontzone:2633/RPC2"
 one_username = "USERNAME"
@@ -25,6 +26,7 @@ one_password = "PASSWORD OR TOKEN"
 ```
 
 **terraform.tf:**
+
 ```hcl
 variable "one_endpoint" {}
 variable "one_username" {}

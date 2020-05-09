@@ -69,6 +69,7 @@ See https://docs.opennebula.org/5.8/operation/network_management/security_groups
 ## Attribute Reference
 
 The following attribute are exported:
+
 * `id` - ID of the security group.
 * `uid` - User ID whom owns the security group.
 * `gid` - Group ID which owns the security group.

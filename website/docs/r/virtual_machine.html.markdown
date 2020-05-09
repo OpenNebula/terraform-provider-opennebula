@@ -137,6 +137,7 @@ Minimum 1 item. Maximum 8 items.
 ## Attribute Reference
 
 The following attribute are exported:
+
 * `id` - ID of the virtual machine.
 * `instance` - (Deprecated) Name of the virtual machine instance created on the cluster.
 * `uid` - User ID whom owns the virtual machine.
