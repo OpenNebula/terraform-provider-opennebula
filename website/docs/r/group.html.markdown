@@ -57,6 +57,7 @@ resource "opennebula_group" "group" {
 ```
 
 with `group_template.txt` file with Sunstone information:
+
 ```php
 SUNSTONE = [
   DEFAULT_VIEW = "cloud",

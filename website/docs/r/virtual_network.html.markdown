@@ -100,6 +100,7 @@ The following arguments are supported:
 ## Attribute Reference
 
 The following attribute are exported:
+
 * `id` - ID of the virtual network.
 * `uid` - User ID whom owns the virtual network.
 * `gid` - Group ID which owns the virtual network.

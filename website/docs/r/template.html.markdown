@@ -134,6 +134,7 @@ Minimum 1 item. Maximum 8 items.
 ## Attribute Reference
 
 The following attribute are exported:
+
 * `id` - ID of the template.
 * `uid` - User ID whom owns the template.
 * `gid` - Group ID which owns the template.

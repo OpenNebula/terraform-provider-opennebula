@@ -16,6 +16,7 @@ a new image will be created. When destroyed, that image will be removed.
 ## Example Usage
 
 Clone an existing image and make it persistent:
+
 ```hcl
 resource "opennebula_image" "osimageclone" {
     clone_from_image = 12937
@@ -28,6 +29,7 @@ resource "opennebula_image" "osimageclone" {
 ```
 
 Allocate a new OS image using a URL:
+
 ```hcl
 resource "opennebula_image" "osimage" {
     name = "Ubuntu 18.04"
@@ -47,6 +49,7 @@ resource "opennebula_image" "osimage" {
 ```
 
 Allocate a new persistent 1GB datablock image:
+
 ```hcl
 resource "opennebula_image" "datablockimage" {
     name = "terra-datablock"
@@ -65,6 +68,7 @@ resource "opennebula_image" "datablockimage" {
 ```
 
 Allocate a new context file:
+
 ```hcl
 resource "opennebula_image" "contextfile" {
     name = "terra-contextfile"
@@ -79,6 +83,7 @@ resource "opennebula_image" "contextfile" {
 ```
 
 Allocate a new CDROM image:
+
 ```hcl
 resource "opennebula_image" "cdimage" {
     name = "terra-cdimage"
