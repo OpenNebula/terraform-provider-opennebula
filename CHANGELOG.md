@@ -13,6 +13,7 @@ OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terrafo
 * resource/opennebula_virtual_machine: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
 * resource/opennebula_virtual_machine_group: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
 * resource/opennebula_virtual_network: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_machine: Add support for desired_state ([#34](https://github.com/terraform-providers/terraform-provider-opennebula/issues/34))
 
 ENHANCEMENTS:
 * all resources: use Goca dynamic templates to build entities

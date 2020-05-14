@@ -86,6 +86,7 @@ The following arguments are supported:
 * `vmgroup` - (Optional) See [VM group parameters](#os-vmg) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Machine tags.
+* `desired_state` - (Optional) The desired state of the VM, which can be ignore, running, stopped, suspended, undeployed or poweroff. Defaults to ignore.
 
 ### Graphics parameters
 
