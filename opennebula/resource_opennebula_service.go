@@ -36,6 +36,12 @@ func resourceOpennebulaService() *schema.Resource {
 				ForceNew:    true,
 				Description: "Id of the Service template to use",
 			},
+			"extra_template": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Extra template information in json format to be added to the service template during instantiate.",
+			},
 			"permissions": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -96,13 +102,17 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	var err error
 	var serviceID int
 
-	v, ok := d.GetOkExists("template_id");
-	if ok {
+	if v, ok := d.GetOkExists("template_id"); ok {
 		// if template id is set, instantiate a Service from this template
 		tc := controller.STemplate(v.(int))
 
+		var extra_template = ""
+		if v, ok := d.GetOk("extra_template"); ok {
+			extra_template = v.(string)
+		}
+
 		// Instantiate template
-		service, err := tc.Instantiate("")
+		service, err := tc.Instantiate(extra_template)
 		if err != nil {
 			return err
 		}
@@ -117,7 +127,7 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 
 	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
 	if perms, ok := d.GetOk("permissions"); ok {
-		_, err = sc.Chmod(permissionUnix(perms.(string)))
+		err = sc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
 			log.Printf("[ERROR] template permissions change failed, error: %s", err)
 			return err
@@ -212,7 +222,7 @@ func changeServiceGroup(d *schema.ResourceData, meta interface{}, sc *goca.Servi
 		gid = d.Get("gid").(int)
 	}
 
-	_, err = sc.Chown(-1, gid)
+	err = sc.Chown(-1, gid)
 	if err != nil {
 		return err
 	}
@@ -234,7 +244,7 @@ func changeServiceOwner(d *schema.ResourceData, meta interface{}, sc *goca.Servi
 		uid = d.Get("uid").(int)
 	}
 
-	_, err = sc.Chown(uid, -1)
+	err = sc.Chown(uid, -1)
 	if err != nil {
 		return err
 	}
@@ -244,7 +254,7 @@ func changeServiceOwner(d *schema.ResourceData, meta interface{}, sc *goca.Servi
 
 func changeServiceName(d *schema.ResourceData, meta interface{}, sc *goca.ServiceController) error {
 	if d.Get("name") != "" {
-		_, err := sc.Rename(d.Get("name").(string))
+		err := sc.Rename(d.Get("name").(string))
 		if err != nil {
 			return err
 		}

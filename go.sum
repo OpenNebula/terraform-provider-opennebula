@@ -37,7 +37,12 @@ github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20201006100728-132291f85c17
 =======
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200610135545-ec5f33cd58ba h1:y8FWbHHVXpgEQqbtSAWT1dbA0+35GY0gRQDRul9stE8=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200610135545-ec5f33cd58ba/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+<<<<<<< HEAD
 >>>>>>> 23cfaa4d... F #18: Add support for Services (WIP)
+=======
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200611095127-770cb0d7f524 h1:LZHQw4hBgvIUXBGT4YtlAWMMEMnCPqPjE91jEbKvTh4=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200611095127-770cb0d7f524/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+>>>>>>> 6ca30be2... F #18: Add extra_template attribute
 github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
 github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af/go.mod h1:5Jv4cbFiHJMsVxt52+i0Ha45fjshj6wxYr1r19tB9bw=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
