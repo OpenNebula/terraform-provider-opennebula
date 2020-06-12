@@ -5,10 +5,13 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/service"
 )
 
 func resourceOpennebulaService() *schema.Resource {
@@ -91,6 +94,46 @@ func resourceOpennebulaService() *schema.Resource {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Current state of the Service",
+			},
+			"networks" : {
+				Type: schema.TypeMap,
+				Computed: true,
+				Description: "Map with the service networks names as key and id as value",
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+			},
+			"roles" : {
+				Type: schema.TypeList,
+				Computed: true,
+				Description: "Map with the role dinamically generated information",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cardinality": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Cardinality of the role",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Name of the Role",
+						},
+						"nodes" : {
+							Type: schema.TypeList,
+							Computed: true,
+							Description: "List of role nodes",
+							Elem: &schema.Schema{
+								Type: schema.TypeInt,
+							},
+						},
+						"state": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "Current state of the role",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -181,10 +224,65 @@ func resourceOpennebulaServiceRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
+	// Retrieve networks
+	var networks = make(map[string]int)
+	for _, val := range sv.Template.Body.NetworksVals {
+		for k, v := range val {
+			networks[k] = int(v.(map[string]interface{})["id"].(float64))
+		}
+	}
+	d.Set("networks", networks)
+
+	// Retrieve roles
+	var roles []map[string]interface{}
+	for _, role := range sv.Template.Body.Roles {
+		role_tf := make(map[string]interface{})
+		role_tf["name"] = role.Name
+		role_tf["cardinality"] = role.Cardinality
+		role_tf["state"] = role.StateRaw
+
+		var nodes_ids []int
+		for _, node := range role.Nodes {
+			nodes_ids = append(nodes_ids, node.VMInfo.VM.ID)
+		}
+
+		role_tf["nodes"] = nodes_ids
+
+		roles = append(roles, role_tf)
+	}
+	d.Set("roles", roles)
+
 	return nil
 }
 
 func resourceOpennebulaServiceDelete(d *schema.ResourceData, meta interface{}) error {
+	err := resourceOpennebulaServiceRead(d, meta)
+	if err != nil || d.Id() == "" {
+		return err
+	}
+
+	//Get VM
+	sc, err := getServiceController(d, meta)
+	if err != nil {
+		return err
+	}
+
+	if err = sc.Delete(); err != nil {
+		if err = sc.Recover(true); err != nil{
+			return err
+		}
+	}
+
+	_, err = waitForServiceState(d, meta, "done")
+	if err != nil {
+		service, _ := sc.Info()
+
+		svState := service.Template.Body.StateRaw
+		return fmt.Errorf(
+			"Error waiting for Service (%s) to be in state DONE: %s (state: %v)", d.Id(), err, svState)
+	}
+
+	log.Printf("[INFO] Successfully terminated VM\n")
 	return nil
 }
 
@@ -261,4 +359,69 @@ func changeServiceName(d *schema.ResourceData, meta interface{}, sc *goca.Servic
 	}
 
 	return nil
+}
+
+func waitForServiceState(d *schema.ResourceData, meta interface{}, state string) (interface{}, error) {
+	var service *service.Service
+	var err error
+
+	//Get Service controller
+	sc, err := getServiceController(d, meta)
+	if err != nil {
+		return service, err
+	}
+
+	log.Printf("Waiting for Service (%s) to be in state Done", d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"anythingelse"}, Target: []string{state},
+		Refresh: func() (interface{}, string, error) {
+			log.Println("Refreshing Service state...")
+			if d.Id() != "" {
+				//Get Service controller
+				sc, err = getServiceController(d, meta)
+				if err != nil {
+					return service, "", fmt.Errorf("Could not find Service by ID %s", d.Id())
+				}
+			}
+
+			service, err = sc.Info()
+			if err != nil {
+				if strings.Contains(err.Error(), "Error getting") {
+					return service, "notfound", nil
+				}
+				return service, "", err
+			}
+			svState := service.Template.Body.StateRaw
+			if err != nil {
+				if strings.Contains(err.Error(), "Error getting") {
+					return service, "notfound", nil
+				}
+				return service, "", err
+			}
+			log.Printf("Service %v is currently in state %v", service.ID, svState)
+			if svState == 2 {
+				return service, "running", nil
+			} else if svState == 4 {
+				return service, "warning", fmt.Errorf("Service ID %s entered warning state", d.Id())
+			} else if svState == 5 {
+				return service, "done", nil
+			} else if svState == 6 {
+				return service, "failed_undeploying", fmt.Errorf("Service ID %s entered failed_undeploying state", d.Id())
+			} else if svState == 7 {
+				return service, "failed_deploying", fmt.Errorf("Service ID %s entered failed_deploying state", d.Id())
+			} else if svState == 9 {
+				return service, "failed_scaling", fmt.Errorf("Service ID %s entered failed_scaling state", d.Id())
+			} else if svState == 10 {
+				return service, "cooldown", nil
+			} else {
+				return service, "anythingelse", nil
+			}
+		},
+		Timeout:    3 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	return stateConf.WaitForState()
 }
