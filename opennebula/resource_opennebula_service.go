@@ -35,7 +35,7 @@ func resourceOpennebulaService() *schema.Resource {
 			},
 			"template_id": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				ForceNew:    true,
 				Description: "Id of the Service template to use",
 			},
@@ -72,21 +72,25 @@ func resourceOpennebulaService() *schema.Resource {
 			},
 			"uid": {
 				Type:        schema.TypeInt,
+				Optional:    true,
 				Computed:    true,
 				Description: "ID of the user that will own the Service",
 			},
 			"gid": {
 				Type:        schema.TypeInt,
+				Optional:    true,
 				Computed:    true,
 				Description: "ID of the group that will own the Service",
 			},
 			"uname": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "Name of the user that will own the Service",
 			},
 			"gname": {
 				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
 				Description: "Name of the group that will own the Service",
 			},
@@ -177,14 +181,14 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if d.Get("gname") != "" || d.Get("gid") != "" {
+	if  _, ok := d.GetOkExists("gid"); d.Get("gname") != "" || ok {
 		err = changeServiceGroup(d, meta, sc)
 		if err != nil {
 			return err
 		}
 	}
 
-	if d.Get("uname") != "" || d.Get("uid") != "" {
+	if _, ok := d.GetOkExists("uid"); d.Get("uname") != "" || ok {
 		err = changeServiceOwner(d, meta, sc)
 		if err != nil {
 			return err
