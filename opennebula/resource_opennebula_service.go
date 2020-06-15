@@ -18,7 +18,7 @@ func resourceOpennebulaService() *schema.Resource {
 	return &schema.Resource{
 		Create:        resourceOpennebulaServiceCreate,
 		Read:          resourceOpennebulaServiceRead,
-		//Exists:        resourceOpennebulaVirtualMachineExists,
+		Exists:        resourceOpennebulaServiceExists,
 		//Update:        resourceOpennebulaVirtualMachineUpdate,
 		Delete:        resourceOpennebulaServiceDelete,
 		//CustomizeDiff: resourceVMCustomizeDiff,
@@ -288,6 +288,16 @@ func resourceOpennebulaServiceDelete(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[INFO] Successfully terminated VM\n")
 	return nil
+}
+
+func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	err := resourceOpennebulaServiceRead(d, meta)
+	// a terminated Service is in state 5 (DONE)
+	if err != nil || d.Id() == "" || d.Get("state").(int) == 5 {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Helpers
