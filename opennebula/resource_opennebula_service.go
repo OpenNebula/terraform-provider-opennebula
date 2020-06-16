@@ -19,7 +19,7 @@ func resourceOpennebulaService() *schema.Resource {
 		Create:        resourceOpennebulaServiceCreate,
 		Read:          resourceOpennebulaServiceRead,
 		Exists:        resourceOpennebulaServiceExists,
-		//Update:        resourceOpennebulaVirtualMachineUpdate,
+		Update:        resourceOpennebulaServiceUpdate,
 		Delete:        resourceOpennebulaServiceDelete,
 		//CustomizeDiff: resourceVMCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -298,6 +298,112 @@ func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (
 	}
 
 	return true, nil
+}
+
+func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) error {
+	controller := meta.(*goca.Controller)
+
+	// Enable partial state mode
+	d.Partial(true)
+
+	//Get Service controller
+	sc, err := getServiceController(d, meta)
+	if err != nil {
+		return err
+	}
+
+	service, err := sc.Info()
+	if err != nil {
+		return err
+	}
+
+	if d.HasChange("name") {
+		err := sc.Rename(d.Get("name").(string))
+		if err != nil {
+			return err
+		}
+
+		service, err := sc.Info()
+		d.SetPartial("name")
+		log.Printf("[INFO] Successfully updated name (%s) for Service ID %x\n", service.Name, service.ID)
+	}
+
+	if d.HasChange("permissions") && d.Get("permissions") != "" {
+		if perms, ok := d.GetOk("permissions"); ok {
+			err = sc.Chmod(permissionUnix(perms.(string)))
+			if err != nil {
+				return err
+			}
+		}
+		d.SetPartial("permissions")
+		log.Printf("[INFO] Successfully updated Permissions Service %s\n", service.Name)
+	}
+
+	if d.HasChange("gid") {
+		group, err := controller.Group(d.Get("gid").(int)).Info(true)
+		if err != nil {
+			return err
+		}
+		err = sc.Chgrp(d.Get("gid").(int))
+		if err != nil {
+			return err
+		}
+
+		d.Set("gname", group.Name)
+		d.SetPartial("gname")
+		d.SetPartial("gid")
+		log.Printf("[INFO] Successfully updated group for Service %s\n", service.Name)
+	} else if d.HasChange("gname") {
+		gid, err := controller.Groups().ByName(d.Get("gname").(string))
+		if err != nil {
+			return err
+		}
+		err = sc.Chgrp(gid)
+		if err != nil {
+			return err
+		}
+
+		d.Set("gid", gid)
+		d.SetPartial("gid")
+		d.SetPartial("gname")
+		log.Printf("[INFO] Successfully updated group for Service %s\n", service.Name)
+	}
+
+	if d.HasChange("uid") {
+		user, err := controller.User(d.Get("uid").(int)).Info(true)
+		if err != nil {
+			return err
+		}
+		err = sc.Chown(d.Get("uid").(int), -1)
+		if err != nil {
+			return err
+		}
+
+		d.Set("uname", user.Name)
+		d.SetPartial("uname")
+		d.SetPartial("uid")
+		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
+	} else if d.HasChange("uname") {
+		uid, err := controller.Users().ByName(d.Get("uname").(string))
+		if err != nil {
+			return err
+		}
+		err = sc.Chown(uid, -1)
+		if err != nil {
+			return err
+		}
+
+		d.Set("uid", uid)
+		d.SetPartial("uid")
+		d.SetPartial("uname")
+		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
+	}
+
+	// We succeeded, disable partial mode. This causes Terraform to save
+	// save all fields again.
+	d.Partial(false)
+
+	return nil
 }
 
 // Helpers
