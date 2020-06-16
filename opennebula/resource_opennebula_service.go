@@ -16,11 +16,11 @@ import (
 
 func resourceOpennebulaService() *schema.Resource {
 	return &schema.Resource{
-		Create:        resourceOpennebulaServiceCreate,
-		Read:          resourceOpennebulaServiceRead,
-		Exists:        resourceOpennebulaServiceExists,
-		Update:        resourceOpennebulaServiceUpdate,
-		Delete:        resourceOpennebulaServiceDelete,
+		Create: resourceOpennebulaServiceCreate,
+		Read:   resourceOpennebulaServiceRead,
+		Exists: resourceOpennebulaServiceExists,
+		Update: resourceOpennebulaServiceUpdate,
+		Delete: resourceOpennebulaServiceDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -30,7 +30,7 @@ func resourceOpennebulaService() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Name of the Service. If empty, defaults to 'templatename-<vmid>'",
+				Description: "Name of the Service",
 			},
 			"template_id": {
 				Type:        schema.TypeInt,
@@ -98,17 +98,17 @@ func resourceOpennebulaService() *schema.Resource {
 				Computed:    true,
 				Description: "Current state of the Service",
 			},
-			"networks" : {
-				Type: schema.TypeMap,
-				Computed: true,
+			"networks": {
+				Type:        schema.TypeMap,
+				Computed:    true,
 				Description: "Map with the service networks names as key and id as value",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
 			},
-			"roles" : {
-				Type: schema.TypeList,
-				Computed: true,
+			"roles": {
+				Type:        schema.TypeList,
+				Computed:    true,
 				Description: "Map with the role dinamically generated information",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -122,9 +122,9 @@ func resourceOpennebulaService() *schema.Resource {
 							Computed:    true,
 							Description: "Name of the Role",
 						},
-						"nodes" : {
-							Type: schema.TypeList,
-							Computed: true,
+						"nodes": {
+							Type:        schema.TypeList,
+							Computed:    true,
 							Description: "List of role nodes",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
@@ -171,7 +171,7 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	d.SetId(fmt.Sprintf("%v", serviceID))
 	sc := controller.Service(serviceID)
 
-	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
+	//Set the permissions on the Service if it was defined, otherwise use the UMASK in OpenNebula
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = sc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
@@ -180,7 +180,7 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if  _, ok := d.GetOkExists("gid"); d.Get("gname") != "" || ok {
+	if _, ok := d.GetOkExists("gid"); d.Get("gname") != "" || ok {
 		err = changeServiceGroup(d, meta, sc)
 		if err != nil {
 			return err
@@ -264,14 +264,14 @@ func resourceOpennebulaServiceDelete(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	//Get VM
+	//Get Service
 	sc, err := getServiceController(d, meta)
 	if err != nil {
 		return err
 	}
 
 	if err = sc.Delete(); err != nil {
-		if err = sc.Recover(true); err != nil{
+		if err = sc.Recover(true); err != nil {
 			return err
 		}
 	}
@@ -285,7 +285,7 @@ func resourceOpennebulaServiceDelete(d *schema.ResourceData, meta interface{}) e
 			"Error waiting for Service (%s) to be in state DONE: %s (state: %v)", d.Id(), err, svState)
 	}
 
-	log.Printf("[INFO] Successfully terminated VM\n")
+	log.Printf("[INFO] Successfully terminated service\n")
 	return nil
 }
 
@@ -411,7 +411,6 @@ func getServiceController(d *schema.ResourceData, meta interface{}) (*goca.Servi
 	controller := meta.(*goca.Controller)
 	var sc *goca.ServiceController
 
-	// Try to find the VM by ID, if specified
 	if d.Id() != "" {
 		id, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
