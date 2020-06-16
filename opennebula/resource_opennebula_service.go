@@ -21,7 +21,6 @@ func resourceOpennebulaService() *schema.Resource {
 		Exists:        resourceOpennebulaServiceExists,
 		Update:        resourceOpennebulaServiceUpdate,
 		Delete:        resourceOpennebulaServiceDelete,
-		//CustomizeDiff: resourceVMCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -432,7 +431,7 @@ func changeServiceGroup(d *schema.ResourceData, meta interface{}, sc *goca.Servi
 	var err error
 
 	if d.Get("gname") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
+		gid, err = controller.Groups().ByName(d.Get("gname").(string))
 		if err != nil {
 			return err
 		}
