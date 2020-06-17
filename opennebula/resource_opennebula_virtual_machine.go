@@ -55,6 +55,12 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Default:     false,
 				Description: "Pending state of the VM during its creation, by default it is set to false",
 			},
+			"timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     3,
+				Description: "Timeout (in minutes) within resource should be available. Default: 3 minutes",
+			},
 			"permissions": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -474,6 +480,8 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 		return vm, err
 	}
 
+	timeout := d.Get("timeout").(int)
+
 	log.Printf("Waiting for VM (%s) to be in state Done", d.Id())
 
 	stateConf := &resource.StateChangeConf{
@@ -523,7 +531,7 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 				return vm, "anythingelse", nil
 			}
 		},
-		Timeout:    3 * time.Minute,
+		Timeout:    time.Duration(timeout) * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

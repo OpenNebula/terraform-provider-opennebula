@@ -64,6 +64,8 @@ resource "opennebula_virtual_machine" "demo" {
   tags = {
     environment = "dev"
   }
+
+  timeout = 5
 }
 ```
 
@@ -86,6 +88,7 @@ The following arguments are supported:
 * `vmgroup` - (Optional) See [VM group parameters](#os-vmg) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Machine tags.
+* `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 
 ### Graphics parameters
 
