@@ -16,9 +16,9 @@ import (
 )
 
 func TestAccService(t *testing.T) {
-	service_template_id, _ := createTemplate()
+	service_template_id, vm_template_id, _ := setUpServiceTests()
 	service_template := testAccServiceConfigBasic(service_template_id)
-	service_template_updte := testAccServiceConfigUpdate(service_template_id)
+	service_template_update := testAccServiceConfigUpdate(service_template_id)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -45,7 +45,7 @@ func TestAccService(t *testing.T) {
 				),
 			},
 			{
-				Config: service_template_updte,
+				Config: service_template_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_service.test", "name", "service-test-tf-renamed"),
 					resource.TestCheckResourceAttr("opennebula_service.test", "permissions", "777"),
@@ -60,6 +60,8 @@ func TestAccService(t *testing.T) {
 			},
 		},
 	})
+
+	tearDownServiceTests(service_template_id, vm_template_id)
 }
 
 func testAccCheckServiceDestroy(s *terraform.State) error {
@@ -111,7 +113,7 @@ func testAccCheckServicePermissions(expected *shared.Permissions) resource.TestC
 	}
 }
 
-func createTemplate() (int, error) {
+func setUpServiceTests() (int, int, error) {
 	controller := testAccProvider.Meta().(*goca.Controller)
 
 	templateName := "tf-test-template-service"
@@ -123,7 +125,7 @@ func createTemplate() (int, error) {
 
 	vmtmpl_id, err := controller.Templates().Create(tpl.String())
 	if err != nil {
-		return -1, fmt.Errorf("Error creating VM template")
+		return -1, -1, fmt.Errorf("Error creating VM template")
 	}
 
 	tmpl := srv_tmpl.ServiceTemplate{
@@ -145,17 +147,33 @@ func createTemplate() (int, error) {
 
 	err = controller.STemplates().Create(&tmpl)
 	if err != nil {
-		return -1, fmt.Errorf("Error creating service template")
+		return -1, -1, fmt.Errorf("Error creating service template")
 	}
 
-	return tmpl.ID, nil
+	return tmpl.ID, vmtmpl_id, nil
+}
+
+func tearDownServiceTests(sv_tmpl, vm_tmpl int) error {
+	controller := testAccProvider.Meta().(*goca.Controller)
+
+	err := controller.Template(vm_tmpl).Delete()
+	if err != nil {
+		return fmt.Errorf("Error deleting VM template")
+	}
+
+	err = controller.STemplate(sv_tmpl).Delete()
+	if err != nil {
+		return fmt.Errorf("Error deleting service template")
+	}
+
+	return nil
 }
 
 func testAccServiceConfigBasic(tmpl_id int) string {
 	config := "resource \"opennebula_service\" \"test\" {\n" +
 		"	name           = \"service-test-tf\"\n" +
-		"	template_id    = " + string(tmpl_id) + "\n" +
-		"	permissions    = 642\n" +
+		"	template_id    = " + strconv.Itoa(tmpl_id) + "\n" +
+		"	permissions    = \"642\"\n" +
 		"	uid            = 0\n" +
 		"	gid            = 0\n" +
 		"}\n"
@@ -166,8 +184,8 @@ func testAccServiceConfigBasic(tmpl_id int) string {
 func testAccServiceConfigUpdate(tmpl_id int) string {
 	config := "resource \"opennebula_service\" \"test\" {\n" +
 		"	name           = \"service-test-tf-renamed\"\n" +
-		"	template_id    = " + string(tmpl_id) + "\n" +
-		"	permissions    = 777\n" +
+		"	template_id    = " + strconv.Itoa(tmpl_id) + "\n" +
+		"	permissions    = \"777\"\n" +
 		"	uid            = 1\n" +
 		"	gid            = 1\n" +
 		"}\n"
