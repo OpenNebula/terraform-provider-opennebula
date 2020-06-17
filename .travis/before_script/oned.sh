@@ -28,6 +28,7 @@ echo 'VM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_vmm_dumm
 
 # start oned
 sudo systemctl start opennebula
+sudo systemctl start opennebula-flow
 
 # check it's up
 timeout 60 sh -c 'until nc -z $0 $1; do sleep 1; done' localhost 2633
