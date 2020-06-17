@@ -20,9 +20,10 @@ Use the navigation to the left to read about the available resources.
 **terraform.tfvars:**
 
 ```hcl
-one_endpoint = "http://frontzone:2633/RPC2"
-one_username = "USERNAME"
-one_password = "PASSWORD OR TOKEN"
+one_endpoint      = "http://frontzone:2633/RPC2"
+one_username      = "USERNAME"
+one_password      = "PASSWORD OR TOKEN"
+one_flow_endpoint = "PASSWORD OR TOKEN"
 ```
 
 **terraform.tf:**
@@ -31,11 +32,13 @@ one_password = "PASSWORD OR TOKEN"
 variable "one_endpoint" {}
 variable "one_username" {}
 variable "one_password" {}
+variable "one_flow_endpoint" {}
 
 provider "opennebula" {
-  endpoint = var.one_endpoint
-  username = var.one_username
-  password = var.one_password
+  endpoint      = "${var.one_endpoint}"
+  flow_endpoint = "${var.one_flow_endpoint}"
+  username      = "${var.one_username}"
+  password      = "${var.one_password}"
 }
 
 # Create a new group of users to the OpenNebula cluster
@@ -49,6 +52,6 @@ resource "opennebula_group" "group" {
 The following arguments are mandatory in the `provider` block:
 
 * `endpoint` - (Required) This is the URL of OpenNebula XML-RPC Endpoint API.
+* `flow_endpoint` - (Optional) This is the OneFlow HTTP Endpoint API.
 * `username` - (Required) This is the OpenNebula Username.
 * `password` - (Required) This is the Opennebula Password of the username.
-
