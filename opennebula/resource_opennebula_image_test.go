@@ -32,6 +32,7 @@ func TestAccImage(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "timeout", "5"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uname"),
@@ -60,6 +61,7 @@ func TestAccImage(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "timeout", "10"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_image.testimage", "uname"),
@@ -142,6 +144,7 @@ resource "opennebula_image" "testimage" {
      env = "prod"
      customer = "test"
    }
+   timeout = 5
 }
 `
 
@@ -161,5 +164,6 @@ resource "opennebula_image" "testimage" {
      customer = "test"
      version = "2"
    }
+   timeout = 10
 }
 `

@@ -45,6 +45,7 @@ resource "opennebula_image" "osimage" {
     tags = {
       environment = "dev"
     }
+    timeout = 15
 }
 ```
 
@@ -117,6 +118,7 @@ The following arguments are supported:
 * `format` - (Optional) Image format. Example: `raw`, `qcow2`.
 * `group` - (Optional) Name of the group which owns the image. Defaults to the caller primary group.
 * `tags` - (Optional) Image tags
+* `timeout` - (Optional) Timeout (in Minutes) for Image availability. Defaults to 10 minutes.
 
 
 ## Attribute Reference
