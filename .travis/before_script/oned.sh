@@ -22,7 +22,8 @@ echo 'oneadmin:opennebula' > ~/.one/one_auth
 
 # Enable dummy drivers
 sudo chmod o+w /etc/one/oned.conf
-echo 'IM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_im_dummy"]' >> /etc/one/oned.conf
+sudo chmod o+w /etc/one/monitord.conf
+echo 'IM_MAD = [ NAME="dummy", SUNSTONE_NAME="Dummy", EXECUTABLE="one_im_sh", ARGUMENTS="-r 3 -t 15 -w 90 dummy", THREADS=0]' >> /etc/one/monitord.conf
 echo 'VM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_vmm_dummy",TYPE="xml" ]' >> /etc/one/oned.conf
 
 # start oned

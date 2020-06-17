@@ -1,5 +1,8 @@
 ## 0.2.0 (Unreleased)
 
+NOTES:
+* OpenNebula version used by CI updated to 5.12
+
 FEATURES:
 * **New Data Source**: `opennebula_virtual_machine_group`: First implementation
 * **New Resource**: `opennebula_virtual_machine_group`: First implementation ([onevmgroup](http://docs.opennebula.org/5.10/integration/system_interfaces/api.html#onevmgroup)),
