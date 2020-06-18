@@ -11,7 +11,7 @@ description: |-
 Provides an OpenNebula virtual machine group resource.
 
 This resource allows you to manage virtual machine groups on your OpenNebula clusters. When applied,
-a new virtual machine group will be created. When destroyed, that virtual machine group will be removed.
+a new virtual machine group is created. When destroyed, this virtual machine group is removed.
 
 ## Example Usage
 
@@ -21,9 +21,9 @@ resource "opennebula_virtual_machine_group" "test" {
   group       = "oneadmin"
   permissions = "642"
   role {
-    name = "anti-aff"
+    name              = "anti-aff"
     host_anti_affined = [ 0 ]
-    policy = "ANTI_AFFINED"
+    policy            = "ANTI_AFFINED"
   }
   tags = {
     environment = "dev"

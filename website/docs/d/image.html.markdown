@@ -22,3 +22,6 @@ data "opennebula_image" "ExistingImagr" {
 
  * `name` - (Required) The OpenNebula image to retrieve information for.
 
+## Attribute Reference
+
+* `tags` - Tags associated to the Image.

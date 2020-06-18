@@ -11,20 +11,20 @@ description: |-
 Provides an OpenNebula virtual data center resource.
 
 This resource allows you to manage virtual data centers on your OpenNebula organization. When applied,
-a new virtual data center will be created. When destroyed, that virtual data center will be removed.
+a new virtual data center is created. When destroyed, this virtual data center is removed.
 
 ## Example Usage
 
 ```hcl
 resource "opennebula_virtual_data_center" "vdc" {
-    name = "terravdc"
-    group_ids = ["${opennebula_group.group.id}"]
+    name      = "terravdc"
+    group_ids = [opennebula_group.group.id]
     zones {
-        id = 0
-        host_ids = [0, 1]
+        id            = 0
+        host_ids      = [0, 1]
         datastore_ids = [0, 1, 2]
-        vnet_ids = ["${opennebula_virtual_network.vnet.id}"]
-        cluster_ids = [0, 100]
+        vnet_ids      = [opennebula_virtual_network.vnet.id]
+        cluster_ids   = [0, 100]
     }
 }
 ```
@@ -35,7 +35,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the virtual data center.
 * `groups_ids` - (Optional) List of group IDs part of the virtual data center.
-* `zones` - (Optional) List of zones. See [Zones parameters](#zones) below for details
+* `zones` - (Optional) List of zones. See [Zones parameters](#zones-parameters) below for details
 
 ### Zones parameters
 

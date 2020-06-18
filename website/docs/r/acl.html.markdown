@@ -8,21 +8,20 @@ description: |-
 
 # opennebula_acl
 
-Provides an OpenNebula acl resource.
+Provides an OpenNebula ACL resource.
 
 This resource allows you to manage ACLs on your OpenNebula clusters. When applied,
-a new acl will be created. When destroyed, that acl will be removed. Note that ACLs currently cannot be changed, hence they are deleted and re-created upon change.
+a new ACL is created. When destroyed, this ACL is removed. Note that ACLs currently cannot be changed, hence they are deleted and re-created upon change.
 
 ## Example Usage
 
 ```hcl
 resource "opennebula_acl" "acl" {
-    user = "@1"
+    user     = "@1"
     resource = "HOST+CLUSTER+DATASTORE/*"
-    rights = "USE+MANAGE+ADMIN"
+    rights   = "USE+MANAGE+ADMIN"
 }
 ```
-
 
 ## Argument Reference
 
@@ -34,7 +33,8 @@ The following arguments are supported:
     - `*` matches everything.
 * `resource` - (Required) Resource component of the new rule. Any combination of valid resources, separated by a `+`.
 
-  Must contain a slash for resource subset. Resource subset string uses the same syntax as the User-string, and additionally supports `%<id>` to limit by Cluster ID.
+  **Must contain a slash for resource subset.**
+  Resource subset string uses the same syntax as the User-string, and additionally supports `%<id>` to limit by Cluster ID.
 
   The following objects are valid:
     - VM
@@ -65,13 +65,13 @@ The following arguments are supported:
 
 ## Import
 
-To import an existing acl #134 into Terraform, add this declaration to your .tf file:
+To import an existing ACL #134 into Terraform, add this declaration to your .tf file:
 
 ```hcl
 resource "opennebula_acl" "importacl" {
-    user = "@1"
+    user     = "@1"
     resource = "HOST+CLUSTER+DATASTORE/*"
-    rights = "USE+MANAGE+ADMIN"
+    rights   = "USE+MANAGE+ADMIN"
 }
 ```
 

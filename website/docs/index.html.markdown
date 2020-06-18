@@ -33,9 +33,9 @@ variable "one_username" {}
 variable "one_password" {}
 
 provider "opennebula" {
-  endpoint = "${var.one_endpoint}"
-  username = "${var.one_username}"
-  password = "${var.one_password}"
+  endpoint = var.one_endpoint
+  username = var.one_username
+  password = var.one_password
 }
 
 # Create a new group of users to the OpenNebula cluster
@@ -43,13 +43,12 @@ resource "opennebula_group" "group" {
   # ...
 }
 ```
+
 ## Argument Reference
 
 The following arguments are mandatory in the `provider` block:
 
 * `endpoint` - (Required) This is the URL of OpenNebula XML-RPC Endpoint API.
-
 * `username` - (Required) This is the OpenNebula Username.
-
 * `password` - (Required) This is the Opennebula Password of the username.
 

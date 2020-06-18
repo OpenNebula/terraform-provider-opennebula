@@ -11,29 +11,29 @@ description: |-
 Provides an OpenNebula virtual machine resource.
 
 This resource allows you to manage virtual machines on your OpenNebula clusters. When applied,
-a new virtual machine will be created. When destroyed, that virtual machine will be removed.
+a new virtual machine is created. When destroyed, this virtual machine is removed.
 
 ## Example Usage
 
 ```hcl
 
 resource "opennebula_virtual_machine" "demo" {
-  count = 2
-  name = "tfdemovm"
-  cpu = 1
-  vcpu = 1
-  memory = 1024
-  group = "terraform"
+  count       = 2
+  name        = "tfdemovm"
+  cpu         = 1
+  vcpu        = 1
+  memory      = 1024
+  group       = "terraform"
   permissions = "660"
 
   context {
-    NETWORK = "YES"
-    HOSTNAME = "$NAME"
-    START_SCRIPT="yum upgrade"
+    NETWORK      = "YES"
+    HOSTNAME     = "$NAME"
+    START_SCRIPT ="yum upgrade"
   }
 
   graphics {
-    type = "VNC"
+    type   = "VNC"
     listen = "0.0.0.0"
     keymap = "fr"
   }
@@ -44,21 +44,21 @@ resource "opennebula_virtual_machine" "demo" {
   }
 
   disk {
-    image_id = "${opennebula_image.osimage.id}"
-    size = 10000
-    target = "vda"
-    driver = "qcow2"
+    image_id = opennebula_image.osimage.id
+    size     = 10000
+    target   = "vda"
+    driver   = "qcow2"
   }
 
   nic {
-    model = "virtio-pci-net"
-    network_id = "${var.vnetid}"
-    security_groups = ["${opennebula_security_group.mysecgroup.id}"]
+    model           = "virtio"
+    network_id      = var.vnetid
+    security_groups = [opennebula_security_group.mysecgroup.id]
   }
 
   vmgroup {
     vmgroup_id = 42
-    role = "vmgroup-role"
+    role       = "vmgroup-role"
   }
 
   tags = {
@@ -74,20 +74,20 @@ resource "opennebula_virtual_machine" "demo" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine.
-* `permissions` - (Optional) Permissions applied on virtual machine. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
-* `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details.
+* `permissions` - (Optional) Permissions applied on virtual machine. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
+* `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details. Changing this argument triggers a new resource.
 * `pending` - (Optional) Pending state during VM creation. Defaults to `false`.
-* `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if `template_****id` is not set**.
+* `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if** `template_id` **is not set**.
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
-* `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if `template_****id` is not set**.
-* `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include at a minimum: NETWORK = "YES" and SET_HOSTNAME = "$NAME. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
-* `graphics` - (Optional) See [Graphics parameters](#graphics-vm) below for details.
-* `os` - (Optional) See [OS parameters](#os-vm) below for details.
-* `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-vm) below for details.
-* `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-vm) below for details.
-* `vmgroup` - (Optional) See [VM group parameters](#os-vmg) below for details. Changing this argument triggers a new resource.
+* `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if** `template_id` **is not set**.
+* `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
+* `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
+* `os` - (Optional) See [OS parameters](#os-parameters) below for details.
+* `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
+* `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
+* `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
-* `tags` - (Optional) Virtual Machine tags.
+* `tags` - (Optional) Virtual Machine tags (Key = Value).
 * `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 
 ### Graphics parameters
