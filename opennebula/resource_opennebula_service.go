@@ -48,7 +48,7 @@ func resourceOpennebulaService() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Permissions for the template (in Unix format, owner-group-other, use-manage-admin)",
+				Description: "Permissions for the service (in Unix format, owner-group-other, use-manage-admin)",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 
@@ -175,7 +175,7 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = sc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] template permissions change failed, error: %s", err)
+			log.Printf("[ERROR] service permissions change failed, error: %s", err)
 			return err
 		}
 	}
@@ -335,7 +335,7 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 			}
 		}
 		d.SetPartial("permissions")
-		log.Printf("[INFO] Successfully updated Permissions Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully updated Permissions for Service %s\n", service.Name)
 	}
 
 	if d.HasChange("gid") {
@@ -418,7 +418,7 @@ func getServiceController(d *schema.ResourceData, meta interface{}) (*goca.Servi
 		}
 		sc = controller.Service(int(id))
 	} else {
-		return nil, fmt.Errorf("[ERROR] Template ID cannot be found")
+		return nil, fmt.Errorf("[ERROR] Service ID cannot be found")
 	}
 
 	return sc, nil
