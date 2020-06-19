@@ -452,7 +452,7 @@ func changeServiceOwner(d *schema.ResourceData, meta interface{}, sc *goca.Servi
 	var err error
 
 	if d.Get("uname") != "" {
-		uid, err = controller.Users().ByName(d.Get("group").(string))
+		uid, err = controller.Users().ByName(d.Get("uname").(string))
 		if err != nil {
 			return err
 		}

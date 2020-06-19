@@ -1,11 +1,11 @@
 package opennebula
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
-	"encoding/json"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -360,7 +360,7 @@ func changeServiceTemplateOwner(d *schema.ResourceData, meta interface{}, stc *g
 	var err error
 
 	if d.Get("uname") != "" {
-		uid, err = controller.Users().ByName(d.Get("group").(string))
+		uid, err = controller.Users().ByName(d.Get("uname").(string))
 		if err != nil {
 			return err
 		}
