@@ -39,6 +39,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "5"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
@@ -71,6 +72,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
@@ -211,6 +213,8 @@ resource "opennebula_virtual_machine" "test" {
     env = "prod"
     customer = "test"
   }
+
+  timeout = 5
 }
 `
 
@@ -243,6 +247,7 @@ resource "opennebula_virtual_machine" "test" {
     customer = "test"
     version = "2"
   }
+  timeout = 4
 }
 `
 

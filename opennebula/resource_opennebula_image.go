@@ -181,6 +181,12 @@ func resourceOpennebulaImage() *schema.Resource {
 				Computed:    true,
 				Description: "Image format, normally 'raw' or 'qcow2'",
 			},
+			"timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     10,
+				Description: "Timeout (in minutes) within resource should be available. Default: 10 minutes",
+			},
 			"group": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -362,6 +368,7 @@ func waitForImageState(d *schema.ResourceData, meta interface{}, state string) (
 	if err != nil {
 		return image, err
 	}
+	timeout := d.Get("timeout").(int)
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
@@ -401,7 +408,7 @@ func waitForImageState(d *schema.ResourceData, meta interface{}, state string) (
 				return image, "anythingelse", nil
 			}
 		},
-		Timeout:    10 * time.Minute,
+		Timeout:    time.Duration(timeout) * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
