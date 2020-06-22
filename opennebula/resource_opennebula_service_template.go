@@ -174,6 +174,13 @@ func resourceOpennebulaServiceTemplateRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
+	// Get service.Template as map
+	tmpl_byte, err := json.Marshal(st.Template)
+	if err != nil {
+		return err
+	}
+	d.Set("template", string(tmpl_byte))
+
 	return nil
 }
 
