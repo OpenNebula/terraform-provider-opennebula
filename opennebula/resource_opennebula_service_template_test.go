@@ -16,7 +16,7 @@ import (
 
 func TestAccServiceTemplate(t *testing.T) {
 	vm_template_id, _ := setUpServiceTemplateTests()
-	tmpl_body := "{\\\"TEMPLATE\\\":{\\\"BODY\\\":{\\\"name\\\":\\\"aa\\\",\\\"deployment\\\":\\\"straight\\\",\\\"roles\\\":[{\\\"name\\\":\\\"master\\\",\\\"cardinality\\\":3,\\\"vm_template\\\": "
+	tmpl_body := "{\\\"TEMPLATE\\\":{\\\"BODY\\\":{\\\"name\\\":\\\"aa\\\",\\\"deployment\\\":\\\"straight\\\",\\\"roles\\\":[{\\\"name\\\":\\\"master\\\",\\\"cardinality\\\":3,\\\"vm_template\\\":"
 	tmpl_body = tmpl_body + strconv.Itoa(vm_template_id) + ",\\\"min_vms\\\":2}]}}}"
 	service_template := testAccServiceTemplateConfigBasic(tmpl_body)
 	service_template_update := testAccServiceTemplateConfigUpdate(tmpl_body)

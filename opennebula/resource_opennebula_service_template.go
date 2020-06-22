@@ -179,7 +179,7 @@ func resourceOpennebulaServiceTemplateRead(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.Set("template", string(tmpl_byte))
+	d.Set("template", "{\"TEMPLATE\":"+string(tmpl_byte)+"}")
 
 	return nil
 }
