@@ -35,6 +35,11 @@ FEATURES:
 * **New Resource**: `opennebula_acl`: First implementation ([oneacl](http://docs.opennebula.org/5.10/integration/system_interfaces/api.html#oneacl)),
 OpenNebula provider issue: ([#16](https://github.com/OpenNebula/terraform-provider-opennebula/issues/16))
 * resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/OpenNebula/terraform-provider-opennebula/issues/16))
+* **New Resource**: `opennebula_service`: First implementation ([oneflow](http://docs.opennebula.io/5.12/integration/system_interfaces/appflow_api.html#service)),
+* **New Resource**: `opennebula_service_template`: First implementation ([oneflow-template](http://docs.opennebula.io/5.12/integration/system_interfaces/appflow_api.html#service-template)),
+
+OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
+* resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
 * resource/opennebula_template: Associate a VM group.
 * resource/opennebula_image: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
 * resource/opennebula_security_group: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
