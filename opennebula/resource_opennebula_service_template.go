@@ -95,14 +95,6 @@ func resourceOpennebulaServiceTemplateCreate(d *schema.ResourceData, meta interf
 
 	var err error
 
-	if _, ok := d.GetOk("name"); !ok {
-		return fmt.Errorf("The Name is mandatory for creating a service template.")
-	}
-
-	if _, ok := d.GetOk("template"); !ok {
-		return fmt.Errorf("The service template body is mandatory.")
-	}
-
 	// Marshall the json
 	stemplate := &srv_tmpl.ServiceTemplate{}
 	err = json.Unmarshal([]byte(d.Get("template").(string)), stemplate)

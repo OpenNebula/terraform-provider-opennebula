@@ -148,25 +148,21 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	var err error
 	var serviceID int
 
-	if v, ok := d.GetOkExists("template_id"); ok {
-		// if template id is set, instantiate a Service from this template
-		tc := controller.STemplate(v.(int))
+	// if template id is set, instantiate a Service from this template
+	tc := controller.STemplate(v.(int))
 
-		var extra_template = ""
-		if v, ok := d.GetOk("extra_template"); ok {
-			extra_template = v.(string)
-		}
-
-		// Instantiate template
-		service, err := tc.Instantiate(extra_template)
-		if err != nil {
-			return err
-		}
-
-		serviceID = service.ID
-	} else {
-		return fmt.Errorf("A valid template_id is mandatory.")
+	var extra_template = ""
+	if v, ok := d.GetOk("extra_template"); ok {
+		extra_template = v.(string)
 	}
+
+	// Instantiate template
+	service, err := tc.Instantiate(extra_template)
+	if err != nil {
+		return err
+	}
+
+	serviceID = service.ID
 
 	d.SetId(fmt.Sprintf("%v", serviceID))
 	sc := controller.Service(serviceID)
