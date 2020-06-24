@@ -149,7 +149,7 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	var serviceID int
 
 	// if template id is set, instantiate a Service from this template
-	tc := controller.STemplate(v.(int))
+	tc := controller.STemplate(d.Get("template_id").(int))
 
 	var extra_template = ""
 	if v, ok := d.GetOk("extra_template"); ok {
