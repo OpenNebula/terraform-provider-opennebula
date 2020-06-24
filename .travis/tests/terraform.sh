@@ -18,6 +18,7 @@
 export OPENNEBULA_ENDPOINT="http://localhost:2633/RPC2"
 export OPENNEBULA_USERNAME="oneadmin"
 export OPENNEBULA_PASSWORD="opennebula"
+export OPENNEBULA_FLOW_ENDPOINT="http://localhost:2474"
 export TF_ACC=1
 
 # install dep dependencies manager

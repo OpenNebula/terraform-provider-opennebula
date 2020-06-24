@@ -70,10 +70,14 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		d.Get("password").(string),
 		d.Get("endpoint").(string)))
 
-	flow_client := goca.NewDefaultFlowClient(
-		goca.NewFlowConfig(d.Get("username").(string),
-			d.Get("password").(string),
-			d.Get("flow_endpoint").(string)))
+	if flow_endpoint, ok := d.GetOk("flow_endpoint"); ok {
+		flow_client := goca.NewDefaultFlowClient(
+			goca.NewFlowConfig(d.Get("username").(string),
+				d.Get("password").(string),
+				flow_endpoint.(string)))
 
-	return goca.NewGenericController(one_client, flow_client), nil
+		return goca.NewGenericController(one_client, flow_client), nil
+	}
+
+	return goca.NewController(one_client), nil
 }
