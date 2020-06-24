@@ -23,7 +23,7 @@ Use the navigation to the left to read about the available resources.
 one_endpoint      = "http://frontzone:2633/RPC2"
 one_username      = "USERNAME"
 one_password      = "PASSWORD OR TOKEN"
-one_flow_endpoint = "PASSWORD OR TOKEN"
+one_flow_endpoint = "http://frontzone:2474/RPC2"
 ```
 
 **terraform.tf:**
