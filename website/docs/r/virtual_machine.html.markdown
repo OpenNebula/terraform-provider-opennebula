@@ -75,11 +75,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine.
 * `permissions` - (Optional) Permissions applied on virtual machine. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
-<<<<<<< HEAD
 * `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details. Changing this argument triggers a new resource.
-=======
-* `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details.
->>>>>>> d9f4eb60... F #18: Add service docs
 * `pending` - (Optional) Pending state during VM creation. Defaults to `false`.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if** `template_id` **is not set**.
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
