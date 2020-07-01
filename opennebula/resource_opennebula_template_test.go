@@ -35,6 +35,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "label", "test1,test2,test3"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -65,6 +66,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "label", "test1,test2,test3,test4"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -162,6 +164,8 @@ resource "opennebula_template" "template" {
 	boot = ""
   }
 
+  labels = "test1,test2,test3"
+
   tags = {
     env = "prod"
     customer = "test"
@@ -194,6 +198,8 @@ resource "opennebula_template" "template" {
 	arch = "x86_64"
 	boot = ""
   }
+
+  labels = "test1,test2,test3,test4"
 
   tags = {
     env = "dev"

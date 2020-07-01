@@ -343,6 +343,11 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 		tpl.VCPU(vmvcpu.(int))
 	}
 
+	labels, ok := d.GetOk("labels")
+	if ok {
+		tpl.AddPair("LABELS", labels.(string))
+	}
+
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
@@ -365,6 +370,9 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 	arch, _ := vmTemplate.GetOS(vmk.Arch)
 	boot, _ := vmTemplate.GetOS(vmk.Boot)
 
+	// Labels
+	labels, _ := vmTemplate.Get("LABELS")
+
 	// Graphics
 	graphMap := make([]map[string]interface{}, 0, 1)
 	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
@@ -377,6 +385,14 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 
 	// Nics
 	nicList := make([]interface{}, 0, 1)
+
+	// Set Labels
+	if labels != "" {
+		err = d.Set("labels", labels)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Set VM Group to resource
 	if vmgIdStr != "" {
