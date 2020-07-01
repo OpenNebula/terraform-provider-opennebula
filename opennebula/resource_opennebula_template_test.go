@@ -20,7 +20,8 @@ func TestAccTemplate(t *testing.T) {
 		CheckDestroy: testAccCheckTemplateDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTemplateConfigBasic,
+				Config:             testAccTemplateConfigBasic,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "660"),
@@ -50,7 +51,8 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTemplateConfigUpdate,
+				Config:             testAccTemplateConfigUpdate,
+				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "642"),

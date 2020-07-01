@@ -394,6 +394,10 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		}
 	}
 
+  // Context
+	context := make(map[string]interface{})
+	vmcontext, _ := vmTemplate.GetVector(vmk.ContextVec)
+
 	// Set VM Group to resource
 	if vmgIdStr != "" {
 		vmgMap = append(vmgMap, map[string]interface{}{
@@ -511,6 +515,25 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			err := d.Set("tags", tags)
 			if err != nil {
 				return err
+			}
+		}
+	}
+
+	if vmcontext != nil {
+		for _, p := range vmcontext.Pairs {
+			// Get only contexts elements from VM template
+			usercontext := d.Get("context").(map[string]interface{})
+			for k, _ := range usercontext {
+				if strings.ToUpper(k) == p.Key() {
+					context[strings.ToUpper(k)] = p.Value
+				}
+			}
+
+			if len(context) > 0 {
+				err := d.Set("context", context)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
