@@ -11,27 +11,27 @@ description: |-
 Provides an OpenNebula template resource.
 
 This resource allows you to manage templates on your OpenNebula clusters. When applied,
-a new template will be created. When destroyed, that template will be removed.
+a new template is created. When destroyed, this template is removed.
 
 ## Example Usage
 
 ```hcl
 resource "opennebula_template" "mytemplate" {
-  name = "mytemplate"
-  cpu = 1
-  vcpu = 1
-  memory = 1024
-  group = "terraform"
+  name        = "mytemplate"
+  cpu         = 1
+  vcpu        = 1
+  memory      = 1024
+  group       = "terraform"
   permissions = "660"
 
   context {
-    NETWORK = "YES"
-    HOSTNAME = "$NAME"
-    START_SCRIPT="yum upgrade"
+    NETWORK      = "YES"
+    HOSTNAME     = "$NAME"
+    START_SCRIPT ="yum upgrade"
   }
 
   graphics {
-    type = "VNC"
+    type   = "VNC"
     listen = "0.0.0.0"
     keymap = "fr"
   }
@@ -42,21 +42,21 @@ resource "opennebula_template" "mytemplate" {
   }
 
   disk {
-    image_id = "${opennebula_image.osimage.id}"
-    size = 10000
-    target = "vda"
-    driver = "qcow2"
+    image_id = opennebula_image.osimage.id
+    size     = 10000
+    target   = "vda"
+    driver   = "qcow2"
   }
 
   nic {
-    model = "virtio-pci-net"
-    network_id = "${var.vnetid}"
-    security_groups = ["${opennebula_security_group.mysecgroup.id}"]
+    model           = "virtio"
+    network_id      = var.vnetid
+    security_groups = [opennebula_security_group.mysecgroup.id]
   }
 
   vmgroup {
     vmgroup_id = 42
-    role = "vmgroup-role"
+    role       = "vmgroup-role"
   }
 
   tags = {
@@ -70,18 +70,18 @@ resource "opennebula_template" "mytemplate" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine template.
-* `permissions` - (Optional) Permissions applied on template. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
+* `permissions` - (Optional) Permissions applied on template. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `group` - (Optional) Name of the group which owns the template. Defaults to the caller primary group.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if `template_****id` is not set**.
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if `template_****id` is not set**.
-* `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include at a minimum: NETWORK = "YES" and SET_HOSTNAME = "$NAME.
+* `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
-* `vmgroup` - (Optional) See [VM group parameters](#os-parameters) below for details. Changing this argument triggers a new resource.
-* `tags` - (Optional) Template tags.
+* `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
+* `tags` - (Optional) Template tags (Key = Value).
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 
 ### Graphics parameters

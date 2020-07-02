@@ -21,4 +21,7 @@ data "opennebula_virtual_network" "ExistingVNet" {
 ## Argument Reference
 
  * `name` - (Required) The OpenNebula virtual network to retrieve information for.
+ * `description` - (Optional) Description of the Virtual Network.
+ * `mtu` - (Optional) MTU of the Virtual Network.
+ * `tags` - (Optional) Virtual Network tags.
 

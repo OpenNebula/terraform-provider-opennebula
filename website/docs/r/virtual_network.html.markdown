@@ -11,7 +11,7 @@ description: |-
 Provides an OpenNebula virtual network resource.
 
 This resource allows you to manage virtual networks on your OpenNebula clusters. When applied,
-a new virtual network will be created. When destroyed, that virtual network will be removed.
+a new virtual network is created. When destroyed, that virtual network is removed.
 
 ## Example Usage
 
@@ -21,11 +21,11 @@ Allocate a new virtual network from the parent virtual network "394":
 
 ```hcl
 resource "opennebula_virtual_network" "reservation" {
-    name = "terravnetres"
-    description = "my terraform vnet"
+    name             = "terravnetres"
+    description      = "my terraform vnet"
     reservation_vnet = 394
     reservation_size = 5
-    security_groups = [ 0 ]
+    security_groups  = [ 0 ]
 }
 ```
 
@@ -33,21 +33,21 @@ resource "opennebula_virtual_network" "reservation" {
 
 ```hcl
 resource "opennebula_virtual_network" "vnet" {
-    name = "tarravnet"
-    permissions = "660"
-    group = "${opennebula_group.group.name}"
-    bridge = "br0"
+    name            = "tarravnet"
+    permissions     = "660"
+    group           = opennebula_group.group.name
+    bridge          = "br0"
     physical_device = "eth0"
-    type = "fw"
-    mtu = 1500
+    type            = "fw"
+    mtu             = 1500
+    dns             = "172.16.100.1"
+    gateway         = "172.16.100.1"
+    security_groups = [ 0 ]
     ar = [ {
          ar_type = "IP4",
-         size = 16
-         ip4 = "172.16.100.101"
+         size    = 16
+         ip4     = "172.16.100.101"
     } ]
-    dns = "172.16.100.1"
-    gateway = "172.16.100.1"
-    security_groups = [ 0 ]
     clusters = [{
         id = 0
     }]
@@ -63,7 +63,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the virtual network.
 * `description` - (Optional) Description of the virtual network.
-* `permissions` - (Optional) Permissions applied on virtual network. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
+* `permissions` - (Optional) Permissions applied on virtual network. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `reservation_vnet` - (Optional) ID of the parent virtual network to reserve from. Conflicts with all parameters excepted `name`, `description`, `permissions`, `security_groups` and `group`.
 * `reservation_size` - (Optional) Size (in address) reserved. Conflicts with all parameters excepted `name`, `description`, `permissions`, `security_groups` and `group`.
 * `security_groups` - (Optional) List of security group IDs to apply on the virtual network.
@@ -78,11 +78,11 @@ The following arguments are supported:
 * `gateway` - (Optional) IP of the gateway. Conflicts with `reservation_vnet` and `reservation_size`.
 * `network_mask` - (Optional) Network mask. Conflicts with `reservation_vnet` and `reservation_size`.
 * `dns` - (Optional) Text String containing a comma separated list of DNS IPs. Conflicts with `reservation_vnet` and `reservation_size`.
-* `ar` - (Optional) List of address ranges. See [Address Range Parameters](#ar-vnet) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
+* `ar` - (Optional) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
 * `hold_size` - (Optional) Carve a network reservation of this size from the reservation starting from `ip_hold`. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ip_hold` - (Optional) Start IP of the range to be held. Conflicts with `reservation_vnet` and `reservation_size`.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
-* `tags` - (Optional) Virtual Network tags.
+* `tags` - (Optional) Virtual Network tags (Key = Value).
 
 ### Address Range parameters
 
@@ -113,10 +113,9 @@ To import an existing virtual network #1234 into Terraform, add this declaration
 
 ```hcl
 resource "opennebula_virtual_network" "importtest" {
-    name = "importedvnet"
+    name             = "importedvnet"
     reservation_vnet = 394
-    # Security group "0" allows open access
-    security_groups = ["0"]
+    security_groups  = ["0"]
 }
 ```
 
@@ -131,5 +130,3 @@ Verify that Terraform does not perform any change:
 ```
 terraform plan
 ```
-
-

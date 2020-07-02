@@ -22,3 +22,6 @@ data "opennebula_security_group" "ExistingSecurityGroup" {
 
  * `name` - (Required) The OpenNebula security group to retrieve information for.
 
+## Attribute Reference
+
+* `tags` - Security group tags.

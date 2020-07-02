@@ -21,4 +21,5 @@ data "opennebula_virtual_machine_group" "ExistingVMGroup" {
 ## Argument Reference
 
  * `name` - (Required) The OpenNebula virtual machine group to retrieve information for.
+ * `tags` - (Optional) Virtual Machine group tags.
 
