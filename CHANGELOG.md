@@ -1,4 +1,4 @@
-## 0.2.0 (Unreleased)
+## 0.2.0 (July 02, 2020)
 
 NOTES:
 * OpenNebula version used by CI updated to 5.12
