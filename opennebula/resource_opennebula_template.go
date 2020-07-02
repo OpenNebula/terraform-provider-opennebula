@@ -49,6 +49,11 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			"os":       osSchema(),
 			"vmgroup":  vmGroupSchema(),
 			"tags":     tagsSchema(),
+			"labels": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Labels to mark the virtual machine after creation",
+			},
 			"permissions": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -242,6 +247,9 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("reg_time", tpl.RegTime)
 	d.Set("permissions", permissionsUnixString(*tpl.Permissions))
 
+	labels, _ := tpl.Template.Get("LABELS")
+	d.Set("labels", labels)
+
 	// Get Human readable tpl information
 	tplstr := tpl.Template.String()
 
@@ -324,6 +332,16 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 			return err
 		}
 		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
+	}
+
+	if d.HasChange("labels") {
+		labels := d.Get("labels")
+		tpl.Template.Del("LABELS")
+		err := tpl.Template.AddPair("LABELS", labels)
+		if err != nil {
+			return err
+		}
+		log.Printf("[INFO] Successfully updated labels for Template %s\n", tpl.Name)
 	}
 
 	if d.HasChange("tags") {
