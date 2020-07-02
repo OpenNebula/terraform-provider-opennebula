@@ -502,14 +502,18 @@ func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (int
 			vm, err = vmc.Info(false)
 			if err != nil {
 				if strings.Contains(err.Error(), "Error getting") {
-					return vm, "notfound", err
+					// Do not return an error here as it is excpected if the VM is already in DONE state
+					// after its destruction
+					return vm, "notfound", nil
 				}
 				return vm, "", err
 			}
 			vmState, vmLcmState, err := vm.State()
 			if err != nil {
 				if strings.Contains(err.Error(), "Error getting") {
-					return vm, "notfound", err
+					// Do not return an error here as it is excpected if the VM is already in DONE state
+					// after its destruction
+					return vm, "notfound", nil
 				}
 				return vm, "", err
 			}
