@@ -214,7 +214,6 @@ func tagsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeMap,
 		Optional:    true,
-		Computed:    true,
 		Description: "Add custom tags to the resource",
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
