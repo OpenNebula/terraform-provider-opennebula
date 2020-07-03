@@ -22,8 +22,7 @@ func TestAccVirtualMachine(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccVirtualMachineTemplateConfigBasic,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachineTemplateConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
@@ -54,8 +53,7 @@ func TestAccVirtualMachine(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccVirtualMachineConfigUpdate,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachineConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
@@ -99,8 +97,7 @@ func TestAccVirtualMachinePending(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccVirtualMachinePending,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachinePending,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "virtual_machine_pending"),

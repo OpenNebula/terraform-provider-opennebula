@@ -1,4 +1,12 @@
-## 0.3.0 (Unreleased)
+## 0.2.1 (Unreleased)
+
+BUG FIXES:
+* resources/opennebula_virtual_machine: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/terraform-providers/terraform-provider-opennebula/issues/52))
+* resources/opennebula_template: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/terraform-providers/terraform-provider-opennebula/issues/52))
+* resources/opennebula_virtual_machine_group: Remove Computed for tags ([#53](https://github.com/terraform-providers/terraform-provider-opennebula/issues/53))
+* resources/opennebula_virtual_machine: Remove Computed for tags ([#53](https://github.com/terraform-providers/terraform-provider-opennebula/issues/53))
+* resources/opennebula_virtual_template: Remove Computed for tags ([#53](https://github.com/terraform-providers/terraform-provider-opennebula/issues/53))
+
 ## 0.2.0 (July 02, 2020)
 
 NOTES:
