@@ -1,4 +1,4 @@
-## 0.2.1 (Unreleased)
+## 0.2.1 (July 03, 2020)
 
 BUG FIXES:
 * resources/opennebula_virtual_machine: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/terraform-providers/terraform-provider-opennebula/issues/52))
