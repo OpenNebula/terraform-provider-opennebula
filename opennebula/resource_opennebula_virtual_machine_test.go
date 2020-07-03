@@ -97,8 +97,7 @@ func TestAccVirtualMachinePending(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:             testAccVirtualMachinePending,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualMachinePending,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "virtual_machine_pending"),
