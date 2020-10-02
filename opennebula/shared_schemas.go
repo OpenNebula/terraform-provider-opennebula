@@ -221,6 +221,30 @@ func tagsSchema() *schema.Schema {
 	}
 }
 
+func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
+	disk := shared.NewDisk()
+
+	for k, v := range diskConfig {
+
+		if isEmptyValue(reflect.ValueOf(v)) {
+			continue
+		}
+
+		switch k {
+		case "target":
+			disk.Add(shared.TargetDisk, v.(string))
+		case "driver":
+			disk.Add(shared.Driver, v.(string))
+		case "size":
+			disk.Add(shared.Size, strconv.Itoa(v.(int)))
+		case "image_id":
+			disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
+		}
+	}
+
+	return disk
+}
+
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	//Generate NIC definition
@@ -264,27 +288,10 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	log.Printf("Number of disks: %d", len(disks))
 
 	for i := 0; i < len(disks); i++ {
-
 		diskconfig := disks[i].(map[string]interface{})
-		disk := tpl.AddDisk()
 
-		for k, v := range diskconfig {
-
-			if isEmptyValue(reflect.ValueOf(v)) {
-				continue
-			}
-
-			switch k {
-			case "target":
-				disk.Add(shared.TargetDisk, v.(string))
-			case "driver":
-				disk.Add(shared.Driver, v.(string))
-			case "size":
-				disk.Add(shared.Size, strconv.Itoa(v.(int)))
-			case "image_id":
-				disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
-			}
-		}
+		disk := makeDiskVector(diskconfig)
+		tpl.Elements = append(tpl.Elements, disk)
 	}
 
 	//Generate GRAPHICS definition
