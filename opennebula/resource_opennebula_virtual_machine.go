@@ -247,15 +247,17 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	d.SetId(fmt.Sprintf("%v", vmID))
 	vmc := controller.VM(vmID)
 
-	expectedState := "running"
+	expectedState := "RUNNING"
 	if d.Get("pending").(bool) {
-		expectedState = "hold"
+		expectedState = "HOLD"
 	}
 
-	_, err = waitForVmState(d, meta, expectedState)
+	timeout := d.Get("timeout").(int)
+	_, err = waitForVMState(vmc, timeout, expectedState)
 	if err != nil {
 		return fmt.Errorf(
-			"Error waiting for virtual machine (%s) to be in state %s: %s", expectedState, d.Id(), err)
+			"Error waiting for virtual machine (%s) to be in state %s: %s", d.Id(), expectedState, err)
+
 	}
 
 	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
@@ -454,7 +456,8 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	_, err = waitForVmState(d, meta, "done")
+	timeout := d.Get("timeout").(int)
+	_, err = waitForVMState(vmc, timeout, "DONE")
 	if err != nil {
 		vm, _ := vmc.Info(false)
 
@@ -473,69 +476,52 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func waitForVmState(d *schema.ResourceData, meta interface{}, state string) (interface{}, error) {
-	var vm *vm.VM
-	var err error
-	//Get VM controller
-	vmc, err := getVirtualMachineController(d, meta)
-	if err != nil {
-		return vm, err
-	}
-
-	timeout := d.Get("timeout").(int)
-
-	log.Printf("Waiting for VM (%s) to be in state Done", d.Id())
+func waitForVMState(vmc *goca.VMController, timeout int, states ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"anythingelse"}, Target: []string{state},
+		Pending: []string{"anythingelse"},
+		Target:  states,
 		Refresh: func() (interface{}, string, error) {
+
 			log.Println("Refreshing VM state...")
-			if d.Id() != "" {
-				//Get VM controller
-				vmc, err = getVirtualMachineController(d, meta)
-				if err != nil {
-					return vm, "", fmt.Errorf("Could not find VM by ID %s", d.Id())
-				}
-			}
+
 			// TODO: fix it after 5.10 release
 			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vm, err = vmc.Info(false)
+			vmInfos, err := vmc.Info(false)
 			if err != nil {
+				// TODO: errors messages shouldn't be parsed
 				if strings.Contains(err.Error(), "Error getting") {
 					// Do not return an error here as it is excpected if the VM is already in DONE state
 					// after its destruction
-					return vm, "notfound", nil
+					return vmInfos, "notfound", nil
 				}
-				return vm, "", err
+				return vmInfos, "", err
 			}
-			vmState, vmLcmState, err := vm.State()
+
+			vmState, vmLcmState, err := vmInfos.State()
 			if err != nil {
-				if strings.Contains(err.Error(), "Error getting") {
-					// Do not return an error here as it is excpected if the VM is already in DONE state
-					// after its destruction
-					return vm, "notfound", nil
+				return vmInfos, "", err
+			}
+			log.Printf("VM (ID:%d, name:%s) is currently in state %s and in LCM state %s", vmInfos.ID, vmInfos.Name, vmState.String(), vmLcmState.String())
+
+			switch vmState {
+
+			case vm.Done, vm.Hold:
+				return vmInfos, vmState.String(), nil
+			case vm.Active:
+				switch vmLcmState {
+				case vm.Running:
+					return vmInfos, vmLcmState.String(), nil
+				case vm.BootFailure, vm.PrologFailure, vm.EpilogFailure:
+					vmerr, _ := vmInfos.UserTemplate.Get(vmk.Error)
+					return vmInfos, vmLcmState.String(), fmt.Errorf("VM (ID:%d) entered fail state, error: %s", vmInfos.ID, vmerr)
+				default:
+					return vmInfos, "anythingelse", nil
 				}
-				return vm, "", err
+			default:
+				return vmInfos, "anythingelse", nil
 			}
-			log.Printf("VM %v is currently in state %v and in LCM state %v", vm.ID, vmState, vmLcmState)
-			if vmState == 3 && vmLcmState == 3 {
-				return vm, "running", nil
-			} else if vmState == 6 {
-				return vm, "done", nil
-			} else if vmState == 2 && vmLcmState == 0 {
-				return vm, "hold", nil
-			} else if vmState == 3 && vmLcmState == 36 {
-				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
-				return vm, "boot_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
-			} else if vmState == 3 && vmLcmState == 39 {
-				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
-				return vm, "prolog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
-			} else if vmState == 3 && vmLcmState == 40 {
-				vmerr, _ := vm.UserTemplate.Get(vmk.Error)
-				return vm, "epilog_failure", fmt.Errorf("VM ID %s entered fail state, error message: %s", d.Id(), vmerr)
-			} else {
-				return vm, "anythingelse", nil
-			}
+
 		},
 		Timeout:    time.Duration(timeout) * time.Minute,
 		Delay:      10 * time.Second,
