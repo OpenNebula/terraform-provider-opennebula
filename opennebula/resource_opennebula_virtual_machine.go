@@ -18,6 +18,8 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
+var vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
+
 func resourceOpennebulaVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create:        resourceOpennebulaVirtualMachineCreate,
@@ -430,6 +432,57 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		err = vmc.Update(vm.UserTemplate.String(), 1)
 		if err != nil {
 			return err
+		}
+	}
+
+	if d.HasChange("disk") {
+
+		log.Printf("[INFO] Update disk configuration")
+
+		old, new := d.GetChange("disk")
+		attachedDisksCfg := old.([]interface{})
+		newDisksCfg := new.([]interface{})
+
+		timeout := d.Get("timeout").(int)
+
+		// wait for the VM to be ready for attach operations
+		_, err = waitForVMState(vmc, timeout, vmDiskUpdateReadyStates...)
+		if err != nil {
+			return fmt.Errorf(
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+		}
+
+		// get the list of disks ID to detach
+		toDetach := disksConfigDiff(attachedDisksCfg, newDisksCfg)
+
+		// Detach the disks
+		for _, diskConfig := range toDetach {
+
+			diskID := diskConfig["disk_id"].(int)
+
+			err := vmDiskDetach(vmc, timeout, diskID)
+			if err != nil {
+				return fmt.Errorf("vm disk detach: %s", err)
+
+			}
+		}
+
+		// get the list of disks to attach
+		toAttach := disksConfigDiff(newDisksCfg, attachedDisksCfg)
+
+		// Attach the disks
+		for _, diskConfig := range toAttach {
+
+			imageID := diskConfig["image_id"].(int)
+			diskTpl := makeDiskVector(map[string]interface{}{
+				"image_id": imageID,
+				"target":   diskConfig["target"],
+			})
+
+			err := vmDiskAttach(vmc, timeout, diskTpl)
+			if err != nil {
+				return fmt.Errorf("vm disk attach: %s", err)
+			}
 		}
 	}
 

@@ -70,7 +70,6 @@ func diskSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Computed:    true,
 		Description: "Definition of disks assigned to the Virtual Machine",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -78,10 +77,13 @@ func diskSchema() *schema.Schema {
 					Type:     schema.TypeInt,
 					Required: true,
 				},
+				"disk_id": {
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
 				"size": {
 					Type:     schema.TypeInt,
 					Computed: true,
-					Optional: true,
 				},
 				"target": {
 					Type:     schema.TypeString,
@@ -427,10 +429,12 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		size, _ := disk.GetI(shared.Size)
 		driver, _ := disk.Get(shared.Driver)
 		target, _ := disk.Get(shared.TargetDisk)
-		imageId, _ := disk.GetI(shared.ImageID)
+		imageID, _ := disk.GetI(shared.ImageID)
+		diskID, _ := disk.GetI(shared.DiskID)
 
 		diskList = append(diskList, map[string]interface{}{
-			"image_id": imageId,
+			"image_id": imageID,
+			"disk_id":  diskID,
 			"size":     size,
 			"target":   target,
 			"driver":   driver,
