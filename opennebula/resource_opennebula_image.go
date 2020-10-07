@@ -15,6 +15,7 @@ import (
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
+	img "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	imk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image/keys"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
@@ -284,7 +285,8 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	_, err = waitForImageState(d, meta, "ready")
+	timeout := d.Get("timeout").(int)
+	_, err = waitForImageState(ic, timeout, "READY")
 	if err != nil {
 		return fmt.Errorf("Error waiting for Image (%s) to be in state READY: %s", d.Id(), err)
 	}
@@ -359,53 +361,39 @@ func resourceOpennebulaImageClone(d *schema.ResourceData, meta interface{}) (int
 	return originalic.Clone(d.Get("name").(string), d.Get("datastore_id").(int))
 }
 
-func waitForImageState(d *schema.ResourceData, meta interface{}, state string) (interface{}, error) {
-	var ic *goca.ImageController
-	var image *image.Image
-	var err error
-	//Get Image
-	ic, err = getImageController(d, meta)
-	if err != nil {
-		return image, err
-	}
-	timeout := d.Get("timeout").(int)
+func waitForImageState(ic *goca.ImageController, timeout int, state ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
-		Target:  []string{state},
+		Target:  state,
 		Refresh: func() (interface{}, string, error) {
+
 			log.Println("Refreshing Image state...")
-			if d.Id() != "" {
-				// Get Image Info
-				ic, err = getImageController(d, meta)
-				if err != nil {
-					log.Printf("Image %v was not found", d.Id())
-					return image, "notfound", nil
-				}
-			}
+
 			// TODO: fix it after 5.10 release
 			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			image, err = ic.Info(false)
+			imgInfos, err := ic.Info(false)
 			if err != nil {
+				// TODO: errors messages shouldn't be parsed
 				if strings.Contains(err.Error(), "Error getting image") {
-					return image, "notfound", nil
+					return imgInfos, "notfound", nil
 				}
-				return image, "", err
+				return imgInfos, "", err
 			}
-			state, err := image.StateString()
+			state, err := imgInfos.State()
 			if err != nil {
-				if strings.Contains(err.Error(), "Error getting image") {
-					return image, "notfound", nil
-				}
-				return image, "notfound", err
+				return imgInfos, "", err
 			}
-			log.Printf("Image %v is currently in state %v", image.ID, state)
-			if state == "READY" {
-				return image, "ready", nil
-			} else if state == "ERROR" {
-				return image, "error", fmt.Errorf("Image ID %v entered error state.", d.Id())
-			} else {
-				return image, "anythingelse", nil
+
+			log.Printf("Image (ID:%d, name:%s) is currently in state %v", imgInfos.ID, imgInfos.Name, state.String())
+
+			switch state {
+			case img.Ready:
+				return imgInfos, state.String(), nil
+			case img.Error:
+				return imgInfos, state.String(), fmt.Errorf("Image (ID:%d) entered error state.", imgInfos.ID)
+			default:
+				return imgInfos, "anythingelse", nil
 			}
 		},
 		Timeout:    time.Duration(timeout) * time.Minute,
@@ -627,7 +615,8 @@ func resourceOpennebulaImageDelete(d *schema.ResourceData, meta interface{}) err
 	}
 	log.Printf("[INFO] Successfully deleted Image ID %s\n", d.Id())
 
-	_, err = waitForImageState(d, meta, "notfound")
+	timeout := d.Get("timeout").(int)
+	_, err = waitForImageState(ic, timeout, "notfound")
 	if err != nil {
 		return fmt.Errorf("Error waiting for Image (%s) to be in state NOTFOUND: %s", d.Id(), err)
 	}
