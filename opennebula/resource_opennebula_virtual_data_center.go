@@ -3,7 +3,6 @@ package opennebula
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/fatih/structs"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
-	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vdc"
 )
 
@@ -204,21 +202,12 @@ func resourceOpennebulaVirtualDataCenterCreate(d *schema.ResourceData, meta inte
 func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interface{}) error {
 	vdcc, err := getVDCController(d, meta)
 	if err != nil {
-		switch err.(type) {
-		case *errs.ClientError:
-			clientErr, _ := err.(*errs.ClientError)
-			if clientErr.Code == errs.ClientRespHTTP {
-				response := clientErr.GetHTTPResponse()
-				if response.StatusCode == http.StatusNotFound {
-					log.Printf("[WARN] Removing virtual data center %s from state because it no longer exists in", d.Get("name"))
-					d.SetId("")
-					return nil
-				}
-			}
-			return err
-		default:
-			return err
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual data center %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
 		}
+		return err
 	}
 
 	// TODO: fix it after 5.10 release

@@ -3,7 +3,6 @@ package opennebula
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
-	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	img "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	imk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image/keys"
@@ -374,8 +372,7 @@ func waitForImageState(ic *goca.ImageController, timeout int, state ...string) (
 			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 			imgInfos, err := ic.Info(false)
 			if err != nil {
-				// TODO: errors messages shouldn't be parsed
-				if strings.Contains(err.Error(), "Error getting image") {
+				if NoExists(err) {
 					return imgInfos, "notfound", nil
 				}
 				return imgInfos, "", err
@@ -408,21 +405,12 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	// Get all images
 	ic, err := getImageController(d, meta, -2, -1, -1)
 	if err != nil {
-		switch err.(type) {
-		case *errs.ClientError:
-			clientErr, _ := err.(*errs.ClientError)
-			if clientErr.Code == errs.ClientRespHTTP {
-				response := clientErr.GetHTTPResponse()
-				if response.StatusCode == http.StatusNotFound {
-					log.Printf("[WARN] Removing image %s from state because it no longer exists in", d.Get("name"))
-					d.SetId("")
-					return nil
-				}
-			}
-			return err
-		default:
-			return err
+		if NoExists(err) {
+			log.Printf("[WARN] Removing image %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
 		}
+		return err
 	}
 
 	// TODO: fix it after 5.10 release
