@@ -30,6 +30,8 @@ github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191129173730-16884d1c4bd1
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20191129173730-16884d1c4bd1/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200130171820-20a5d5e5c706 h1:FtJo45zlQ4HGpc/BmTphOjEZMr/MKi0ACIkyE/NyKXA=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20200130171820-20a5d5e5c706/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20201006100728-132291f85c17 h1:Qq53ZQ8qbSB9n0x3oM42H7nnpn7UCYE25WFQt5xESsE=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20201006100728-132291f85c17/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
 github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
 github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af/go.mod h1:5Jv4cbFiHJMsVxt52+i0Ha45fjshj6wxYr1r19tB9bw=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
