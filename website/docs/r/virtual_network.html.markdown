@@ -43,14 +43,14 @@ resource "opennebula_virtual_network" "vnet" {
     dns             = "172.16.100.1"
     gateway         = "172.16.100.1"
     security_groups = [ 0 ]
-    ar = [ {
-         ar_type = "IP4",
+    ar {
+         ar_type = "IP4"
          size    = 16
          ip4     = "172.16.100.101"
-    } ]
-    clusters = [{
+    }
+    clusters {
         id = 0
-    }]
+    }
     tags = {
       environment = "dev"
     }
@@ -79,8 +79,9 @@ The following arguments are supported:
 * `network_mask` - (Optional) Network mask. Conflicts with `reservation_vnet` and `reservation_size`.
 * `dns` - (Optional) Text String containing a comma separated list of DNS IPs. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ar` - (Optional) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
-* `hold_size` - (Optional) Carve a network reservation of this size from the reservation starting from `ip_hold`. Conflicts with `reservation_vnet` and `reservation_size`.
-* `ip_hold` - (Optional) Start IP of the range to be held. Conflicts with `reservation_vnet` and `reservation_size`.
+* `hold_ips` - (Optional) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with `reservation_vnet` and `reservation_size`.
+* `hold_size` - (Deprecated) Carve a network reservation of this size from the reservation starting from `ip_hold`. Conflicts with `reservation_vnet` and `reservation_size`.
+* `ip_hold` - (Deprecated) Start IP of the range to be held. Conflicts with `reservation_vnet` and `reservation_size`.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Network tags (Key = Value).
 
