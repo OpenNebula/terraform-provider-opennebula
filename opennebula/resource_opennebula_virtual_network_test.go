@@ -43,6 +43,9 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ar_type", "IP4"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.size", "12"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ip4", "172.16.100.130"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.1", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -82,6 +85,9 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.ar_type", "IP6"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.size", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.ip6", "2001:db8:0:85a3::ac1f:8001"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.1", "172.16.100.141"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -223,6 +229,7 @@ resource "opennebula_virtual_network" "test" {
     size    = 12
     ip4     = "172.16.100.130"
   }
+  hold_ips = ["172.16.100.112", "172.16.100.131"]
   permissions = "642"
   group = "oneadmin"
   security_groups = [0]
@@ -259,6 +266,7 @@ resource "opennebula_virtual_network" "test" {
     size    = 2
     ip6     = "2001:db8:0:85a3::ac1f:8001"
   }
+  hold_ips = ["172.16.100.112", "172.16.100.141"]
   security_groups = [0]
   clusters = [0]
   permissions = "660"
@@ -296,6 +304,7 @@ resource "opennebula_virtual_network" "test" {
     size    = 2
     ip6     = "2001:db8:0:85a3::ac1f:8001"
   }
+  hold_ips = ["172.16.100.112", "172.16.100.141"]
   security_groups = [0]
   clusters = [0]
   permissions = "660"
