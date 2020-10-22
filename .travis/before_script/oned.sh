@@ -33,5 +33,5 @@ sudo systemctl start opennebula
 timeout 60 sh -c 'until nc -z $0 $1; do sleep 1; done' localhost 2633
 
 # Create dummy host
-onehost create dummy -i dummy -v dummy
+sudo su -c "onehost create dummy -i dummy -v dummy" oneadmin
 
