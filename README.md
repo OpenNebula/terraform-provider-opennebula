@@ -4,7 +4,7 @@
 
 ## Description
 
-[OpenNebula](https://opennebula.org/) provider for [Terraform](https://www.terraform.io/).
+[OpenNebula](https://opennebula.io/) provider for [Terraform](https://www.terraform.io/).
 
 ## Development
 
@@ -25,7 +25,7 @@ Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-
 
 ## Compatibility
 
-* Leverages [OpenNebula's XML/RPC API](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html)
+* Leverages [OpenNebula's XML/RPC API](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html)
 * Tested on OpenNebula version 5.12
 
 This provider has been initiated to use official Goca from [OpenNebula](https://github.com/OpenNebula/one)
@@ -47,27 +47,27 @@ Current definition of these data sources are supported:
 ### Resources
 
 Current definition of these resources are supported:
-* Groups [onegroup](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onegroup)
-* Image [oneimage](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#oneimage)
-* Security Groups [onesecgroup](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onesecgroup)
-* Template [onetemplate](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onetemplate)
-* Virtual Data Center [onevdc](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onevdc)
-* Virtual Machine [onevm](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onevm)
-* Virtual Network [onevnet](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onevnet)
-* ACL [oneacl](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#oneacl)
+* Groups [onegroup](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onegroup)
+* Image [oneimage](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneimage)
+* Security Groups [onesecgroup](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onesecgroup)
+* Template [onetemplate](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onetemplate)
+* Virtual Data Center [onevdc](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevdc)
+* Virtual Machine [onevm](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevm)
+* Virtual Network [onevnet](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevnet)
+* ACL [oneacl](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneacl)
 
 ## Limitations
 
 Following OpenNebula Objects **are not** currently supported:
-* Accounting [oneacct](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#oneacct)
-* Hosts Management [onehost](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onehost)
-* Clusters [onecluster](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onecluster)
-* Users [oneuser](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#oneuser)
-* Datastore [onedatastore](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onedatastore)
-* Market [onemarket](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onemarket)
-* Market App [onemarketapp](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onemarketapp)
-* Virtual Router [onevrouter](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onevrouter)
-* Zone [onezone](https://docs.opennebula.org/5.12/integration/system_interfaces/api.html#onezone)
+* Accounting [oneacct](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneacct)
+* Hosts Management [onehost](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onehost)
+* Clusters [onecluster](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onecluster)
+* Users [oneuser](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneuser)
+* Datastore [onedatastore](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onedatastore)
+* Market [onemarket](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onemarket)
+* Market App [onemarketapp](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onemarketapp)
+* Virtual Router [onevrouter](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevrouter)
+* Zone [onezone](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onezone)
 
 ## Requirements
 
