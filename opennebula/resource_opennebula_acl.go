@@ -2,9 +2,7 @@ package opennebula
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -72,117 +70,20 @@ func resourceOpennebulaACL() *schema.Resource {
 	}
 }
 
-func aclCalculateIDs(idString string) (int64, error) {
-	match, err := regexp.Match("^([\\#@\\%]\\d+|\\*)$", []byte(idString))
-	if err != nil {
-		return 0, err
-	}
-	if !match {
-		return 0, fmt.Errorf("ID String %+v malformed", idString)
-	}
-
-	var value int64
-
-	if strings.HasPrefix(idString, "#") {
-		id, err := strconv.Atoi(strings.TrimLeft(idString, "#"))
-		if err != nil {
-			return 0, err
-		}
-		value = int64(acl.UID) + int64(id)
-	}
-
-	if strings.HasPrefix(idString, "@") {
-		id, err := strconv.Atoi(strings.TrimLeft(idString, "@"))
-		if err != nil {
-			return 0, err
-		}
-		value = int64(acl.GID) + int64(id)
-	}
-
-	if strings.HasPrefix(idString, "*") {
-		value = int64(acl.All)
-	}
-
-	if strings.HasPrefix(idString, "%") {
-		id, err := strconv.Atoi(strings.TrimLeft(idString, "%"))
-		if err != nil {
-			return 0, err
-		}
-		value = int64(acl.ClusterUsr) + int64(id)
-	}
-
-	return value, nil
-}
-
-func aclParseUsers(users string) (string, error) {
-	value, err := aclCalculateIDs(users)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%X", value), err
-}
-
-func aclParseResources(resources string) (string, error) {
-	var ret int64
-	resourceParts := strings.Split(resources, "/")
-	if len(resourceParts) != 2 {
-		return "", fmt.Errorf("Resource '%+v' malformed", resources)
-	}
-
-	res := strings.Split(resourceParts[0], "+")
-	for _, resource := range res {
-		val, ok := resourceMap[strings.ToUpper(resource)]
-		if !ok {
-			return "", fmt.Errorf("Resource '%+v' does not exist.", resource)
-		}
-		ret += int64(val)
-	}
-	ids, err := aclCalculateIDs(resourceParts[1])
-	if err != nil {
-		return "", err
-	}
-	ret += ids
-
-	return fmt.Sprintf("%x", ret), nil
-}
-
-func aclParseRights(rights string) (string, error) {
-	var ret int64
-
-	rightsParts := strings.Split(rights, "+")
-	for _, right := range rightsParts {
-		val, ok := rightMap[strings.ToUpper(right)]
-		if !ok {
-			return "", fmt.Errorf("Right '%+v' does not exist.", right)
-		}
-		ret += int64(val)
-	}
-
-	return fmt.Sprintf("%x", ret), nil
-}
-
-func aclParseZone(zone string) (string, error) {
-	ids, err := aclCalculateIDs(zone)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", ids), nil
-}
-
 func resourceOpennebulaACLCreate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	userHex, err := aclParseUsers(d.Get("user").(string))
+	userHex, err := acl.ParseUsers(d.Get("user").(string))
 	if err != nil {
 		return err
 	}
 
-	resourceHex, err := aclParseResources(d.Get("resource").(string))
+	resourceHex, err := acl.ParseResources(d.Get("resource").(string))
 	if err != nil {
 		return err
 	}
 
-	rightsHex, err := aclParseRights(d.Get("rights").(string))
+	rightsHex, err := acl.ParseRights(d.Get("rights").(string))
 	if err != nil {
 		return err
 	}

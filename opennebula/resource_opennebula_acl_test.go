@@ -13,8 +13,8 @@ import (
 
 func TestAccACL(t *testing.T) {
 	invalidUserErr, _ := regexp.Compile("ID String something malformed")
-	invalidResourceErr, _ := regexp.Compile("Resource 'a' malformed")
-	invalidRightsErr, _ := regexp.Compile("Right 'aa' does not exist.")
+	invalidResourceErr, _ := regexp.Compile("resource 'a' malformed")
+	invalidRightsErr, _ := regexp.Compile("right 'aa' does not exist")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
