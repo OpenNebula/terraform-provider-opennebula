@@ -70,7 +70,6 @@ func diskSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Computed:    true,
 		Description: "Definition of disks assigned to the Virtual Machine",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -78,10 +77,13 @@ func diskSchema() *schema.Schema {
 					Type:     schema.TypeInt,
 					Required: true,
 				},
+				"disk_id": {
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
 				"size": {
 					Type:     schema.TypeInt,
 					Computed: true,
-					Optional: true,
 				},
 				"target": {
 					Type:     schema.TypeString,
@@ -221,6 +223,30 @@ func tagsSchema() *schema.Schema {
 	}
 }
 
+func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
+	disk := shared.NewDisk()
+
+	for k, v := range diskConfig {
+
+		if isEmptyValue(reflect.ValueOf(v)) {
+			continue
+		}
+
+		switch k {
+		case "target":
+			disk.Add(shared.TargetDisk, v.(string))
+		case "driver":
+			disk.Add(shared.Driver, v.(string))
+		case "size":
+			disk.Add(shared.Size, strconv.Itoa(v.(int)))
+		case "image_id":
+			disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
+		}
+	}
+
+	return disk
+}
+
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	//Generate NIC definition
@@ -264,27 +290,10 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	log.Printf("Number of disks: %d", len(disks))
 
 	for i := 0; i < len(disks); i++ {
-
 		diskconfig := disks[i].(map[string]interface{})
-		disk := tpl.AddDisk()
 
-		for k, v := range diskconfig {
-
-			if isEmptyValue(reflect.ValueOf(v)) {
-				continue
-			}
-
-			switch k {
-			case "target":
-				disk.Add(shared.TargetDisk, v.(string))
-			case "driver":
-				disk.Add(shared.Driver, v.(string))
-			case "size":
-				disk.Add(shared.Size, strconv.Itoa(v.(int)))
-			case "image_id":
-				disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
-			}
-		}
+		disk := makeDiskVector(diskconfig)
+		tpl.Elements = append(tpl.Elements, disk)
 	}
 
 	//Generate GRAPHICS definition
@@ -420,10 +429,12 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		size, _ := disk.GetI(shared.Size)
 		driver, _ := disk.Get(shared.Driver)
 		target, _ := disk.Get(shared.TargetDisk)
-		imageId, _ := disk.GetI(shared.ImageID)
+		imageID, _ := disk.GetI(shared.ImageID)
+		diskID, _ := disk.GetI(shared.DiskID)
 
 		diskList = append(diskList, map[string]interface{}{
-			"image_id": imageId,
+			"image_id": imageID,
+			"disk_id":  diskID,
 			"size":     size,
 			"target":   target,
 			"driver":   driver,
