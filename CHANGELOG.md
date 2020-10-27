@@ -1,12 +1,23 @@
 ## 0.3.0 (Unreleased)
+
+BUG FIXES:
+* resources/opennebula_virtual_network: Fix Hold IPs crash ([#67](https://github.com/OpenNebula/terraform-provider-opennebula/issues/67))
+* resources/opennebula_virtual_network: Fix Documentation about AR usage ([#66](https://github.com/OpenNebula/terraform-provider-opennebula/issues/66))
+
+DEPRECATION:
+* resource/opennebula_virtual_network: Replace `hold_size` and `ip_hold` parameters by `hold_ips`
+
+## 0.2.2 (October 16, 2020)
+New release only for Terraform Registry migration
+
 ## 0.2.1 (July 03, 2020)
 
 BUG FIXES:
-* resources/opennebula_virtual_machine: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/terraform-providers/terraform-provider-opennebula/issues/52))
-* resources/opennebula_template: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/terraform-providers/terraform-provider-opennebula/issues/52))
-* resources/opennebula_virtual_machine_group: Remove Computed for tags ([#53](https://github.com/terraform-providers/terraform-provider-opennebula/issues/53))
-* resources/opennebula_virtual_machine: Remove Computed for tags ([#53](https://github.com/terraform-providers/terraform-provider-opennebula/issues/53))
-* resources/opennebula_virtual_template: Remove Computed for tags ([#53](https://github.com/terraform-providers/terraform-provider-opennebula/issues/53))
+* resources/opennebula_virtual_machine: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/OpenNebula/terraform-provider-opennebula/issues/52))
+* resources/opennebula_template: Revert regression introduced by b071b27b4b9f722e881f3954531a192e3cd99275 ([#52](https://github.com/OpenNebula/terraform-provider-opennebula/issues/52))
+* resources/opennebula_virtual_machine_group: Remove Computed for tags ([#53](https://github.com/OpenNebula/terraform-provider-opennebula/issues/53))
+* resources/opennebula_virtual_machine: Remove Computed for tags ([#53](https://github.com/OpenNebula/terraform-provider-opennebula/issues/53))
+* resources/opennebula_virtual_template: Remove Computed for tags ([#53](https://github.com/OpenNebula/terraform-provider-opennebula/issues/53))
 
 ## 0.2.0 (July 02, 2020)
 
@@ -17,17 +28,17 @@ FEATURES:
 * **New Data Source**: `opennebula_virtual_machine_group`: First implementation
 * **New Resource**: `opennebula_virtual_machine_group`: First implementation ([onevmgroup](http://docs.opennebula.org/5.10/integration/system_interfaces/api.html#onevmgroup)),
 * **New Resource**: `opennebula_acl`: First implementation ([oneacl](http://docs.opennebula.org/5.10/integration/system_interfaces/api.html#oneacl)),
-OpenNebula provider issue: ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
-* resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/terraform-providers/terraform-provider-opennebula/issues/16))
+OpenNebula provider issue: ([#16](https://github.com/OpenNebula/terraform-provider-opennebula/issues/16))
+* resource/opennebula_virtual_machine: Associate a VM group (only during VM creation) ([#16](https://github.com/OpenNebula/terraform-provider-opennebula/issues/16))
 * resource/opennebula_template: Associate a VM group.
-* resource/opennebula_image: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
-* resource/opennebula_security_group: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
-* resource/opennebula_template: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
-* resource/opennebula_virtual_machine: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
-* resource/opennebula_virtual_machine_group: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
-* resource/opennebula_virtual_network: Add support for tags ([#22](https://github.com/terraform-providers/terraform-provider-opennebula/issues/22))
-* resource/opennebula_virtual_machine: Add timeout parameter ([#36](https://github.com/terraform-providers/terraform-provider-opennebula/issues/36))
-* resource/opennebula_mage: Add timeout parameter ([#36](https://github.com/terraform-providers/terraform-provider-opennebula/issues/36))
+* resource/opennebula_image: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
+* resource/opennebula_security_group: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
+* resource/opennebula_template: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_machine: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_machine_group: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_network: Add support for tags ([#22](https://github.com/OpenNebula/terraform-provider-opennebula/issues/22))
+* resource/opennebula_virtual_machine: Add timeout parameter ([#36](https://github.com/OpenNebula/terraform-provider-opennebula/issues/36))
+* resource/opennebula_mage: Add timeout parameter ([#36](https://github.com/OpenNebula/terraform-provider-opennebula/issues/36))
 
 ENHANCEMENTS:
 * all resources: use Goca dynamic templates to build entities
@@ -39,15 +50,15 @@ DEPRECATION:
 * resource/opennebula_template: Remove `template` parameter to reproduce resource/opennebula_virtual_machine details schema
 
 BUG FIXES:
-* data/opennebula_template: Fix missing parameters on Read ([#29](https://github.com/terraform-providers/terraform-provider-opennebula/issues/29))
+* data/opennebula_template: Fix missing parameters on Read ([#29](https://github.com/OpenNebula/terraform-provider-opennebula/issues/29))
 
 ## 0.1.1 (January 06, 2020)
 
 BUG FIXES:
-* resource/opennebula_virtual_machine: Start VM on Hold ([#1](https://github.com/terraform-providers/terraform-provider-opennebula/issues/1))
-* resource/opennbula_virtual_machine: Attach nic or disk in the declared order ([#5](https://github.com/terraform-providers/terraform-provider-opennebula/issues/5))
-* all ressources: Fix changes detected on update while parameters are not set ([#2](https://github.com/terraform-providers/terraform-provider-opennebula/issues/2))
-* resource/opennebula_virtual_network: Fix setting of cluster id on Virtual Network Creation ([#6](https://github.com/terraform-providers/terraform-provider-opennebula/issues/6))
+* resource/opennebula_virtual_machine: Start VM on Hold ([#1](https://github.com/OpenNebula/terraform-provider-opennebula/issues/1))
+* resource/opennbula_virtual_machine: Attach nic or disk in the declared order ([#5](https://github.com/OpenNebula/terraform-provider-opennebula/issues/5))
+* all ressources: Fix changes detected on update while parameters are not set ([#2](https://github.com/OpenNebula/terraform-provider-opennebula/issues/2))
+* resource/opennebula_virtual_network: Fix setting of cluster id on Virtual Network Creation ([#6](https://github.com/OpenNebula/terraform-provider-opennebula/issues/6))
 
 DEPRECATION:
 * resource/opennebula_virtual_machine: Remove `instance` parameter as it is redundant with `name`

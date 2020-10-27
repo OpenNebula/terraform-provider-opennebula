@@ -244,12 +244,23 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 					},
 				},
 			},
+			"hold_ips": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				Computed:      true,
+				Description:   "List of IPs to be held the VNET",
+				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"hold_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Carve a network reservation of this size from the reservation starting from `ip_hold`",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				Deprecated:    "use 'hold_ips' instead",
 			},
 			"ip_hold": {
 				Type:          schema.TypeString,
@@ -257,20 +268,21 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Computed:      true,
 				Description:   "Start IP of the range to be held",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				Deprecated:    "use 'hold_ips' instead",
 			},
 			"reservation_vnet": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Create a reservation from this VNET ID",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"reservation_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"security_groups": {
 				Type:        schema.TypeList,
@@ -405,22 +417,6 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 
 		d.SetId(fmt.Sprintf("%v", vnetID))
 
-		if d.Get("hold_size").(int) > 0 {
-			// add address range and reservations
-			ip := net.ParseIP(d.Get("ip_start").(string))
-			ip = ip.To4()
-
-			for i := 0; i < d.Get("hold_size").(int); i++ {
-				var address_reservation_string = `LEASES=[IP=%s]`
-				r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip))
-				if r_err != nil {
-					return r_err
-				}
-
-				ip[3]++
-			}
-		}
-
 		// Call API once
 		update, err := generateVnTemplate(d)
 		if err != nil {
@@ -450,6 +446,34 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 				return err
 			}
 		}
+
+		// Deprecated
+		if d.Get("hold_size").(int) > 0 {
+			// add address range and reservations
+			ip := net.ParseIP(d.Get("ip_hold").(string))
+			ip = ip.To4()
+
+			for i := 0; i < d.Get("hold_size").(int); i++ {
+				var address_reservation_string = `LEASES = [ IP = %s]`
+				r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip))
+				if r_err != nil {
+					return r_err
+				}
+
+				ip[3]++
+			}
+		}
+
+		if hold_ips_list, ok := d.GetOk("hold_ips"); ok {
+			for _, ip := range hold_ips_list.([]interface{}) {
+				var address_reservation_string = `LEASES = [ IP = %s]`
+				r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip.(string)))
+				if r_err != nil {
+					return r_err
+				}
+			}
+		}
+
 	}
 
 	// Set Security Groups
@@ -891,6 +915,18 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[INFO] Successfully updated group for Vnet %s\n", vn.Name)
 	}
 
+	if d.HasChange("hold_ips") {
+		// Release all old Held IPs
+		o_hold_ips_list, _ := d.GetChange("hold_ips")
+		for _, ip := range o_hold_ips_list.([]interface{}) {
+			var address_reservation_string = `LEASES = [ IP = %s]`
+			r_err := vnc.Release(fmt.Sprintf(address_reservation_string, ip.(string)))
+			if r_err != nil {
+				return r_err
+			}
+		}
+	}
+
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vn, err = vnc.Info(false)
@@ -929,6 +965,18 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 
 	}
 
+	if d.HasChange("hold_ips") {
+		_, n_hold_ips_list := d.GetChange("hold_ips")
+		// Hold only requested IPs
+		for _, ip := range n_hold_ips_list.([]interface{}) {
+			var address_reservation_string = `LEASES = [ IP = %s]`
+			r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip.(string)))
+			if r_err != nil {
+				return r_err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -938,6 +986,7 @@ func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interfa
 		return err
 	}
 
+	// Deprecated
 	if d.Get("hold_size").(int) > 0 {
 		// add address range and reservations
 		ip := net.ParseIP(d.Get("ip_hold").(string))
@@ -953,8 +1002,18 @@ func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interfa
 
 			ip[3]++
 		}
-		log.Printf("[INFO] Successfully released reservered IP addresses.")
 	}
+
+	if hold_ips_list, ok := d.GetOk("hold_ips"); ok {
+		for _, ip := range hold_ips_list.([]interface{}) {
+			var address_reservation_string = `LEASES = [ IP = %s]`
+			r_err := vnc.Release(fmt.Sprintf(address_reservation_string, ip.(string)))
+			if r_err != nil {
+				return r_err
+			}
+		}
+	}
+	log.Printf("[INFO] Successfully released reservered IP addresses.")
 
 	err = vnc.Delete()
 	if err != nil {
