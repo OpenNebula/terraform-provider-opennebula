@@ -2,6 +2,7 @@
 
 FEATURES:
 * resources/opennebula_virtual_machine: Enable VM disk update ([#64](https://github.com/OpenNebula/terraform-provider-opennebula/issues/64))
+* resources/opennebula_virtual_machine: Change 'image_id' disk attribute from Required to Optional ([#71](https://github.com/OpenNebula/terraform-provider-opennebula/issues/71))
 
 BUG FIXES:
 * resources/opennebula_virtual_network: Fix Hold IPs crash ([#67](https://github.com/OpenNebula/terraform-provider-opennebula/issues/67))

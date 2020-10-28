@@ -19,6 +19,10 @@ func disksConfigDiff(refDisks, disks []interface{}) []map[string]interface{} {
 	for _, refDisk := range refDisks {
 		refDiskConfig := refDisk.(map[string]interface{})
 		refImageID := refDiskConfig["image_id"].(int)
+		// If the disk exists with Default ID, skip it
+		if refImageID < 0 {
+			continue
+		}
 
 		diff := true
 		for _, disk := range disks {

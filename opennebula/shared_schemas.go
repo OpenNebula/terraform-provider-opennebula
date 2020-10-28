@@ -74,8 +74,10 @@ func diskSchema() *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"image_id": {
-					Type:     schema.TypeInt,
-					Required: true,
+					Type:        schema.TypeInt,
+					Default:     -1,
+					Optional:    true,
+					Description: "Image Id  of the image to attach to the VM. Defaults to -1: no image attached.",
 				},
 				"disk_id": {
 					Type:     schema.TypeInt,
@@ -291,6 +293,11 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	for i := 0; i < len(disks); i++ {
 		diskconfig := disks[i].(map[string]interface{})
+
+		// Ignore disk creation if Image ID is -1
+		if diskconfig["image_id"].(int) < 0 {
+			continue
+		}
 
 		disk := makeDiskVector(diskconfig)
 		tpl.Elements = append(tpl.Elements, disk)
