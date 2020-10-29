@@ -3,7 +3,6 @@ package opennebula
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
-	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
@@ -147,22 +145,26 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 	controller := meta.(*goca.Controller)
 	var vmc *goca.VMController
 
-	// Try to find the VM by ID, if specified
 	if d.Id() != "" {
+
+		// Try to find the VM by ID, if specified
+
 		id, err := strconv.ParseUint(d.Id(), 10, 64)
 		if err != nil {
 			return nil, err
 		}
 		vmc = controller.VM(int(id))
-	}
 
-	// Otherwise, try to find the VM by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.VMs().ByName(d.Get("name").(string), args...)
+	} else {
+
+		// Try to find the VM by name as the de facto compound primary key
+
+		id, err := controller.VMs().ByName(d.Get("name").(string), args...)
 		if err != nil {
 			return nil, err
 		}
-		vmc = controller.VM(gid)
+		vmc = controller.VM(id)
+
 	}
 
 	return vmc, nil
@@ -284,21 +286,12 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
 	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
 	if err != nil {
-		switch err.(type) {
-		case *errs.ClientError:
-			clientErr, _ := err.(*errs.ClientError)
-			if clientErr.Code == errs.ClientRespHTTP {
-				response := clientErr.GetHTTPResponse()
-				if response.StatusCode == http.StatusNotFound {
-					log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
-					d.SetId("")
-					return nil
-				}
-			}
-			return err
-		default:
-			return err
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
 		}
+		return err
 	}
 
 	// TODO: fix it after 5.10 release
@@ -542,8 +535,7 @@ func waitForVMState(vmc *goca.VMController, timeout int, states ...string) (inte
 			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 			vmInfos, err := vmc.Info(false)
 			if err != nil {
-				// TODO: errors messages shouldn't be parsed
-				if strings.Contains(err.Error(), "Error getting") {
+				if NoExists(err) {
 					// Do not return an error here as it is excpected if the VM is already in DONE state
 					// after its destruction
 					return vmInfos, "notfound", nil

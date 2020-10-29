@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -13,7 +12,6 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
-	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
 )
@@ -680,21 +678,12 @@ func setVnetClusters(clusters []int, meta interface{}, id int) error {
 func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	vnc, err := getVirtualNetworkController(d, meta, -2, -1, -1)
 	if err != nil {
-		switch err.(type) {
-		case *errs.ClientError:
-			clientErr, _ := err.(*errs.ClientError)
-			if clientErr.Code == errs.ClientRespHTTP {
-				response := clientErr.GetHTTPResponse()
-				if response.StatusCode == http.StatusNotFound {
-					log.Printf("[WARN] Removing virtual network %s from state because it no longer exists in", d.Get("name"))
-					d.SetId("")
-					return nil
-				}
-			}
-			return err
-		default:
-			return err
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual network %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
 		}
+		return err
 	}
 
 	// TODO: fix it after 5.10 release

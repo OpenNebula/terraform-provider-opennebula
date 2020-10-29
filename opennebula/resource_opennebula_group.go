@@ -5,13 +5,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
-	errs "github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/group"
 	shared "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
@@ -286,21 +284,12 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error {
 	gc, err := getGroupController(d, meta)
 	if err != nil {
-		switch err.(type) {
-		case *errs.ClientError:
-			clientErr, _ := err.(*errs.ClientError)
-			if clientErr.Code == errs.ClientRespHTTP {
-				response := clientErr.GetHTTPResponse()
-				if response.StatusCode == http.StatusNotFound {
-					log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
-					d.SetId("")
-					return nil
-				}
-			}
-			return err
-		default:
-			return err
+		if NoExists(err) {
+			log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
 		}
+		return err
 	}
 
 	// TODO: fix it after 5.10 release
