@@ -34,6 +34,7 @@ func Provider() *schema.Provider {
 			"opennebula_image":                 dataOpennebulaImage(),
 			"opennebula_security_group":        dataOpennebulaSecurityGroup(),
 			"opennebula_template":              dataOpennebulaTemplate(),
+			"opennebula_user":                  dataOpennebulaUser(),
 			"opennebula_virtual_data_center":   dataOpennebulaVirtualDataCenter(),
 			"opennebula_virtual_network":       dataOpennebulaVirtualNetwork(),
 			"opennebula_virtual_machine_group": dataOpennebulaVMGroup(),
