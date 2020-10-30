@@ -1,6 +1,7 @@
 ## 0.3.0 (Unreleased)
 
 FEATURES:
+* **New Resource**** New Data Source**: opennebula_user : First implementation ([#69](https://github.com/OpenNebula/terraform-provider-opennebula/issues/69))
 * resources/opennebula_virtual_machine: Enable VM disk update ([#64](https://github.com/OpenNebula/terraform-provider-opennebula/issues/64))
 * resources/opennebula_virtual_machine: Change 'image_id' disk attribute from Required to Optional ([#71](https://github.com/OpenNebula/terraform-provider-opennebula/issues/71))
 
