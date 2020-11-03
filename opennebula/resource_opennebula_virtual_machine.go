@@ -503,18 +503,35 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	}
 
 	timeout := d.Get("timeout").(int)
-	_, err = waitForVMState(vmc, timeout, "DONE")
+	ret, err := waitForVMState(vmc, timeout, "DONE")
 	if err != nil {
-		vm, _ := vmc.Info(false)
 
-		vmState, vmLcmState, _ := vm.State()
-		if vmLcmState.String() == "EPILOG_FAILURE" {
-			if err = vmc.TerminateHard(); err != nil {
-				return err
+		log.Printf("[WARN] %s\n", err)
+
+		// Retry if timeout not reached
+		_, ok := err.(*resource.TimeoutError)
+		if !ok && ret != nil {
+
+			vmInfos, _ := ret.(*vm.VM)
+			vmState, vmLcmState, _ := vmInfos.State()
+			if vmState == vm.Active && vmLcmState == vm.EpilogFailure {
+
+				log.Printf("[INFO] retry terminate VM\n")
+
+				err := vmc.TerminateHard()
+				if err != nil {
+					return err
+				}
+
+				_, err = waitForVMState(vmc, timeout, "DONE")
+				if err != nil {
+					return err
+				}
+
+			} else {
+				return fmt.Errorf(
+					"Error waiting for virtual machine (%s) to be in state DONE: %s (state: %v, lcmState: %v)", d.Id(), err, vmState, vmLcmState)
 			}
-		} else {
-			return fmt.Errorf(
-				"Error waiting for virtual machine (%s) to be in state DONE: %s (state: %v, lcmState: %v)", d.Id(), err, vmState, vmLcmState)
 		}
 	}
 
