@@ -249,6 +249,38 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 	return disk
 }
 
+func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
+	nic := shared.NewNIC()
+
+	for k, v := range nicConfig {
+
+		if k == "network_id" {
+			nic.Add(shared.NetworkID, strconv.Itoa(v.(int)))
+			continue
+		}
+
+		if isEmptyValue(reflect.ValueOf(v)) {
+			continue
+		}
+
+		switch k {
+		case "ip":
+			nic.Add(shared.IP, v.(string))
+		case "mac":
+			nic.Add(shared.MAC, v.(string))
+		case "model":
+			nic.Add(shared.Model, v.(string))
+		case "physical_device":
+			nic.Add("PHYDEV", v.(string))
+		case "security_groups":
+			nicSecGroups := ArrayToString(v.([]interface{}), ",")
+			nic.Add(shared.SecurityGroups, nicSecGroups)
+		}
+	}
+
+	return nic
+}
+
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	//Generate NIC definition
@@ -257,33 +289,9 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	for i := 0; i < len(nics); i++ {
 		nicconfig := nics[i].(map[string]interface{})
-		nic := tpl.AddNIC()
 
-		for k, v := range nicconfig {
-
-			if k == "network_id" {
-				nic.Add(shared.NetworkID, strconv.Itoa(v.(int)))
-				continue
-			}
-
-			if isEmptyValue(reflect.ValueOf(v)) {
-				continue
-			}
-
-			switch k {
-			case "ip":
-				nic.Add(shared.IP, v.(string))
-			case "mac":
-				nic.Add(shared.MAC, v.(string))
-			case "model":
-				nic.Add(shared.Model, v.(string))
-			case "physical_device":
-				nic.Add("PHYDEV", v.(string))
-			case "security_groups":
-				nicsecgroups := ArrayToString(v.([]interface{}), ",")
-				nic.Add(shared.SecurityGroups, nicsecgroups)
-			}
-		}
+		nic := makeNICVector(nicconfig)
+		tpl.Elements = append(tpl.Elements, nic)
 
 	}
 
