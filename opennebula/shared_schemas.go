@@ -13,56 +13,59 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
+func nicFields(customFields ...map[string]*schema.Schema) *schema.Resource {
+
+	fields := map[string]*schema.Schema{
+		"ip": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"mac": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"model": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"network_id": {
+			Type:     schema.TypeInt,
+			Required: true,
+		},
+		"network": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"physical_device": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"security_groups": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeInt,
+			},
+		},
+	}
+
+	for _, m := range customFields {
+		for k, v := range m {
+			fields[k] = v
+		}
+	}
+
+	return &schema.Resource{
+		Schema: fields,
+	}
+}
+
 func nicSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Computed:    true,
 		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"ip": {
-					Type:     schema.TypeString,
-					Computed: true,
-					Optional: true,
-				},
-				"mac": {
-					Type:     schema.TypeString,
-					Computed: true,
-					Optional: true,
-				},
-				"model": {
-					Type:     schema.TypeString,
-					Computed: true,
-					Optional: true,
-				},
-				"network_id": {
-					Type:     schema.TypeInt,
-					Required: true,
-				},
-				"network": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"physical_device": {
-					Type:     schema.TypeString,
-					Computed: true,
-					Optional: true,
-				},
-				"security_groups": {
-					Type:     schema.TypeList,
-					Optional: true,
-					Computed: true,
-					Elem: &schema.Schema{
-						Type: schema.TypeInt,
-					},
-				},
-				"nic_id": {
-					Type:     schema.TypeInt,
-					Computed: true,
-				},
-			},
-		},
+		Elem:        nicFields(),
 	}
 }
 
@@ -373,6 +376,35 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 }
 
+func flattenNIC(nic shared.NIC) map[string]interface{} {
+
+	sg := make([]int, 0)
+	ip, _ := nic.Get(shared.IP)
+	mac, _ := nic.Get(shared.MAC)
+	physicalDevice, _ := nic.GetStr("PHYDEV")
+	network, _ := nic.Get(shared.Network)
+
+	model, _ := nic.Get(shared.Model)
+	networkId, _ := nic.GetI(shared.NetworkID)
+	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
+
+	sgString := strings.Split(securityGroupsArray, ",")
+	for _, s := range sgString {
+		sgInt, _ := strconv.ParseInt(s, 10, 32)
+		sg = append(sg, int(sgInt))
+	}
+
+	return map[string]interface{}{
+		"ip":              ip,
+		"mac":             mac,
+		"network_id":      networkId,
+		"physical_device": physicalDevice,
+		"network":         network,
+		"model":           model,
+		"security_groups": sg,
+	}
+}
+
 func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bool) error {
 
 	var err error
@@ -397,9 +429,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 
 	// Disks
 	diskList := make([]interface{}, 0, 1)
-
-	// Nics
-	nicList := make([]interface{}, 0, 1)
 
 	// Set VM Group to resource
 	if vmgIdStr != "" {
@@ -458,47 +487,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 
 	if len(diskList) > 0 {
 		err = d.Set("disk", diskList)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Set Nics to resource
-	for i, nic := range vmTemplate.GetNICs() {
-		sg := make([]int, 0)
-		ip, _ := nic.Get(shared.IP)
-		mac, _ := nic.Get(shared.MAC)
-		physicalDevice, _ := nic.GetStr("PHYDEV")
-		network, _ := nic.Get(shared.Network)
-		nicId, _ := nic.ID()
-
-		model, _ := nic.Get(shared.Model)
-		networkId, _ := nic.GetI(shared.NetworkID)
-		securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
-
-		sgString := strings.Split(securityGroupsArray, ",")
-		for _, s := range sgString {
-			sgInt, _ := strconv.ParseInt(s, 10, 32)
-			sg = append(sg, int(sgInt))
-		}
-
-		nicList = append(nicList, map[string]interface{}{
-			"ip":              ip,
-			"mac":             mac,
-			"network_id":      networkId,
-			"physical_device": physicalDevice,
-			"network":         network,
-			"nic_id":          nicId,
-			"model":           model,
-			"security_groups": sg,
-		})
-		if i == 0 {
-			d.Set("ip", ip)
-		}
-	}
-
-	if len(nicList) > 0 {
-		err = d.Set("nic", nicList)
 		if err != nil {
 			return err
 		}

@@ -95,3 +95,89 @@ func vmDiskDetach(vmc *goca.VMController, timeout int, diskID int) error {
 
 	return nil
 }
+
+// vmNICAttach is an helper that synchronously attach a nic
+func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) error {
+
+	networkID, err := nicTpl.GetI(shared.NetworkID)
+	if err != nil {
+		return fmt.Errorf("NIC template doesn't have a network ID")
+	}
+
+	log.Printf("[DEBUG] Attach NIC to network (ID:%d)", networkID)
+
+	err = vmc.AttachNIC(nicTpl.String())
+	if err != nil {
+		return fmt.Errorf("can't attach network with ID:%d: %s\n", networkID, err)
+	}
+
+	// wait before checking NIC
+	_, err = waitForVMState(vmc, timeout, vmNICUpdateReadyStates...)
+	if err != nil {
+		return fmt.Errorf(
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)
+	}
+
+	// Check that NIC is attached
+	vm, err := vmc.Info(false)
+	if err != nil {
+		return err
+	}
+
+	for _, attachedNic := range vm.Template.GetNICs() {
+
+		attachedNicNetworkID, _ := attachedNic.GetI(shared.NetworkID)
+		if attachedNicNetworkID == networkID {
+			return nil
+		}
+	}
+
+	// If NIC not attached, retrieve error message
+	vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+
+	return fmt.Errorf("network ID %d: %s", networkID, vmerr)
+}
+
+// vmNICDetach is an helper that synchronously detach a NIC
+func vmNICDetach(vmc *goca.VMController, timeout int, nicID int) error {
+
+	log.Printf("[DEBUG] Detach NIC %d", nicID)
+
+	err := vmc.DetachNIC(nicID)
+	if err != nil {
+		return fmt.Errorf("can't detach NIC %d: %s\n", nicID, err)
+	}
+
+	// wait before checking NIC
+	_, err = waitForVMState(vmc, timeout, vmNICUpdateReadyStates...)
+	if err != nil {
+		return fmt.Errorf(
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)
+	}
+
+	// Check that NIC is detached
+	vm, err := vmc.Info(false)
+	if err != nil {
+		return err
+	}
+
+	detached := true
+	for _, attachedNIC := range vm.Template.GetNICs() {
+
+		attachedNICID, _ := attachedNIC.ID()
+		if attachedNICID == nicID {
+			detached = false
+			break
+		}
+
+	}
+
+	if !detached {
+		// If NIC still attached, retrieve error message
+		vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+
+		return fmt.Errorf("NIC %d: %s", nicID, vmerr)
+	}
+
+	return nil
+}

@@ -12,11 +12,15 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-var vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
+var (
+	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
+	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
+)
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {
 	return &schema.Resource{
@@ -124,7 +128,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"context":  contextSchema(),
 			"disk":     diskSchema(),
 			"graphics": graphicsSchema(),
-			"nic":      nicSchema(),
+			"nic":      nicVMSchema(),
 			"os":       osSchema(),
 			"vmgroup":  vmGroupSchema(),
 			"tags":     tagsSchema(),
@@ -139,6 +143,47 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
 		},
+	}
+}
+
+func nicVMFields() *schema.Resource {
+	return nicFields(map[string]*schema.Schema{
+		"nic_id": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+		"computed_ip": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_mac": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_model": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_physical_device": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_security_groups": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeInt,
+			},
+		},
+	})
+}
+
+func nicVMSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
+		Elem:        nicVMFields(),
 	}
 }
 
@@ -318,6 +363,11 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	err = flattenVMNIC(d, &vm.Template)
+	if err != nil {
+		return err
+	}
+
 	err = flattenTemplate(d, &vm.Template, false)
 	if err != nil {
 		return err
@@ -328,6 +378,79 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	return nil
+}
+
+// flattenVMNIC is similar to flattenNIC but deal with computed_* attributes
+// this is a temporary solution until we can use nested attributes marked computed and optional
+func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	// Set Nics to resource
+	nics := vmTemplate.GetNICs()
+	nicList := make([]interface{}, 0, len(nics))
+
+	for i, nic := range nics {
+
+		nicID, _ := nic.ID()
+		sg := make([]int, 0)
+		ip, _ := nic.Get(shared.IP)
+		mac, _ := nic.Get(shared.MAC)
+		physicalDevice, _ := nic.GetStr("PHYDEV")
+		network, _ := nic.Get(shared.Network)
+
+		model, _ := nic.Get(shared.Model)
+		networkId, _ := nic.GetI(shared.NetworkID)
+		securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
+
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
+
+		nicRead := map[string]interface{}{
+			"nic_id":                   nicID,
+			"network_id":               networkId,
+			"network":                  network,
+			"computed_ip":              ip,
+			"computed_mac":             mac,
+			"computed_physical_device": physicalDevice,
+			"computed_model":           model,
+			"computed_security_groups": sg,
+		}
+
+		// copy nic config values
+		nicsConfigs := d.Get("nic").([]interface{})
+		for j := 0; j < len(nicsConfigs); j++ {
+			nicConfig := nicsConfigs[j].(map[string]interface{})
+
+			if nicConfig["network_id"] != networkId {
+				continue
+			}
+
+			nicRead["ip"] = nicConfig["ip"]
+			nicRead["mac"] = nicConfig["mac"]
+			nicRead["model"] = nicConfig["model"]
+			nicRead["physical_device"] = nicConfig["physical_device"]
+			nicRead["security_groups"] = nicConfig["security_groups"]
+
+			break
+
+		}
+
+		nicList = append(nicList, nicRead)
+
+		if i == 0 {
+			d.Set("ip", nicRead["computed_ip"])
+		}
+	}
+
+	if len(nicList) > 0 {
+		err := d.Set("nic", nicList)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -461,6 +584,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 				return fmt.Errorf("vm disk detach: %s", err)
 
 			}
+			d.SetPartial("disk")
 		}
 
 		// get the list of disks to attach
@@ -479,6 +603,64 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			if err != nil {
 				return fmt.Errorf("vm disk attach: %s", err)
 			}
+			d.SetPartial("disk")
+		}
+	}
+
+	if d.HasChange("nic") {
+
+		log.Printf("[INFO] Update NIC configuration")
+
+		old, new := d.GetChange("nic")
+		attachedNicsCfg := old.([]interface{})
+		newNicsCfg := new.([]interface{})
+
+		timeout := d.Get("timeout").(int)
+
+		// get unique elements of each list of configs
+		toDetach, toAttach := diffListConfig(newNicsCfg, attachedNicsCfg,
+			nicVMFields(),
+			"network_id",
+			"ip",
+			"mac",
+			"security_groups",
+			"physical_device")
+
+		// Detach the nics
+		var nicID int
+		for _, nicIf := range toDetach {
+			nicConfig := nicIf.(map[string]interface{})
+
+			// retrieve the the nic_id
+			for _, d := range attachedNicsCfg {
+				cfg := d.(map[string]interface{})
+				if cfg["network_id"].(int) != nicConfig["network_id"].(int) {
+					continue
+				}
+				nicID = cfg["nic_id"].(int)
+				break
+			}
+
+			err := vmNICDetach(vmc, timeout, nicID)
+			if err != nil {
+				return fmt.Errorf("vm nic detach: %s", err)
+
+			}
+			d.SetPartial("nic")
+		}
+
+		// Attach the nics
+		for _, nicIf := range toAttach {
+			nicConfig := nicIf.(map[string]interface{})
+
+			nicTpl := makeNICVector(nicConfig)
+
+			err := vmNICAttach(vmc, timeout, nicTpl)
+			if err != nil {
+				return fmt.Errorf("vm nic attach: %s", err)
+			}
+
+			d.SetPartial("nic")
 		}
 	}
 
