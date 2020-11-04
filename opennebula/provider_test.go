@@ -31,6 +31,7 @@ func testAccPreCheck(t *testing.T) {
 	testEnvIsSet("OPENNEBULA_ENDPOINT", t)
 	testEnvIsSet("OPENNEBULA_USERNAME", t)
 	testEnvIsSet("OPENNEBULA_PASSWORD", t)
+	testEnvIsSet("OPENNEBULA_FLOW_ENDPOINT", t)
 }
 
 func testEnvIsSet(k string, t *testing.T) {

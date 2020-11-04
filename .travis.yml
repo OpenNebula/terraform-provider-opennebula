@@ -23,7 +23,7 @@ go:
 before_install:
   - wget -q -O- https://downloads.opennebula.io/repo/repo.key | sudo apt-key add -
   - sudo sh -c 'echo "deb https://downloads.opennebula.io/repo/5.12/Ubuntu/16.04 stable opennebula" > /etc/apt/sources.list.d/opennebula.list'
-  - sudo apt-get update && sudo apt-get install opennebula
+  - sudo apt-get update && sudo apt-get install opennebula opennebula-flow
   - source /home/travis/.rvm/scripts/rvm
   - rvm repair wrappers
   - rvmsudo /usr/share/one/install_gems --yes

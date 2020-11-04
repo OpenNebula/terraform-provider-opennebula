@@ -55,6 +55,8 @@ Current definition of these resources are supported:
 * Virtual Machine [onevm](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevm)
 * Virtual Network [onevnet](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevnet)
 * ACL [oneacl](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneacl)
+* Service [oneflow](http://docs.opennebula.io/5.12/integration/system_interfaces/appflow_api.html#service)
+* Service Template [onwflow-template](http://docs.opennebula.io/5.12/integration/system_interfaces/appflow_api.html#service-template)
 
 ## Limitations
 
