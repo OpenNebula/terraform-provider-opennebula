@@ -46,8 +46,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"template_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Default:     -1,
 				ForceNew:    true,
-				Description: "Id of the VM template to use",
+				Description: "Id of the VM template to use. Defaults to -1: no template used.",
 			},
 			"pending": {
 				Type:        schema.TypeBool,
@@ -204,9 +205,11 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	var err error
 	var vmID int
 
-	if v, ok := d.GetOk("template_id"); ok {
+	// If template_id is set to -1 it means not template id to instanciate. This is a workaround
+	// because GetOk helper from terraform considers 0 as a Zero() value from an integer.
+	if v := d.Get("template_id").(int); v != -1 {
 		// if template id is set, instantiate a VM from this template
-		tc := controller.Template(v.(int))
+		tc := controller.Template(v)
 
 		// retrieve the context of the template
 		tpl, err := tc.Info(true, false)
