@@ -41,6 +41,7 @@ Current definition of these data sources are supported:
 * Image
 * Security Groups
 * Template
+* User
 * Virtual Data Center
 * Virtual Network
 
@@ -51,6 +52,7 @@ Current definition of these resources are supported:
 * Image [oneimage](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneimage)
 * Security Groups [onesecgroup](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onesecgroup)
 * Template [onetemplate](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onetemplate)
+* User [oneuser](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneuser)
 * Virtual Data Center [onevdc](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevdc)
 * Virtual Machine [onevm](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevm)
 * Virtual Network [onevnet](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevnet)
@@ -64,7 +66,6 @@ Following OpenNebula Objects **are not** currently supported:
 * Accounting [oneacct](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneacct)
 * Hosts Management [onehost](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onehost)
 * Clusters [onecluster](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onecluster)
-* Users [oneuser](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneuser)
 * Datastore [onedatastore](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onedatastore)
 * Market [onemarket](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onemarket)
 * Market App [onemarketapp](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onemarketapp)
