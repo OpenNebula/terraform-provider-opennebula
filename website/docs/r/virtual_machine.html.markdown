@@ -130,6 +130,8 @@ Minimum 1 item. Maximum 8 items.
 
 Minimum 1 item. Maximum 8 items.
 
+A NIC update will be triggered in adding or removing a `nic` section, or by a modification of any of these parameters: `network_id`, `ip`, `mac`, `security_groups`, `physical_device`
+
 ### VM group parameters
 
 `vmgroup` supports the following arguments:
@@ -149,6 +151,17 @@ The following attribute are exported:
 * `gname` - Group Name which owns the virtual machine.
 * `state` - State of the virtual machine.
 * `lcmstate` - LCM State of the virtual machine.
+
+
+### NIC
+
+* `nic_id` - nic attachment identifier
+* `network` - network name
+* `computed_ip` - IP of the virtual machine on this network.
+* `computed_mac` - MAC of the virtual machine on this network.
+* `computed_model` - Nic model driver.
+* `computed_physical_device` - Physical device hosting the virtual network.
+* `computed_security_groups` - List of security group IDs to use on the virtual.
 
 ## Instantiate from a template
 
