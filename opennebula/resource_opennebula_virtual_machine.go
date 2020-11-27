@@ -126,7 +126,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"vcpu":     vcpuSchema(),
 			"memory":   memorySchema(),
 			"context":  contextSchema(),
-			"disk":     diskSchema(),
+			"disk":     diskVMSchema(),
 			"graphics": graphicsSchema(),
 			"nic":      nicVMSchema(),
 			"os":       osSchema(),
@@ -184,6 +184,36 @@ func nicVMSchema() *schema.Schema {
 		Optional:    true,
 		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
 		Elem:        nicVMFields(),
+	}
+}
+
+func diskVMFields() *schema.Resource {
+	return diskFields(map[string]*schema.Schema{
+		"disk_id": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+		"computed_size": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+		"computed_target": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_driver": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+	})
+}
+
+func diskVMSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Definition of disks assigned to the Virtual Machine",
+		Elem:        diskVMFields(),
 	}
 }
 
@@ -363,6 +393,11 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	err = flattenVMDisk(d, &vm.Template)
+	if err != nil {
+		return err
+	}
+
 	err = flattenVMNIC(d, &vm.Template)
 	if err != nil {
 		return err
@@ -376,6 +411,59 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	err = flattenTags(d, &vm.UserTemplate)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// flattenVMDisk is similar to flattenDisk but deal with computed_* attributes
+// this is a temporary solution until we can use nested attributes marked computed and optional
+func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	// Set disks to resource
+	disks := vmTemplate.GetDisks()
+	diskList := make([]interface{}, 0, len(disks))
+
+	for _, disk := range disks {
+
+		size, _ := disk.GetI(shared.Size)
+		driver, _ := disk.Get(shared.Driver)
+		target, _ := disk.Get(shared.TargetDisk)
+		imageID, _ := disk.GetI(shared.ImageID)
+		diskID, _ := disk.GetI(shared.DiskID)
+
+		diskRead := map[string]interface{}{
+			"image_id":        imageID,
+			"disk_id":         diskID,
+			"computed_size":   size,
+			"computed_target": target,
+			"computed_driver": driver,
+		}
+
+		// copy disk config values
+		diskConfigs := d.Get("disk").([]interface{})
+		for j := 0; j < len(diskConfigs); j++ {
+			diskConfig := diskConfigs[j].(map[string]interface{})
+
+			if diskConfig["image_id"] != imageID {
+				continue
+			}
+
+			diskRead["size"] = diskConfig["size"]
+			diskRead["target"] = diskConfig["target"]
+			diskRead["driver"] = diskConfig["driver"]
+			break
+
+		}
+
+		diskList = append(diskList, diskRead)
+	}
+
+	if len(diskList) > 0 {
+		err := d.Set("disk", diskList)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -564,20 +652,32 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		timeout := d.Get("timeout").(int)
 
-		// wait for the VM to be ready for attach operations
-		_, err = waitForVMState(vmc, timeout, vmDiskUpdateReadyStates...)
-		if err != nil {
-			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
-		}
-
-		// get the list of disks ID to detach
-		toDetach := disksConfigDiff(attachedDisksCfg, newDisksCfg)
+		// get unique elements of each list of configs
+		toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
+			diskVMFields(),
+			"image_id",
+			"target",
+			"driver")
 
 		// Detach the disks
-		for _, diskConfig := range toDetach {
+		var diskID int
+		for _, diskIf := range toDetach {
+			diskConfig := diskIf.(map[string]interface{})
 
-			diskID := diskConfig["disk_id"].(int)
+			imageID := diskConfig["image_id"].(int)
+			if imageID == -1 {
+				continue
+			}
+
+			// retrieve the the disk_id
+			for _, d := range attachedDisksCfg {
+				cfg := d.(map[string]interface{})
+				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
+					continue
+				}
+				diskID = cfg["disk_id"].(int)
+				break
+			}
 
 			err := vmDiskDetach(vmc, timeout, diskID)
 			if err != nil {
@@ -587,17 +687,16 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			d.SetPartial("disk")
 		}
 
-		// get the list of disks to attach
-		toAttach := disksConfigDiff(newDisksCfg, attachedDisksCfg)
-
 		// Attach the disks
-		for _, diskConfig := range toAttach {
+		for _, diskIf := range toAttach {
+			diskConfig := diskIf.(map[string]interface{})
 
 			imageID := diskConfig["image_id"].(int)
-			diskTpl := makeDiskVector(map[string]interface{}{
-				"image_id": imageID,
-				"target":   diskConfig["target"],
-			})
+			if imageID == -1 {
+				continue
+			}
+
+			diskTpl := makeDiskVector(diskConfig)
 
 			err := vmDiskAttach(vmc, timeout, diskTpl)
 			if err != nil {

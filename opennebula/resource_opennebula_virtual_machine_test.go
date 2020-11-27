@@ -124,6 +124,14 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccVirtualMachineTemplateConfigDiskTargetUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.target", "vdc"),
+				),
+			},
+			{
 				Config: testAccVirtualMachineTemplateConfigDiskDetached,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
@@ -501,6 +509,63 @@ resource "opennebula_image" "img1" {
 	  disk {
 		  image_id = opennebula_image.img1.id
 		  target = "vdb"
+	  }
+	
+	  timeout = 5
+}
+`
+
+var testAccVirtualMachineTemplateConfigDiskTargetUpdate = `
+
+resource "opennebula_image" "img1" {
+	name             = "image1"
+	type             = "DATABLOCK"
+	size             = "16"
+	datastore_id     = 1
+	persistent       = false
+	permissions      = "660"
+  }
+  
+  resource "opennebula_image" "img2" {
+	name             = "image2"
+	type             = "DATABLOCK"
+	size             = "8"
+	datastore_id     = 1
+	persistent       = false
+	permissions      = "660"
+  }
+  
+  resource "opennebula_virtual_machine" "test" {
+	  name        = "test-virtual_machine"
+	  group       = "oneadmin"
+	  permissions = "642"
+	  memory = 128
+	  cpu = 0.1
+	
+	  context = {
+		NETWORK  = "YES"
+		SET_HOSTNAME = "$NAME"
+	  }
+	
+	  graphics {
+		type   = "VNC"
+		listen = "0.0.0.0"
+		keymap = "en-us"
+	  }
+	
+	  os {
+		arch = "x86_64"
+		boot = ""
+	  }
+	
+	  tags = {
+		env = "prod"
+		customer = "test"
+	  }
+  
+	  disk {
+		  image_id = opennebula_image.img1.id
+		  target = "vdc"
 	  }
 	
 	  timeout = 5

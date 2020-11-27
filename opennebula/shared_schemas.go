@@ -69,39 +69,45 @@ func nicSchema() *schema.Schema {
 	}
 }
 
-func diskSchema() *schema.Schema {
+func diskFields(customFields ...map[string]*schema.Schema) *schema.Resource {
+	fields := map[string]*schema.Schema{
+		"image_id": {
+			Type:        schema.TypeInt,
+			Default:     -1,
+			Optional:    true,
+			Description: "Image Id  of the image to attach to the VM. Defaults to -1: no image attached.",
+		},
+		"size": {
+			Type:     schema.TypeInt,
+			Optional: true,
+		},
+		"target": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"driver": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+	}
+
+	for _, m := range customFields {
+		for k, v := range m {
+			fields[k] = v
+		}
+	}
+
+	return &schema.Resource{
+		Schema: fields,
+	}
+}
+
+func diskSchema(customFields ...map[string]*schema.Schema) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
 		Description: "Definition of disks assigned to the Virtual Machine",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"image_id": {
-					Type:        schema.TypeInt,
-					Default:     -1,
-					Optional:    true,
-					Description: "Image Id  of the image to attach to the VM. Defaults to -1: no image attached.",
-				},
-				"disk_id": {
-					Type:     schema.TypeInt,
-					Computed: true,
-				},
-				"size": {
-					Type:     schema.TypeInt,
-					Computed: true,
-				},
-				"target": {
-					Type:     schema.TypeString,
-					Computed: true,
-					Optional: true,
-				},
-				"driver": {
-					Type:     schema.TypeString,
-					Computed: true,
-					Optional: true,
-				},
-			},
-		},
+		Elem:        diskFields(),
 	}
 }
 
@@ -405,6 +411,21 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	}
 }
 
+func flattenDisk(disk shared.Disk) map[string]interface{} {
+
+	size, _ := disk.GetI(shared.Size)
+	driver, _ := disk.Get(shared.Driver)
+	target, _ := disk.Get(shared.TargetDisk)
+	imageID, _ := disk.GetI(shared.ImageID)
+
+	return map[string]interface{}{
+		"image_id": imageID,
+		"size":     size,
+		"target":   target,
+		"driver":   driver,
+	}
+}
+
 func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bool) error {
 
 	var err error
@@ -426,9 +447,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
 	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
-
-	// Disks
-	diskList := make([]interface{}, 0, 1)
 
 	// Set VM Group to resource
 	if vmgIdStr != "" {
@@ -463,30 +481,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			"keymap": keymap,
 		})
 		err = d.Set("graphics", graphMap)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Set Disks to Resource
-	for _, disk := range vmTemplate.GetDisks() {
-		size, _ := disk.GetI(shared.Size)
-		driver, _ := disk.Get(shared.Driver)
-		target, _ := disk.Get(shared.TargetDisk)
-		imageID, _ := disk.GetI(shared.ImageID)
-		diskID, _ := disk.GetI(shared.DiskID)
-
-		diskList = append(diskList, map[string]interface{}{
-			"image_id": imageID,
-			"disk_id":  diskID,
-			"size":     size,
-			"target":   target,
-			"driver":   driver,
-		})
-	}
-
-	if len(diskList) > 0 {
-		err = d.Set("disk", diskList)
 		if err != nil {
 			return err
 		}

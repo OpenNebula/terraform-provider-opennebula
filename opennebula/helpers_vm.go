@@ -15,7 +15,7 @@ func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) err
 
 	imageID, err := diskTpl.GetI(shared.ImageID)
 	if err != nil {
-		return fmt.Errorf("disk template doesn't have and image ID")
+		return fmt.Errorf("disk template doesn't have an image ID")
 	}
 
 	log.Printf("[DEBUG] Attach image (ID:%d) as disk", imageID)

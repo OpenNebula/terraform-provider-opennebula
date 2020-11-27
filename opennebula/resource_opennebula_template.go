@@ -255,6 +255,22 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	// Set Disks to resource
+	disks := tpl.Template.GetDisks()
+	diskList := make([]interface{}, 0, len(disks))
+
+	// Set Disks to resource
+	for _, disk := range disks {
+		diskList = append(diskList, flattenDisk(disk))
+	}
+
+	if len(diskList) > 0 {
+		err = d.Set("disk", diskList)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = flattenTemplate(d, &tpl.Template, true)
 	if err != nil {
 		return err
