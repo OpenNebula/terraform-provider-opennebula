@@ -10,39 +10,6 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-// return disk configuration with image_id that only appear on refDisks side
-func disksConfigDiff(refDisks, disks []interface{}) []map[string]interface{} {
-
-	// get the list of disks ID to detach
-	diffConfig := make([]map[string]interface{}, 0)
-
-	for _, refDisk := range refDisks {
-		refDiskConfig := refDisk.(map[string]interface{})
-		refImageID := refDiskConfig["image_id"].(int)
-		// If the disk exists with Default ID, skip it
-		if refImageID < 0 {
-			continue
-		}
-
-		diff := true
-		for _, disk := range disks {
-			diskConfig := disk.(map[string]interface{})
-			diskImageID := diskConfig["image_id"].(int)
-
-			if refImageID == diskImageID {
-				diff = false
-				break
-			}
-		}
-
-		if diff {
-			diffConfig = append(diffConfig, refDiskConfig)
-		}
-	}
-
-	return diffConfig
-}
-
 // vmDiskAttach is an helper that synchronously attach a disk
 func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) error {
 
