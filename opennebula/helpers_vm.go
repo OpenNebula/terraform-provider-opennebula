@@ -96,6 +96,44 @@ func vmDiskDetach(vmc *goca.VMController, timeout int, diskID int) error {
 	return nil
 }
 
+// vmDiskResize is an helper that synchronously resize a disk
+func vmDiskResize(vmc *goca.VMController, timeout, diskID, newsize int) error {
+
+	vmdc := vmc.Disk(diskID)
+
+	err := vmdc.Resize(fmt.Sprintf("%d", newsize))
+	if err != nil {
+		return fmt.Errorf("can't resize image with Disk ID:%d: %s\n", diskID, err)
+	}
+
+	// wait before checking disk
+	_, err = waitForVMState(vmc, timeout, vmDiskResizeReadyStates...)
+	if err != nil {
+		return fmt.Errorf(
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+	}
+
+	// Check that disk has new size
+	vm, err := vmc.Info(false)
+	if err != nil {
+		return err
+	}
+
+	for _, disks := range vm.Template.GetDisks() {
+
+		vmDiskID, _ := disks.GetI(shared.DiskID)
+		diskSize, _ := disks.GetI(shared.Size)
+		if vmDiskID == diskID && diskSize == newsize {
+			return nil
+		}
+	}
+
+	// If error occured, retrieve error message
+	vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+
+	return fmt.Errorf("image %d: %s", diskID, vmerr)
+}
+
 // vmNICAttach is an helper that synchronously attach a nic
 func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) error {
 

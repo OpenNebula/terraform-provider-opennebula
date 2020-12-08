@@ -19,6 +19,7 @@ import (
 
 var (
 	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
+	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
 )
 
@@ -654,6 +655,12 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"target",
 			"driver")
 
+		// get disks to resize
+		_, toResize := diffListConfig(newDisksCfg, attachedDisksCfg,
+			diskVMFields(),
+			"image_id",
+			"size")
+
 		// Detach the disks
 		var diskID int
 		for _, diskIf := range toDetach {
@@ -695,6 +702,32 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			err := vmDiskAttach(vmc, timeout, diskTpl)
 			if err != nil {
 				return fmt.Errorf("vm disk attach: %s", err)
+			}
+		}
+
+		// Resize disks
+		for _, diskIf := range toResize {
+			diskConfig := diskIf.(map[string]interface{})
+
+			imageID := diskConfig["image_id"].(int)
+			if imageID == -1 {
+				continue
+			}
+
+			// retrieve the the disk_id
+			for _, d := range attachedDisksCfg {
+				cfg := d.(map[string]interface{})
+				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
+					continue
+				}
+				diskID = cfg["disk_id"].(int)
+
+				if diskConfig["size"].(int) > cfg["computed_size"].(int) {
+					err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
+					if err != nil {
+						return fmt.Errorf("vm disk resize: %s", err)
+					}
+				}
 			}
 		}
 	}
