@@ -117,6 +117,8 @@ The following arguments are supported:
 
 Minimum 1 item. Maximum 8 items.
 
+A disk update will be triggered in adding or removing a `disk` section, or by a modification of any of these parameters: `image_id`, `target`, `driver`
+
 ### NIC parameters
 
 `nic` supports the following arguments
@@ -129,6 +131,8 @@ Minimum 1 item. Maximum 8 items.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
 
 Minimum 1 item. Maximum 8 items.
+
+A NIC update will be triggered in adding or removing a `nic` section, or by a modification of any of these parameters: `network_id`, `ip`, `mac`, `security_groups`, `physical_device`
 
 ### VM group parameters
 
@@ -149,6 +153,24 @@ The following attribute are exported:
 * `gname` - Group Name which owns the virtual machine.
 * `state` - State of the virtual machine.
 * `lcmstate` - LCM State of the virtual machine.
+
+
+### NIC
+
+* `nic_id` - nic attachment identifier
+* `network` - network name
+* `computed_ip` - IP of the virtual machine on this network.
+* `computed_mac` - MAC of the virtual machine on this network.
+* `computed_model` - Nic model driver.
+* `computed_physical_device` - Physical device hosting the virtual network.
+* `computed_security_groups` - List of security group IDs to use on the virtual.
+
+### Disk
+
+* `disk_id` - disk attachment identifier
+* `computed_size` - Size (in MB) of the image attached to the virtual machine. Not possible to change a cloned image size.
+* `computed_target` - Target name device on the virtual machine. Depends of the image `dev_prefix`.
+* `computed_driver` - OpenNebula image driver.
 
 ## Instantiate from a template
 

@@ -245,7 +245,6 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"hold_ips": {
 				Type:          schema.TypeList,
 				Optional:      true,
-				Computed:      true,
 				Description:   "List of IPs to be held the VNET",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 				Elem: &schema.Schema{

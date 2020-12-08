@@ -12,11 +12,15 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-var vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
+var (
+	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
+	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
+)
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {
 	return &schema.Resource{
@@ -122,9 +126,9 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"vcpu":     vcpuSchema(),
 			"memory":   memorySchema(),
 			"context":  contextSchema(),
-			"disk":     diskSchema(),
+			"disk":     diskVMSchema(),
 			"graphics": graphicsSchema(),
-			"nic":      nicSchema(),
+			"nic":      nicVMSchema(),
 			"os":       osSchema(),
 			"vmgroup":  vmGroupSchema(),
 			"tags":     tagsSchema(),
@@ -139,6 +143,77 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
 		},
+	}
+}
+
+func nicVMFields() *schema.Resource {
+	return nicFields(map[string]*schema.Schema{
+		"nic_id": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+		"computed_ip": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_mac": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_model": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_physical_device": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_security_groups": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeInt,
+			},
+		},
+	})
+}
+
+func nicVMSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
+		Elem:        nicVMFields(),
+	}
+}
+
+func diskVMFields() *schema.Resource {
+	return diskFields(map[string]*schema.Schema{
+		"disk_id": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+		"computed_size": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+		"computed_target": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_driver": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+	})
+}
+
+func diskVMSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Definition of disks assigned to the Virtual Machine",
+		Elem:        diskVMFields(),
 	}
 }
 
@@ -318,6 +393,16 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	err = flattenVMDisk(d, &vm.Template)
+	if err != nil {
+		return err
+	}
+
+	err = flattenVMNIC(d, &vm.Template)
+	if err != nil {
+		return err
+	}
+
 	err = flattenTemplate(d, &vm.Template, false)
 	if err != nil {
 		return err
@@ -328,6 +413,132 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	return nil
+}
+
+// flattenVMDisk is similar to flattenDisk but deal with computed_* attributes
+// this is a temporary solution until we can use nested attributes marked computed and optional
+func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	// Set disks to resource
+	disks := vmTemplate.GetDisks()
+	diskList := make([]interface{}, 0, len(disks))
+
+	for _, disk := range disks {
+
+		size, _ := disk.GetI(shared.Size)
+		driver, _ := disk.Get(shared.Driver)
+		target, _ := disk.Get(shared.TargetDisk)
+		imageID, _ := disk.GetI(shared.ImageID)
+		diskID, _ := disk.GetI(shared.DiskID)
+
+		diskRead := map[string]interface{}{
+			"image_id":        imageID,
+			"disk_id":         diskID,
+			"computed_size":   size,
+			"computed_target": target,
+			"computed_driver": driver,
+		}
+
+		// copy disk config values
+		diskConfigs := d.Get("disk").([]interface{})
+		for j := 0; j < len(diskConfigs); j++ {
+			diskConfig := diskConfigs[j].(map[string]interface{})
+
+			if diskConfig["image_id"] != imageID {
+				continue
+			}
+
+			diskRead["size"] = diskConfig["size"]
+			diskRead["target"] = diskConfig["target"]
+			diskRead["driver"] = diskConfig["driver"]
+			break
+
+		}
+
+		diskList = append(diskList, diskRead)
+	}
+
+	if len(diskList) > 0 {
+		err := d.Set("disk", diskList)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// flattenVMNIC is similar to flattenNIC but deal with computed_* attributes
+// this is a temporary solution until we can use nested attributes marked computed and optional
+func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	// Set Nics to resource
+	nics := vmTemplate.GetNICs()
+	nicList := make([]interface{}, 0, len(nics))
+
+	for i, nic := range nics {
+
+		nicID, _ := nic.ID()
+		sg := make([]int, 0)
+		ip, _ := nic.Get(shared.IP)
+		mac, _ := nic.Get(shared.MAC)
+		physicalDevice, _ := nic.GetStr("PHYDEV")
+		network, _ := nic.Get(shared.Network)
+
+		model, _ := nic.Get(shared.Model)
+		networkId, _ := nic.GetI(shared.NetworkID)
+		securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
+
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
+
+		nicRead := map[string]interface{}{
+			"nic_id":                   nicID,
+			"network_id":               networkId,
+			"network":                  network,
+			"computed_ip":              ip,
+			"computed_mac":             mac,
+			"computed_physical_device": physicalDevice,
+			"computed_model":           model,
+			"computed_security_groups": sg,
+		}
+
+		// copy nic config values
+		nicsConfigs := d.Get("nic").([]interface{})
+		for j := 0; j < len(nicsConfigs); j++ {
+			nicConfig := nicsConfigs[j].(map[string]interface{})
+
+			if nicConfig["network_id"] != networkId {
+				continue
+			}
+
+			nicRead["ip"] = nicConfig["ip"]
+			nicRead["mac"] = nicConfig["mac"]
+			nicRead["model"] = nicConfig["model"]
+			nicRead["physical_device"] = nicConfig["physical_device"]
+			nicRead["security_groups"] = nicConfig["security_groups"]
+
+			break
+
+		}
+
+		nicList = append(nicList, nicRead)
+
+		if i == 0 {
+			d.Set("ip", nicRead["computed_ip"])
+		}
+	}
+
+	if len(nicList) > 0 {
+		err := d.Set("nic", nicList)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -371,9 +582,6 @@ func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interfa
 
 func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
-	// Enable partial state mode
-	d.Partial(true)
-
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
 	if err != nil {
@@ -395,7 +603,6 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		// TODO: fix it after 5.10 release
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		vm, err := vmc.Info(false)
-		d.SetPartial("name")
 		log.Printf("[INFO] Successfully updated name (%s) for VM ID %x\n", vm.Name, vm.ID)
 	}
 
@@ -406,7 +613,6 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 				return err
 			}
 		}
-		d.SetPartial("permissions")
 		log.Printf("[INFO] Successfully updated Permissions VM %s\n", vm.Name)
 	}
 
@@ -441,20 +647,32 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		timeout := d.Get("timeout").(int)
 
-		// wait for the VM to be ready for attach operations
-		_, err = waitForVMState(vmc, timeout, vmDiskUpdateReadyStates...)
-		if err != nil {
-			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
-		}
-
-		// get the list of disks ID to detach
-		toDetach := disksConfigDiff(attachedDisksCfg, newDisksCfg)
+		// get unique elements of each list of configs
+		toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
+			diskVMFields(),
+			"image_id",
+			"target",
+			"driver")
 
 		// Detach the disks
-		for _, diskConfig := range toDetach {
+		var diskID int
+		for _, diskIf := range toDetach {
+			diskConfig := diskIf.(map[string]interface{})
 
-			diskID := diskConfig["disk_id"].(int)
+			imageID := diskConfig["image_id"].(int)
+			if imageID == -1 {
+				continue
+			}
+
+			// retrieve the the disk_id
+			for _, d := range attachedDisksCfg {
+				cfg := d.(map[string]interface{})
+				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
+					continue
+				}
+				diskID = cfg["disk_id"].(int)
+				break
+			}
 
 			err := vmDiskDetach(vmc, timeout, diskID)
 			if err != nil {
@@ -463,17 +681,16 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			}
 		}
 
-		// get the list of disks to attach
-		toAttach := disksConfigDiff(newDisksCfg, attachedDisksCfg)
-
 		// Attach the disks
-		for _, diskConfig := range toAttach {
+		for _, diskIf := range toAttach {
+			diskConfig := diskIf.(map[string]interface{})
 
 			imageID := diskConfig["image_id"].(int)
-			diskTpl := makeDiskVector(map[string]interface{}{
-				"image_id": imageID,
-				"target":   diskConfig["target"],
-			})
+			if imageID == -1 {
+				continue
+			}
+
+			diskTpl := makeDiskVector(diskConfig)
 
 			err := vmDiskAttach(vmc, timeout, diskTpl)
 			if err != nil {
@@ -482,9 +699,59 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	// We succeeded, disable partial mode. This causes Terraform to save
-	// save all fields again.
-	d.Partial(false)
+	if d.HasChange("nic") {
+
+		log.Printf("[INFO] Update NIC configuration")
+
+		old, new := d.GetChange("nic")
+		attachedNicsCfg := old.([]interface{})
+		newNicsCfg := new.([]interface{})
+
+		timeout := d.Get("timeout").(int)
+
+		// get unique elements of each list of configs
+		toDetach, toAttach := diffListConfig(newNicsCfg, attachedNicsCfg,
+			nicVMFields(),
+			"network_id",
+			"ip",
+			"mac",
+			"security_groups",
+			"physical_device")
+
+		// Detach the nics
+		var nicID int
+		for _, nicIf := range toDetach {
+			nicConfig := nicIf.(map[string]interface{})
+
+			// retrieve the the nic_id
+			for _, d := range attachedNicsCfg {
+				cfg := d.(map[string]interface{})
+				if cfg["network_id"].(int) != nicConfig["network_id"].(int) {
+					continue
+				}
+				nicID = cfg["nic_id"].(int)
+				break
+			}
+
+			err := vmNICDetach(vmc, timeout, nicID)
+			if err != nil {
+				return fmt.Errorf("vm nic detach: %s", err)
+
+			}
+		}
+
+		// Attach the nics
+		for _, nicIf := range toAttach {
+			nicConfig := nicIf.(map[string]interface{})
+
+			nicTpl := makeNICVector(nicConfig)
+
+			err := vmNICAttach(vmc, timeout, nicTpl)
+			if err != nil {
+				return fmt.Errorf("vm nic attach: %s", err)
+			}
+		}
+	}
 
 	return nil
 }

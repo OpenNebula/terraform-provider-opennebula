@@ -7,6 +7,8 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/errors"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func inArray(val string, array []string) (index int) {
@@ -91,4 +93,39 @@ func NoExists(err error) bool {
 	}
 
 	return false
+}
+
+// returns the diff of two lists of schemas, making diff on attrNames only
+func diffListConfig(refVecs, vecs []interface{}, s *schema.Resource, attrNames ...string) ([]interface{}, []interface{}) {
+
+	refSet := schema.NewSet(schema.HashResource(s), []interface{}{})
+	for _, iface := range refVecs {
+		sc := iface.(map[string]interface{})
+
+		// keep only attrNames values
+		filteredSc := make(map[string]interface{})
+		for _, name := range attrNames {
+			filteredSc[name] = sc[name]
+		}
+
+		refSet.Add(filteredSc)
+	}
+
+	set := schema.NewSet(schema.HashResource(s), []interface{}{})
+	for _, iface := range vecs {
+		sc := iface.(map[string]interface{})
+
+		// keep only attrNames values
+		filteredSc := make(map[string]interface{})
+		for _, name := range attrNames {
+			filteredSc[name] = sc[name]
+		}
+
+		set.Add(filteredSc)
+	}
+
+	pSet := refSet.Difference(set)
+	mSet := set.Difference(refSet)
+
+	return mSet.List(), pSet.List()
 }
