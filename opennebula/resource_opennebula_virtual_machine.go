@@ -753,7 +753,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	return nil
+	return resourceOpennebulaVirtualMachineRead(d, meta)
 }
 
 func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
