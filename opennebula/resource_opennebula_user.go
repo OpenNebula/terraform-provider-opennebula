@@ -20,6 +20,9 @@ func resourceOpennebulaUser() *schema.Resource {
 		Read:   resourceOpennebulaUserRead,
 		Update: resourceOpennebulaUserUpdate,
 		Delete: resourceOpennebulaUserDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {

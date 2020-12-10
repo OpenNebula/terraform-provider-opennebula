@@ -34,6 +34,9 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 		Read:   resourceOpennebulaVirtualDataCenterRead,
 		Update: resourceOpennebulaVirtualDataCenterUpdate,
 		Delete: resourceOpennebulaVirtualDataCenterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
