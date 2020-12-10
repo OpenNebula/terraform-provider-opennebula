@@ -16,6 +16,9 @@ func resourceOpennebulaGroup() *schema.Resource {
 		Read:   resourceOpennebulaGroupRead,
 		Update: resourceOpennebulaGroupUpdate,
 		Delete: resourceOpennebulaGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
