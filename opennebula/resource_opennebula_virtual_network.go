@@ -360,7 +360,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 	controller := meta.(*goca.Controller)
 	var vnc *goca.VirtualNetworkController
 
-	//VNET reservation
+	// VNET reservation
 	if rvnet, ok := d.GetOk("reservation_vnet"); ok {
 		reservation_vnet := rvnet.(int)
 		reservation_name := d.Get("name").(string)
@@ -377,6 +377,10 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 
 		// Get VNet Controller to reserve from
 		vnc = controller.VirtualNetwork(reservation_vnet)
+		// Call .Info to check if the Network exists
+		if _, err := vnc.Info(false); err != nil {
+			return err
+		}
 
 		rID, err := vnc.Reserve(fmt.Sprintf(reservation_string, reservation_size, reservation_name))
 		if err != nil {

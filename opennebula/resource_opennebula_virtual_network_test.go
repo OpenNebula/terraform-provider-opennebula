@@ -3,6 +3,7 @@ package opennebula
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestAccVirtualNetwork(t *testing.T) {
+	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network \\[25\\]")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -120,6 +122,10 @@ func TestAccVirtualNetwork(t *testing.T) {
 						GroupM: 1,
 					}),
 				),
+			},
+			{
+				Config:      testAccVirtualNetworkReservationNoNetworkConfig,
+				ExpectError: networkNotFoundErr,
 			},
 		},
 	})
@@ -315,6 +321,17 @@ resource "opennebula_virtual_network" "reservation" {
     name = "terravnetres"
     description = "my terraform vnet"
     reservation_vnet = "${opennebula_virtual_network.test.id}"
+    reservation_size = 1
+    security_groups = [0]
+    permissions = 660
+}
+`
+
+var testAccVirtualNetworkReservationNoNetworkConfig = `
+resource "opennebula_virtual_network" "non-existing-reservation" {
+    name = "terravnetreswqerwer"
+    description = "my terraform vnet"
+    reservation_vnet = 25
     reservation_size = 1
     security_groups = [0]
     permissions = 660
