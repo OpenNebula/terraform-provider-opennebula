@@ -208,8 +208,8 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		networkQuotas = append(networkQuotas, n)
 	}
 	// Get VM quotas
-	vm := make(map[string]interface{})
 	if quotas.VM != nil {
+		vm := make(map[string]interface{})
 		vm["cpu"] = quotas.VM.CPU
 		vm["memory"] = quotas.VM.Memory
 		vm["running_cpu"] = quotas.VM.RunningCPU
