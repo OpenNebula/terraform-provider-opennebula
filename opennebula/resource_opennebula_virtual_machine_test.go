@@ -129,6 +129,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "32"),
 				),
 			},
 			{
@@ -427,23 +428,23 @@ resource "opennebula_virtual_machine" "test" {
 	permissions = "642"
 	memory = 128
 	cpu = 0.1
-  
+
 	context = {
 	  NETWORK  = "YES"
 	  SET_HOSTNAME = "$NAME"
 	}
-  
+
 	graphics {
 	  type   = "VNC"
 	  listen = "0.0.0.0"
 	  keymap = "en-us"
 	}
-  
+
 	os {
 	  arch = "x86_64"
 	  boot = ""
 	}
-  
+
 	tags = {
 	  env = "prod"
 	  customer = "test"
@@ -453,7 +454,7 @@ resource "opennebula_virtual_machine" "test" {
 		image_id = opennebula_image.img2.id
 		target = "vda"
 	}
-  
+
 	timeout = 5
 }
 `
@@ -468,7 +469,7 @@ resource "opennebula_image" "img1" {
 	persistent       = false
 	permissions      = "660"
   }
-  
+
   resource "opennebula_image" "img2" {
 	name             = "image2"
 	type             = "DATABLOCK"
@@ -477,7 +478,7 @@ resource "opennebula_image" "img1" {
 	persistent       = false
 	permissions      = "660"
   }
-  
+
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
 	  group       = "oneadmin"
@@ -505,7 +506,7 @@ resource "opennebula_image" "img1" {
 		env = "prod"
 		customer = "test"
 	  }
-  
+
 	  disk {
 		  image_id = opennebula_image.img1.id
 		  target = "vdb"
@@ -525,7 +526,7 @@ resource "opennebula_image" "img1" {
 	persistent       = false
 	permissions      = "660"
   }
-  
+
   resource "opennebula_image" "img2" {
 	name             = "image2"
 	type             = "DATABLOCK"
@@ -534,7 +535,7 @@ resource "opennebula_image" "img1" {
 	persistent       = false
 	permissions      = "660"
   }
-  
+
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
 	  group       = "oneadmin"
@@ -562,10 +563,11 @@ resource "opennebula_image" "img1" {
 		env = "prod"
 		customer = "test"
 	  }
-  
+
 	  disk {
 		  image_id = opennebula_image.img1.id
 		  target = "vdc"
+          size = 32
 	  }
 	
 	  timeout = 5
@@ -598,28 +600,28 @@ resource "opennebula_virtual_machine" "test" {
 	permissions = "642"
 	memory = 128
 	cpu = 0.1
-  
+
 	context = {
 	  NETWORK  = "YES"
 	  SET_HOSTNAME = "$NAME"
 	}
-  
+
 	graphics {
 	  type   = "VNC"
 	  listen = "0.0.0.0"
 	  keymap = "en-us"
 	}
-  
+
 	os {
 	  arch = "x86_64"
 	  boot = ""
 	}
-  
+
 	tags = {
 	  env = "prod"
 	  customer = "test"
 	}
-  
+
 	timeout = 5
 }
 `
@@ -665,23 +667,23 @@ resource "opennebula_virtual_machine" "test" {
 	permissions = "642"
 	memory = 128
 	cpu = 0.1
-  
+
 	context = {
 	  NETWORK  = "YES"
 	  SET_HOSTNAME = "$NAME"
 	}
-  
+
 	graphics {
 	  type   = "VNC"
 	  listen = "0.0.0.0"
 	  keymap = "en-us"
 	}
-  
+
 	os {
 	  arch = "x86_64"
 	  boot = ""
 	}
-  
+
 	tags = {
 	  env = "prod"
 	  customer = "test"
@@ -691,7 +693,7 @@ resource "opennebula_virtual_machine" "test" {
 		network_id = opennebula_virtual_network.net1.id
 		ip = "172.16.100.131"
 	}
-  
+
 	timeout = 5
 }
 `
@@ -757,7 +759,7 @@ resource "opennebula_virtual_network" "net1" {
 		env = "prod"
 		customer = "test"
 	  }
-  
+
 	  nic {
 		  network_id = opennebula_virtual_network.net2.id
 		  ip = "172.16.100.111"
@@ -828,7 +830,7 @@ resource "opennebula_virtual_network" "net1" {
 		env = "prod"
 		customer = "test"
 	  }
-  
+
 	  nic {
 		  network_id = opennebula_virtual_network.net2.id
 		  ip = "172.16.100.112"
@@ -878,28 +880,28 @@ resource "opennebula_virtual_machine" "test" {
 	permissions = "642"
 	memory = 128
 	cpu = 0.1
-  
+
 	context = {
 	  NETWORK  = "YES"
 	  SET_HOSTNAME = "$NAME"
 	}
-  
+
 	graphics {
 	  type   = "VNC"
 	  listen = "0.0.0.0"
 	  keymap = "en-us"
 	}
-  
+
 	os {
 	  arch = "x86_64"
 	  boot = ""
 	}
-  
+
 	tags = {
 	  env = "prod"
 	  customer = "test"
 	}
-  
+
 	timeout = 5
 }
 `

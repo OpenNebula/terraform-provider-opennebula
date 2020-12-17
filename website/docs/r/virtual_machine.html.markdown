@@ -111,7 +111,7 @@ The following arguments are supported:
 `disk` supports the following arguments
 
 * `image_id` - (Optional) ID of the image to attach to the virtual machine. Defaults to -1 if not set: this skip Image attchment to the VM.
-* `size` - (Optional) Size (in MB) of the image attached to the virtual machine. Not possible to change a cloned image size.
+* `size` - (Optional) Size (in MB) of the image. If set, it will resize the image disk to the targeted size. The size must be greater than the current one.
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `driver` - (Optional) OpenNebula image driver.
 
