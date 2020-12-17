@@ -9,6 +9,13 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
+const (
+	F0 uint8 = 1
+	F1       = 2
+	F2       = 4
+	F3       = 8
+)
+
 func quotasSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeSet,
@@ -144,8 +151,12 @@ func generateQuotas(d *schema.ResourceData) string {
 		datastoreMap := datastore[i].(map[string]interface{})
 
 		datastoreTpl.AddPair("ID", datastoreMap["id"].(int))
-		datastoreTpl.AddPair("IMAGES", datastoreMap["images"].(int))
-		datastoreTpl.AddPair("SIZE", datastoreMap["size"].(int))
+		if datastoreMap["images"].(int) > 0 {
+			datastoreTpl.AddPair("IMAGES", datastoreMap["images"].(int))
+		}
+		if datastoreMap["size"].(int) > 0 {
+			datastoreTpl.AddPair("SIZE", datastoreMap["size"].(int))
+		}
 	}
 
 	for i := 0; i < len(network); i++ {
@@ -154,7 +165,10 @@ func generateQuotas(d *schema.ResourceData) string {
 		networkMap := network[i].(map[string]interface{})
 
 		networkTpl.AddPair("ID", networkMap["id"].(int))
-		networkTpl.AddPair("LEASES", networkMap["leases"].(int))
+
+		if networkMap["leases"].(int) > 0 {
+			networkTpl.AddPair("LEASES", networkMap["leases"].(int))
+		}
 	}
 
 	for i := 0; i < len(image); i++ {
@@ -163,7 +177,10 @@ func generateQuotas(d *schema.ResourceData) string {
 		imageMap := image[i].(map[string]interface{})
 
 		imageTpl.AddPair("ID", imageMap["id"].(int))
-		imageTpl.AddPair("RVMS", imageMap["running_vms"].(int))
+
+		if imageMap["running_vms"].(int) > 0 {
+			imageTpl.AddPair("RVMS", imageMap["running_vms"].(int))
+		}
 	}
 
 	if len(vm) > 0 {
@@ -171,13 +188,27 @@ func generateQuotas(d *schema.ResourceData) string {
 
 		vmTpl := tpl.AddVector("VM")
 
-		vmTpl.AddPair("CPU", float32(vmMap["cpu"].(float64)))
-		vmTpl.AddPair("MEMORY", vmMap["memory"].(int))
-		vmTpl.AddPair("RUNNING_CPU", float32(vmMap["running_cpu"].(float64)))
-		vmTpl.AddPair("RUNNING_MEMORY", vmMap["running_memory"].(int))
-		vmTpl.AddPair("RUNNING_VMS", vmMap["running_vms"].(int))
-		vmTpl.AddPair("SYSTEM_DISK_SIZE", vmMap["system_disk_size"].(int))
-		vmTpl.AddPair("VMS", vmMap["vms"].(int))
+		if vmMap["cpu"].(float64) > 0.0 {
+			vmTpl.AddPair("CPU", float32(vmMap["cpu"].(float64)))
+		}
+		if vmMap["memory"].(int) > 0 {
+			vmTpl.AddPair("MEMORY", vmMap["memory"].(int))
+		}
+		if vmMap["running_cpu"].(float64) > 0.0 {
+			vmTpl.AddPair("RUNNING_CPU", float32(vmMap["running_cpu"].(float64)))
+		}
+		if vmMap["running_memory"].(int) > 0 {
+			vmTpl.AddPair("RUNNING_MEMORY", vmMap["running_memory"].(int))
+		}
+		if vmMap["running_vms"].(int) > 0 {
+			vmTpl.AddPair("RUNNING_VMS", vmMap["running_vms"].(int))
+		}
+		if vmMap["system_disk_size"].(int) > 0 {
+			vmTpl.AddPair("SYSTEM_DISK_SIZE", vmMap["system_disk_size"].(int))
+		}
+		if vmMap["vms"].(int) > 0 {
+			vmTpl.AddPair("VMS", vmMap["vms"].(int))
+		}
 	}
 
 	tplStr := tpl.String()
@@ -191,48 +222,93 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 	var imageQuotas []map[string]interface{}
 	var vmQuotas []map[string]interface{}
 	var networkQuotas []map[string]interface{}
+	var q uint8
+	q = 0
 
 	// Get datastore quotas
 	for _, qds := range quotas.Datastore {
 		ds := make(map[string]interface{})
 		ds["id"] = qds.ID
-		ds["images"] = qds.Images
-		ds["size"] = qds.Size
+		if qds.Images > 0 {
+			ds["images"] = qds.Images
+		}
+		if qds.Size > 0 {
+			ds["size"] = qds.Size
+		}
 		datastoreQuotas = append(datastoreQuotas, ds)
+		q = q | F0
 	}
 	// Get network quotas
 	for _, qn := range quotas.Network {
 		n := make(map[string]interface{})
 		n["id"] = qn.ID
-		n["leases"] = qn.Leases
+		if qn.Leases > 0 {
+			n["leases"] = qn.Leases
+		}
 		networkQuotas = append(networkQuotas, n)
+		q = q | F1
 	}
 	// Get VM quotas
 	if quotas.VM != nil {
 		vm := make(map[string]interface{})
-		vm["cpu"] = quotas.VM.CPU
-		vm["memory"] = quotas.VM.Memory
-		vm["running_cpu"] = quotas.VM.RunningCPU
-		vm["running_memory"] = quotas.VM.RunningMemory
-		vm["vms"] = quotas.VM.VMs
-		vm["running_vms"] = quotas.VM.RunningVMs
-		vm["system_disk_size"] = quotas.VM.SystemDiskSize
+		if quotas.VM.CPU > 0.0 {
+			vm["cpu"] = quotas.VM.CPU
+		}
+		if quotas.VM.Memory > 0 {
+			vm["memory"] = quotas.VM.Memory
+		}
+		if quotas.VM.RunningCPU > 0.0 {
+			vm["running_cpu"] = quotas.VM.RunningCPU
+		}
+		if quotas.VM.RunningMemory > 0 {
+			vm["running_memory"] = quotas.VM.RunningMemory
+		}
+		if quotas.VM.VMs > 0 {
+			vm["vms"] = quotas.VM.VMs
+		}
+		if quotas.VM.RunningVMs > 0 {
+			vm["running_vms"] = quotas.VM.RunningVMs
+		}
+		if quotas.VM.SystemDiskSize > 0 {
+			vm["system_disk_size"] = quotas.VM.SystemDiskSize
+		}
 		vmQuotas = append(vmQuotas, vm)
+		q = q | F2
 	}
 	// Get Image quotas
 	for _, qimg := range quotas.Image {
 		img := make(map[string]interface{})
 		img["id"] = qimg.ID
-		img["running_vms"] = qimg.RVMs
+		if qimg.RVMs > 0 {
+			img["running_vms"] = qimg.RVMs
+		}
 		imageQuotas = append(imageQuotas, img)
+		q = q | F3
 	}
 
-	return d.Set("quotas", []interface{}{
-		map[string]interface{}{
-			"datastore_quotas": datastoreQuotas,
-			"image_quotas":     imageQuotas,
-			"vm_quotas":        vmQuotas,
-			"network_quotas":   networkQuotas,
-		},
-	})
+	quotasMap := make(map[string]interface{}, 0)
+	for q > 0 {
+		switch {
+		case q&F0 > 0:
+			quotasMap["datastore_quotas"] = datastoreQuotas
+			q = q ^ F0
+		case q&F1 > 0:
+			quotasMap["network_quotas"] = networkQuotas
+			q = q ^ F1
+		case q&F2 > 0:
+			quotasMap["vm_quotas"] = vmQuotas
+			q = q ^ F2
+		case q&F3 > 0:
+			quotasMap["image_quotas"] = imageQuotas
+			q = q ^ F3
+		}
+	}
+
+	if len(quotasMap) > 0 {
+		return d.Set("quotas", []interface{}{
+			quotasMap,
+		})
+	} else {
+		return nil
+	}
 }

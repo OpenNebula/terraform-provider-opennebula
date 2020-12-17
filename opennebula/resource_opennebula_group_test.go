@@ -61,8 +61,7 @@ func TestAccGroup(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccGroupLigh,
-				ExpectNonEmptyPlan: true,
+				Config: testAccGroupLigh,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
 					resource.TestCheckResourceAttr("opennebula_group.group2", "delete_on_destruction", "true"),
