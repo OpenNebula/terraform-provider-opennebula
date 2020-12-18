@@ -1,4 +1,4 @@
-## 0.3.0 (Unreleased)
+## 0.3.0 (December 17, 2020)
 
 FEATURES:
 * **New Resource**** New Data Source**: opennebula_user : First implementation ([#69](https://github.com/OpenNebula/terraform-provider-opennebula/issues/69))
