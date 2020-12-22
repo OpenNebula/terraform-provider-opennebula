@@ -969,7 +969,7 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	return nil
+	return resourceOpennebulaVirtualNetworkRead(d, meta)
 }
 
 func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) error {

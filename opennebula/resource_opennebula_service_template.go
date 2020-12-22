@@ -309,7 +309,7 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 	// save all fields again.
 	d.Partial(false)
 
-	return nil
+	return resourceOpennebulaServiceTemplateRead(d, meta)
 }
 
 // Helpers

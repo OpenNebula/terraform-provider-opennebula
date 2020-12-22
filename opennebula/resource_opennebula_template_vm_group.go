@@ -415,7 +415,7 @@ func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[INFO] Successfully updated Virtual Machine Group %s\n", d.Id())
 	}
 
-	return nil
+	return resourceOpennebulaVMGroupRead(d, meta)
 }
 
 func resourceOpennebulaVMGroupDelete(d *schema.ResourceData, meta interface{}) error {

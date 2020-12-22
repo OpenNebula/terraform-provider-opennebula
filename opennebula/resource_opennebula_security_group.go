@@ -436,7 +436,7 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	// save all fields again.
 	d.Partial(false)
 
-	return nil
+	return resourceOpennebulaSecurityGroupRead(d, meta)
 }
 
 func resourceOpennebulaSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {

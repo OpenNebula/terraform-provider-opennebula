@@ -361,7 +361,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return nil
+	return resourceOpennebulaTemplateRead(d, meta)
 }
 
 func resourceOpennebulaTemplateDelete(d *schema.ResourceData, meta interface{}) error {

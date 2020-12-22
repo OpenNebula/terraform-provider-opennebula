@@ -398,7 +398,7 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 	// save all fields again.
 	d.Partial(false)
 
-	return nil
+	return resourceOpennebulaServiceRead(d, meta)
 }
 
 // Helpers
