@@ -298,9 +298,6 @@ func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (
 func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	// Enable partial state mode
-	d.Partial(true)
-
 	//Get Service controller
 	sc, err := getServiceController(d, meta)
 	if err != nil {
@@ -319,7 +316,6 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		service, err := sc.Info()
-		d.SetPartial("name")
 		log.Printf("[INFO] Successfully updated name (%s) for Service ID %x\n", service.Name, service.ID)
 	}
 
@@ -330,7 +326,6 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 				return err
 			}
 		}
-		d.SetPartial("permissions")
 		log.Printf("[INFO] Successfully updated Permissions for Service %s\n", service.Name)
 	}
 
@@ -345,8 +340,6 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		d.Set("gname", group.Name)
-		d.SetPartial("gname")
-		d.SetPartial("gid")
 		log.Printf("[INFO] Successfully updated group for Service %s\n", service.Name)
 	} else if d.HasChange("gname") {
 		gid, err := controller.Groups().ByName(d.Get("gname").(string))
@@ -359,8 +352,6 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		d.Set("gid", gid)
-		d.SetPartial("gid")
-		d.SetPartial("gname")
 		log.Printf("[INFO] Successfully updated group for Service %s\n", service.Name)
 	}
 
@@ -375,8 +366,6 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		d.Set("uname", user.Name)
-		d.SetPartial("uname")
-		d.SetPartial("uid")
 		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
 	} else if d.HasChange("uname") {
 		uid, err := controller.Users().ByName(d.Get("uname").(string))
@@ -389,14 +378,8 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		d.Set("uid", uid)
-		d.SetPartial("uid")
-		d.SetPartial("uname")
 		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
 	}
-
-	// We succeeded, disable partial mode. This causes Terraform to save
-	// save all fields again.
-	d.Partial(false)
 
 	return resourceOpennebulaServiceRead(d, meta)
 }
