@@ -127,7 +127,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"vcpu":     vcpuSchema(),
 			"memory":   memorySchema(),
 			"context":  contextSchema(),
-                        "cpumodel": cpumodelSchema(),
+			"cpumodel": cpumodelSchema(),
 			"disk":     diskVMSchema(),
 			"graphics": graphicsSchema(),
 			"nic":      nicVMSchema(),

@@ -173,24 +173,6 @@ func osSchema() *schema.Schema {
 	}
 }
 
-func cpumodelSchema() *schema.Schema {
-        return &schema.Schema{
-                Type:        schema.TypeList,
-                Optional:    true,
-                Computed:    true,
-                MaxItems:    1,
-                Description: "Definition of CPU Model for the Virtual Machine",
-                Elem: &schema.Resource{
-                        Schema: map[string]*schema.Schema{
-                                "model": {
-                                        Type:     schema.TypeString,
-                                        Required: true,
-                                },
-                        },
-                },
-        }
-}
-
 func cpuSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeFloat,
@@ -371,12 +353,12 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 		tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
 	}
 
-        //Generate CPU Model definition
-        cpumodel := d.Get("cpumodel").([]interface{})
-        for i := 0; i < len(cpumodel); i++ {
-                cpumodelconfig := cpumodel[i].(map[string]interface{})
-                tpl.CPUModel(cpumodelconfig["model"].(string))
-        }
+	//Generate CPU Model definition
+	cpumodel := d.Get("cpumodel").([]interface{})
+	for i := 0; i < len(cpumodel); i++ {
+		cpumodelconfig := cpumodel[i].(map[string]interface{})
+		tpl.CPUModel(cpumodelconfig["model"].(string))
+	}
 
 	//Generate VM Group definition
 	vmgroup := d.Get("vmgroup").([]interface{})
@@ -466,9 +448,9 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 	arch, _ := vmTemplate.GetOS(vmk.Arch)
 	boot, _ := vmTemplate.GetOS(vmk.Boot)
 
-        // CPU Model
-        cpumodelMap := make([]map[string]interface{}, 0, 1)
-        cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
+	// CPU Model
+	cpumodelMap := make([]map[string]interface{}, 0, 1)
+	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
 
 	// Graphics
 	graphMap := make([]map[string]interface{}, 0, 1)
@@ -501,16 +483,16 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		}
 	}
 
-        // Set CPU Model to resource
-        if cpumodel != "" {
-                cpumodelMap = append(cpumodelMap, map[string]interface{}{
-                        "model": cpumodel,
-                })
-                err = d.Set("cpumodel", cpumodelMap)
-                if err != nil {
-                        return err
-                }
-        }
+	// Set CPU Model to resource
+	if cpumodel != "" {
+		cpumodelMap = append(cpumodelMap, map[string]interface{}{
+			"model": cpumodel,
+		})
+		err = d.Set("cpumodel", cpumodelMap)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Set Graphics to resource
 	if port != "" {
