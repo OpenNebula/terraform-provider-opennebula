@@ -13,9 +13,9 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-func nicFields(customFields ...map[string]*schema.Schema) *schema.Resource {
+func nicFields() map[string]*schema.Schema {
 
-	fields := map[string]*schema.Schema{
+	return map[string]*schema.Schema{
 		"ip": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -48,16 +48,6 @@ func nicFields(customFields ...map[string]*schema.Schema) *schema.Resource {
 			},
 		},
 	}
-
-	for _, m := range customFields {
-		for k, v := range m {
-			fields[k] = v
-		}
-	}
-
-	return &schema.Resource{
-		Schema: fields,
-	}
 }
 
 func nicSchema() *schema.Schema {
@@ -65,12 +55,14 @@ func nicSchema() *schema.Schema {
 		Type:        schema.TypeList,
 		Optional:    true,
 		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
-		Elem:        nicFields(),
+		Elem: &schema.Resource{
+			Schema: nicFields(),
+		},
 	}
 }
 
-func diskFields(customFields ...map[string]*schema.Schema) *schema.Resource {
-	fields := map[string]*schema.Schema{
+func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Schema {
+	return map[string]*schema.Schema{
 		"image_id": {
 			Type:        schema.TypeInt,
 			Default:     -1,
@@ -90,16 +82,6 @@ func diskFields(customFields ...map[string]*schema.Schema) *schema.Resource {
 			Optional: true,
 		},
 	}
-
-	for _, m := range customFields {
-		for k, v := range m {
-			fields[k] = v
-		}
-	}
-
-	return &schema.Resource{
-		Schema: fields,
-	}
 }
 
 func diskSchema(customFields ...map[string]*schema.Schema) *schema.Schema {
@@ -107,7 +89,9 @@ func diskSchema(customFields ...map[string]*schema.Schema) *schema.Schema {
 		Type:        schema.TypeList,
 		Optional:    true,
 		Description: "Definition of disks assigned to the Virtual Machine",
-		Elem:        diskFields(),
+		Elem: &schema.Resource{
+			Schema: diskFields(),
+		},
 	}
 }
 

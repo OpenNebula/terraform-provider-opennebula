@@ -129,3 +129,17 @@ func diffListConfig(refVecs, vecs []interface{}, s *schema.Resource, attrNames .
 
 	return mSet.List(), pSet.List()
 }
+
+func mergeSchemas(schema map[string]*schema.Schema, schemas ...map[string]*schema.Schema) map[string]*schema.Schema {
+	if len(schemas) == 0 {
+		return schema
+	}
+
+	for _, m := range schemas {
+		for k, v := range m {
+			schema[k] = v
+		}
+	}
+
+	return schema
+}
