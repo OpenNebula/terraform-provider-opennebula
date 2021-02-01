@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -46,7 +46,7 @@ func (c *HostsController) ByName(name string) (int, error) {
 
 	hostPool, err := c.Info()
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	match := false
@@ -55,13 +55,13 @@ func (c *HostsController) ByName(name string) (int, error) {
 			continue
 		}
 		if match {
-			return 0, errors.New("multiple resources with that name")
+			return -1, errors.New("multiple resources with that name")
 		}
 		id = hostPool.Hosts[i].ID
 		match = true
 	}
 	if !match {
-		return 0, errors.New("resource not found")
+		return -1, errors.New("resource not found")
 	}
 	return id, nil
 }
@@ -104,10 +104,21 @@ func (hc *HostController) Info(decrypt bool) (*host.Host, error) {
 func (hc *HostsController) Create(name, im, vm string, clusterID int) (int, error) {
 	response, err := hc.c.Client.Call("one.host.allocate", name, im, vm, clusterID)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return response.BodyInt(), nil
+}
+
+// Monitoring Returns the Hosts monitoring records
+// num: Retrieve monitor records in the last num seconds.
+// 0 just the last record, -1 all records
+func (hc *HostsController) Monitoring(num int) (string, error) {
+	monitorData, err := hc.c.Client.Call("one.hostpool.monitoring", num)
+	if err != nil {
+		return "", err
+	}
+	return monitorData.Body(), nil
 }
 
 // Delete deletes the given host from the pool

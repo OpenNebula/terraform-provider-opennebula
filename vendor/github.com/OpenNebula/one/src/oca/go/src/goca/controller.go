@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -21,9 +21,15 @@ type RPCCaller interface {
 	Call(method string, args ...interface{}) (*Response, error)
 }
 
+// HTTPCaller is the analogous to RPCCaller but for http endpoints
+type HTTPCaller interface {
+	HTTPMethod(method string, url string, args ...interface{}) (*Response, error)
+}
+
 // Controller is the controller used to make requets on various entities
 type Controller struct {
-	Client RPCCaller
+	Client     RPCCaller
+	ClientFlow HTTPCaller
 }
 
 // entitiesController is a controller for entitites
@@ -54,6 +60,19 @@ type subEntityController struct {
 func NewController(c RPCCaller) *Controller {
 	return &Controller{
 		Client: c,
+	}
+}
+
+func NewControllerFlow(c HTTPCaller) *Controller {
+	return &Controller{
+		ClientFlow: c,
+	}
+}
+
+func NewGenericController(cone RPCCaller, cflow HTTPCaller) *Controller {
+	return &Controller{
+		Client:     cone,
+		ClientFlow: cflow,
 	}
 }
 

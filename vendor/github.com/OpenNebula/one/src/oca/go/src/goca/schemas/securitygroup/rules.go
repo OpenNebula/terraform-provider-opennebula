@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -41,6 +41,6 @@ func (t *Rule) Get(key keys.Rule) (string, error) {
 }
 
 // Add adds a security group rule template key, value pair
-func (t *Rule) Add(key keys.Rule, value string) {
+func (t *Rule) Add(key keys.Rule, value interface{}) {
 	t.AddPair(string(key), value)
 }

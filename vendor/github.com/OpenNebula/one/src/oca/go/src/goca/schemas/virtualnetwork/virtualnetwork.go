@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -32,12 +32,12 @@ type Pool struct {
 type VirtualNetwork struct {
 	XMLName              xml.Name            `xml:"VNET"`
 	ID                   int                 `xml:"ID,omitempty"`
-	UID                  int                 `xml:"UID"`
-	GID                  int                 `xml:"GID"`
-	UName                string              `xml:"UNAME"`
-	GName                string              `xml:"GNAME"`
+	UID                  int                 `xml:"UID,omitempty"`
+	GID                  int                 `xml:"GID,omitempty"`
+	UName                string              `xml:"UNAME,omitempty"`
+	GName                string              `xml:"GNAME,omitempty"`
 	Name                 string              `xml:"NAME"`
-	Permissions          *shared.Permissions `xml:"PERMISSIONS"`
+	Permissions          *shared.Permissions `xml:"PERMISSIONS,omitempty"`
 	Clusters             shared.EntitiesID   `xml:"CLUSTERS,omitempty"`
 	Bridge               string              `xml:"BRIDGE,omitempty"`
 	BridgeType           string              `xml:"BRIDGE_TYPE,omitempty"` // minOccurs=0

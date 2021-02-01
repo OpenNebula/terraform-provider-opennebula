@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -26,7 +26,7 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-// Available template parts and keys are listed here: https://docs.opennebula.org/5.8/operation/references/template.html
+// Available template parts and keys are listed here: https://docs.opennebula.io/5.8/operation/references/template.html
 // Some specific part are not defined: vCenter, Public Cloud, Hypervisor, User Inputs
 
 // Template is a structure allowing to parse VM templates.
@@ -51,7 +51,7 @@ func (n *Template) GetI(key keys.Template) (int, error) {
 }
 
 // Add adds a vm template key, value pair
-func (t *Template) Add(key keys.Template, value string) {
+func (t *Template) Add(key keys.Template, value interface{}) {
 	t.AddPair(string(key), value)
 }
 
@@ -173,7 +173,7 @@ func (t *Template) AddNIC() *shared.NIC {
 
 // Show back template part
 
-func (t *Template) Showback(key keys.Showback, value string) *Template {
+func (t *Template) Showback(key keys.Showback, value interface{}) *Template {
 
 	t.Template.Del(string(key))
 	t.Template.AddPair(string(key), value)
@@ -227,7 +227,7 @@ func (t *Template) GetFeature(key keys.Feature) (string, error) {
 
 // I/O devices template part
 
-func (t *Template) AddIOGraphic(key keys.IOGraphics, value string) error {
+func (t *Template) AddIOGraphic(key keys.IOGraphics, value interface{}) error {
 	return t.Template.AddPairToVec(keys.IOGraphicsVec, string(key), value)
 }
 
@@ -251,20 +251,21 @@ func (t *Template) GetCtx(key keys.Context) (string, error) {
 }
 
 // Add adds a context key, value pair
-func (t *Template) AddCtx(key keys.Context, value string) error {
+func (t *Template) AddCtx(key keys.Context, value interface{}) error {
 	return t.AddPairToVec(keys.ContextVec, string(key), value)
 }
 
 // Add adds a context key, value pair. It will convert value to base64
-func (t *Template) AddB64Ctx(key keys.ContextB64, value string) error {
-	valueB64 := base64.StdEncoding.EncodeToString([]byte(value))
+func (t *Template) AddB64Ctx(key keys.ContextB64, value interface{}) error {
+	valueBytes := []byte(fmt.Sprint(value))
+	valueB64 := base64.StdEncoding.EncodeToString(valueBytes)
 	return t.AddPairToVec(keys.ContextVec, string(key), valueB64)
 }
 
 // Placement Template part
 
 // Placement set once a placement attribute
-func (t *Template) Placement(key keys.Placement, value string) *Template {
+func (t *Template) Placement(key keys.Placement, value interface{}) *Template {
 
 	t.Template.Del(string(key))
 	t.Template.AddPair(string(key), value)
@@ -294,7 +295,7 @@ func (t *Template) AddSchedAction() *SchedAction {
 }
 
 // Add adds a SchedAction key, value pair
-func (t *SchedAction) Add(key keys.SchedAction, value string) {
+func (t *SchedAction) Add(key keys.SchedAction, value interface{}) {
 	t.AddPair(string(key), value)
 }
 

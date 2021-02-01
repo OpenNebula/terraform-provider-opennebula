@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -53,6 +53,6 @@ func (n *AddressRange) GetI(key keys.AddressRange) (int, error) {
 }
 
 // Add adds an address range key, value pair.
-func (n *AddressRange) Add(key keys.AddressRange, value string) {
+func (n *AddressRange) Add(key keys.AddressRange, value interface{}) {
 	n.AddPair(string(key), value)
 }

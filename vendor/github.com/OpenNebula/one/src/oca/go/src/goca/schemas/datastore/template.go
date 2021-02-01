@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -50,7 +50,7 @@ func (n *Template) GetI(key keys.Template) (int, error) {
 }
 
 // Add adds an datastore key, value pair
-func (n *Template) Add(key keys.Template, value string) {
+func (n *Template) Add(key keys.Template, value interface{}) {
 	n.AddPair(string(key), value)
 }
 
