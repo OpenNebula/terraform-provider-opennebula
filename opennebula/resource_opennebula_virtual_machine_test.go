@@ -316,7 +316,7 @@ func TestAccVirtualMachineCPUModel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "group", "oneadmin"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "196"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "0.2"),
@@ -330,11 +330,10 @@ func TestAccVirtualMachineCPUModel(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpumodel.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpumodel.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "2"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "5"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
@@ -389,11 +388,11 @@ resource "opennebula_virtual_machine" "test" {
 
 var testAccVirtualMachineTemplateConfigCPUModel = `
 resource "opennebula_virtual_machine" "test" {
-  name        = "test-virtual_machine"
+  name        = "test-virtual_machine-renamed"
   group       = "oneadmin"
-  permissions = "642"
-  memory = 128
-  cpu = 0.1
+  permissions = "660"
+  memory = 196
+  cpu = 0.2
 
   context = {
     NETWORK  = "YES"
@@ -418,7 +417,7 @@ resource "opennebula_virtual_machine" "test" {
   }
 
   tags = {
-    env = "prod"
+    env = "dev"
     customer = "test"
   }
 
