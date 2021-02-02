@@ -1,3 +1,19 @@
+/* -------------------------------------------------------------------------- */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
+/*                                                                            */
+/* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
+/* not use this file except in compliance with the License. You may obtain    */
+/* a copy of the License at                                                   */
+/*                                                                            */
+/* http://www.apache.org/licenses/LICENSE-2.0                                 */
+/*                                                                            */
+/* Unless required by applicable law or agreed to in writing, software        */
+/* distributed under the License is distributed on an "AS IS" BASIS,          */
+/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   */
+/* See the License for the specific language governing permissions and        */
+/* limitations under the License.                                             */
+/*--------------------------------------------------------------------------- */
+
 package shared
 
 import (
@@ -15,7 +31,7 @@ type NIC struct {
 type NICKeys string
 
 // Some keys are specific to VM some others to VRouter
-// For VM values: https://docs.opennebula.org/5.8/operation/references/template.html#network-section
+// For VM values: https://docs.opennebula.io/5.8/operation/references/template.html#network-section
 const (
 	NICVec            string  = "NIC"
 	NICID             NICKeys = "NIC_ID"
@@ -71,6 +87,6 @@ func (n *NIC) GetI(key NICKeys) (int, error) {
 }
 
 // Add adds a NIC key, value pair
-func (n *NIC) Add(key NICKeys, value string) {
+func (n *NIC) Add(key NICKeys, value interface{}) {
 	n.AddPair(string(key), value)
 }

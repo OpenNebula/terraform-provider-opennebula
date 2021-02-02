@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -54,7 +54,7 @@ func (ac *ACLsController) Info() (*acl.Pool, error) {
 func (ac *ACLsController) CreateRule(user, resource, rights string) (int, error) {
 	response, err := ac.c.Client.Call("one.acl.addrule", user, resource, rights)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return response.BodyInt(), nil

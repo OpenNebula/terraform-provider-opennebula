@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -53,7 +53,7 @@ func (n *Template) GetI(key keys.Template) (int, error) {
 }
 
 // Add adds a marketplace app template key, value pair
-func (t *Template) Add(key keys.Template, value string) {
+func (t *Template) Add(key keys.Template, value interface{}) {
 	t.AddPair(string(key), value)
 }
 

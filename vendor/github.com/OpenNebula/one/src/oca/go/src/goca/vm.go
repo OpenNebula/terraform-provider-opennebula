@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -56,7 +56,7 @@ func (c *VMsController) ByName(name string, args ...int) (int, error) {
 
 	vmPool, err := c.Info(args...)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	match := false
@@ -65,13 +65,13 @@ func (c *VMsController) ByName(name string, args ...int) (int, error) {
 			continue
 		}
 		if match {
-			return 0, errors.New("multiple resources with that name")
+			return -1, errors.New("multiple resources with that name")
 		}
 		id = vmPool.VMs[i].ID
 		match = true
 	}
 	if !match {
-		return 0, errors.New("resource not found")
+		return -1, errors.New("resource not found")
 	}
 
 	return id, err
@@ -180,8 +180,10 @@ func (vc *VMController) Info(decrypt bool) (*vm.VM, error) {
 // -2: All resources
 // -1: Resources belonging to the user and any of his groups
 // >= 0: UID User's Resources
-func (vc *VMsController) Monitoring(filter int) (string, error) {
-	monitorData, err := vc.c.Client.Call("one.vmpool.monitoring", filter)
+// num: Retrieve monitor records in the last num seconds.
+// 0 just the last record, -1 all records
+func (vc *VMsController) Monitoring(filter, num int) (string, error) {
+	monitorData, err := vc.c.Client.Call("one.vmpool.monitoring", filter, num)
 	if err != nil {
 		return "", err
 	}
@@ -239,7 +241,7 @@ func (vc *VMsController) CalculateShowback(firstMonth, firstYear, lastMonth, las
 func (vc *VMsController) Create(template string, pending bool) (int, error) {
 	response, err := vc.c.Client.Call("one.vm.allocate", template, pending)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return response.BodyInt(), nil
@@ -323,16 +325,20 @@ func (vc *VMController) Resize(template string, enforce bool) error {
 func (vc *VMDiskController) Saveas(imageName, imageType string, snapID int) (int, error) {
 	response, err := vc.c.Client.Call("one.vm.disksaveas", vc.entityID, vc.ID, imageName, imageType, snapID)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return response.BodyInt(), nil
 }
 
 // SnapshotCreate will create a snapshot of the disk image
-func (vc *VMDiskController) SnapshotCreate(description string) error {
-	_, err := vc.c.Client.Call("one.vm.disksnapshotcreate", vc.entityID, vc.ID, description)
-	return err
+func (vc *VMDiskController) SnapshotCreate(description string) (int, error) {
+	response, err := vc.c.Client.Call("one.vm.disksnapshotcreate", vc.entityID, vc.ID, description)
+	if err != nil {
+		return -1, err
+	}
+
+	return response.BodyInt(), err
 }
 
 // SnapshotDelete will delete a snapshot

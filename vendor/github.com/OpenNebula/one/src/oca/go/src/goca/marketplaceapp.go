@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                */
+/* Copyright 2002-2020, OpenNebula Project, OpenNebula Systems                */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -47,7 +47,7 @@ func (c *MarketPlaceAppsController) ByName(name string, args ...int) (int, error
 
 	marketAppPool, err := c.Info(args...)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	match := false
@@ -56,13 +56,13 @@ func (c *MarketPlaceAppsController) ByName(name string, args ...int) (int, error
 			continue
 		}
 		if match {
-			return 0, errors.New("multiple resources with that name")
+			return -1, errors.New("multiple resources with that name")
 		}
 		id = marketAppPool.MarketPlaceApps[i].ID
 		match = true
 	}
 	if !match {
-		return 0, errors.New("resource not found")
+		return -1, errors.New("resource not found")
 	}
 
 	return id, nil
@@ -112,7 +112,7 @@ func (mc *MarketPlaceAppController) Info(decrypt bool) (*marketplaceapp.MarketPl
 func (mc *MarketPlaceAppsController) Create(tpl string, market int) (int, error) {
 	response, err := mc.c.Client.Call("one.marketapp.allocate", tpl, market)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return response.BodyInt(), nil
