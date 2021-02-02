@@ -293,7 +293,7 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	//Generate NIC definition
-	nics, ok := d.Get("nic").([]interface{})
+	nics := d.Get("nic").([]interface{})
 	log.Printf("Number of NICs: %d", len(nics))
 
 	for i := 0; i < len(nics); i++ {

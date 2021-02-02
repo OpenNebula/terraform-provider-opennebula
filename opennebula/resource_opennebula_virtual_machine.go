@@ -524,7 +524,7 @@ func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		}
 
 		// copy nic config values
-		nicsConfigs, ok := d.Get("nic").([]interface{})
+		nicsConfigs := d.Get("nic").([]interface{})
 		for j := 0; j < len(nicsConfigs); j++ {
 			nicConfig := nicsConfigs[j].(map[string]interface{})
 
