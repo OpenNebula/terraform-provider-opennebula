@@ -32,8 +32,6 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -63,8 +61,6 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -166,10 +162,6 @@ resource "opennebula_template" "template" {
 	boot = ""
   }
 
-  cpumodel {
-    model = "host-passthrough"
-  }
-
   tags = {
     env = "prod"
     customer = "test"
@@ -201,10 +193,6 @@ resource "opennebula_template" "template" {
   os {
 	arch = "x86_64"
 	boot = ""
-  }
-
-  cpumodel {
-        model = "host-passthrough"
   }
 
   tags = {

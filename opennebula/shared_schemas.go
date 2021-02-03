@@ -354,10 +354,12 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	}
 
 	//Generate CPU Model definition
-	cpumodel := d.Get("cpumodel").([]interface{})
-	for i := 0; i < len(cpumodel); i++ {
-		cpumodelconfig := cpumodel[i].(map[string]interface{})
-		tpl.CPUModel(cpumodelconfig["model"].(string))
+	cpumodel, ok := d.Get("cpumodel").([]interface{})
+	if ok {
+		for i := 0; i < len(cpumodel); i++ {
+			cpumodelconfig := cpumodel[i].(map[string]interface{})
+			tpl.CPUModel(cpumodelconfig["model"].(string))
+		}
 	}
 
 	//Generate VM Group definition
