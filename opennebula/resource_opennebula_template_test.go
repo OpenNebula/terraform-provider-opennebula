@@ -158,7 +158,7 @@ resource "opennebula_template" "template" {
   }
 
   os {
-        arch = "x86_64"
+    arch = "x86_64"
 	boot = ""
   }
 
