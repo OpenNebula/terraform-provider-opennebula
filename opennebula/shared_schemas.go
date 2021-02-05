@@ -119,6 +119,24 @@ func contextSchema() *schema.Schema {
 	}
 }
 
+func cpumodelSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Computed:    true,
+		MaxItems:    1,
+		Description: "Definition of CPU Model type for the Virtual Machine",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"model": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+			},
+		},
+	}
+}
+
 func graphicsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
@@ -354,12 +372,10 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	}
 
 	//Generate CPU Model definition
-	cpumodel, ok := d.Get("cpumodel").([]interface{})
-	if ok {
-		for i := 0; i < len(cpumodel); i++ {
-			cpumodelconfig := cpumodel[i].(map[string]interface{})
-			tpl.CPUModel(cpumodelconfig["model"].(string))
-		}
+	cpumodel := d.Get("cpumodel").([]interface{})
+	for i := 0; i < len(cpumodel); i++ {
+		cpumodelconfig := cpumodel[i].(map[string]interface{})
+		tpl.CPUModel(cpumodelconfig["model"].(string))
 	}
 
 	//Generate VM Group definition

@@ -41,6 +41,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			"vcpu":     vcpuSchema(),
 			"memory":   memorySchema(),
 			"context":  contextSchema(),
+			"cpumodel": cpumodelSchema(),
 			"disk":     diskSchema(),
 			"graphics": graphicsSchema(),
 			"nic":      nicSchema(),
