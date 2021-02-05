@@ -48,6 +48,37 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccTemplateCPUModel,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl-cpumodel"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "0.5"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "gname"),
+					testAccCheckTemplatePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						GroupM: 1,
+					}),
+				),
+			},
+			{
 				Config: testAccTemplateConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
@@ -160,6 +191,42 @@ resource "opennebula_template" "template" {
   os {
     arch = "x86_64"
 	boot = ""
+  }
+
+  tags = {
+    env = "prod"
+    customer = "test"
+  }
+}
+`
+
+var testAccTemplateCPUModel = `
+resource "opennebula_template" "template" {
+  name = "terra-tpl-cpumodel"
+  permissions = "660"
+  group = "oneadmin"
+  cpu = "0.5"
+  vcpu = "1"
+  memory = "512"
+
+  context = {
+    dns_hostname = "yes"
+    network = "YES"
+  }
+
+  graphics {
+    keymap = "en-us"
+    listen = "0.0.0.0"
+    type = "VNC"
+  }
+
+  cpumodel {
+    model = "host-passthrough"
+  }
+
+  os {
+    arch = "x86_64"
+        boot = ""
   }
 
   tags = {
