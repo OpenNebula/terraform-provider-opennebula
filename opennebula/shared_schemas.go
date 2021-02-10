@@ -403,10 +403,12 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	networkId, _ := nic.GetI(shared.NetworkID)
 	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 
-	sgString := strings.Split(securityGroupsArray, ",")
-	for _, s := range sgString {
-		sgInt, _ := strconv.ParseInt(s, 10, 32)
-		sg = append(sg, int(sgInt))
+	if len(securityGroupsArray) > 0 {
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
 	}
 
 	return map[string]interface{}{
