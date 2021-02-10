@@ -423,6 +423,9 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 func flattenDisk(disk shared.Disk) map[string]interface{} {
 
 	size, _ := disk.GetI(shared.Size)
+	if size == -1 {
+		size = 0
+	}
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
 	imageID, _ := disk.GetI(shared.ImageID)
