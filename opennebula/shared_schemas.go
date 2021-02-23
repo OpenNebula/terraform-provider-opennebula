@@ -13,9 +13,9 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-func nicFields(customFields ...map[string]*schema.Schema) *schema.Resource {
+func nicFields() map[string]*schema.Schema {
 
-	fields := map[string]*schema.Schema{
+	return map[string]*schema.Schema{
 		"ip": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -48,16 +48,6 @@ func nicFields(customFields ...map[string]*schema.Schema) *schema.Resource {
 			},
 		},
 	}
-
-	for _, m := range customFields {
-		for k, v := range m {
-			fields[k] = v
-		}
-	}
-
-	return &schema.Resource{
-		Schema: fields,
-	}
 }
 
 func nicSchema() *schema.Schema {
@@ -65,12 +55,14 @@ func nicSchema() *schema.Schema {
 		Type:        schema.TypeList,
 		Optional:    true,
 		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
-		Elem:        nicFields(),
+		Elem: &schema.Resource{
+			Schema: nicFields(),
+		},
 	}
 }
 
-func diskFields(customFields ...map[string]*schema.Schema) *schema.Resource {
-	fields := map[string]*schema.Schema{
+func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Schema {
+	return map[string]*schema.Schema{
 		"image_id": {
 			Type:        schema.TypeInt,
 			Default:     -1,
@@ -90,16 +82,6 @@ func diskFields(customFields ...map[string]*schema.Schema) *schema.Resource {
 			Optional: true,
 		},
 	}
-
-	for _, m := range customFields {
-		for k, v := range m {
-			fields[k] = v
-		}
-	}
-
-	return &schema.Resource{
-		Schema: fields,
-	}
 }
 
 func diskSchema(customFields ...map[string]*schema.Schema) *schema.Schema {
@@ -107,7 +89,9 @@ func diskSchema(customFields ...map[string]*schema.Schema) *schema.Schema {
 		Type:        schema.TypeList,
 		Optional:    true,
 		Description: "Definition of disks assigned to the Virtual Machine",
-		Elem:        diskFields(),
+		Elem: &schema.Resource{
+			Schema: diskFields(),
+		},
 	}
 }
 
@@ -419,10 +403,12 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	networkId, _ := nic.GetI(shared.NetworkID)
 	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 
-	sgString := strings.Split(securityGroupsArray, ",")
-	for _, s := range sgString {
-		sgInt, _ := strconv.ParseInt(s, 10, 32)
-		sg = append(sg, int(sgInt))
+	if len(securityGroupsArray) > 0 {
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
 	}
 
 	return map[string]interface{}{
@@ -439,6 +425,9 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 func flattenDisk(disk shared.Disk) map[string]interface{} {
 
 	size, _ := disk.GetI(shared.Size)
+	if size == -1 {
+		size = 0
+	}
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
 	imageID, _ := disk.GetI(shared.ImageID)
