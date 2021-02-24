@@ -354,9 +354,6 @@ func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interfac
 
 func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 
-	// Enable partial state mode
-	d.Partial(true)
-
 	//Get Security Group
 	sgc, err := getSecurityGroupController(d, meta)
 	if err != nil {
@@ -420,7 +417,6 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 				return err
 			}
 		}
-		d.SetPartial("permissions")
 		log.Printf("[INFO] Successfully updated Permissions Security Group %s\n", securitygroup.Name)
 	}
 
@@ -432,11 +428,7 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 		log.Printf("[INFO] Successfully updated group for Security Group %s\n", securitygroup.Name)
 	}
 
-	// We succeeded, disable partial mode. This causes Terraform to save
-	// save all fields again.
-	d.Partial(false)
-
-	return nil
+	return resourceOpennebulaSecurityGroupRead(d, meta)
 }
 
 func resourceOpennebulaSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {

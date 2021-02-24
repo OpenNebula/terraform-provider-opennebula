@@ -209,9 +209,6 @@ func resourceOpennebulaServiceTemplateExists(d *schema.ResourceData, meta interf
 func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
 	controller := meta.(*goca.Controller)
 
-	// Enable partial state mode
-	d.Partial(true)
-
 	//Get Service controller
 	stc, err := getServiceTemplateController(d, meta)
 	if err != nil {
@@ -230,7 +227,6 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		}
 
 		stemplate, err := stc.Info()
-		d.SetPartial("name")
 		log.Printf("[INFO] Successfully updated name (%s) for service template ID %x\n", stemplate.Name, stemplate.ID)
 	}
 
@@ -241,7 +237,6 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 				return err
 			}
 		}
-		d.SetPartial("permissions")
 		log.Printf("[INFO] Successfully updated Permissions for service template %s\n", stemplate.Name)
 	}
 
@@ -256,8 +251,6 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		}
 
 		d.Set("gname", group.Name)
-		d.SetPartial("gname")
-		d.SetPartial("gid")
 		log.Printf("[INFO] Successfully updated group for service template %s\n", stemplate.Name)
 	} else if d.HasChange("gname") {
 		gid, err := controller.Groups().ByName(d.Get("gname").(string))
@@ -270,8 +263,6 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		}
 
 		d.Set("gid", gid)
-		d.SetPartial("gid")
-		d.SetPartial("gname")
 		log.Printf("[INFO] Successfully updated group for service template %s\n", stemplate.Name)
 	}
 
@@ -286,8 +277,6 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		}
 
 		d.Set("uname", user.Name)
-		d.SetPartial("uname")
-		d.SetPartial("uid")
 		log.Printf("[INFO] Successfully updated owner for service template %s\n", stemplate.Name)
 	} else if d.HasChange("uname") {
 		uid, err := controller.Users().ByName(d.Get("uname").(string))
@@ -300,16 +289,10 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		}
 
 		d.Set("uid", uid)
-		d.SetPartial("uid")
-		d.SetPartial("uname")
 		log.Printf("[INFO] Successfully updated owner for service template %s\n", stemplate.Name)
 	}
 
-	// We succeeded, disable partial mode. This causes Terraform to save
-	// save all fields again.
-	d.Partial(false)
-
-	return nil
+	return resourceOpennebulaServiceTemplateRead(d, meta)
 }
 
 // Helpers

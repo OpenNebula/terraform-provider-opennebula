@@ -588,7 +588,7 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	return nil
+	return resourceOpennebulaImageRead(d, meta)
 }
 
 func resourceOpennebulaImageDelete(d *schema.ResourceData, meta interface{}) error {
