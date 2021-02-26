@@ -239,6 +239,8 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_ip", "172.16.100.131"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_model", "virtio"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_virtio_queues", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "0"),
 				),
 			},
@@ -248,8 +250,12 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_ip", "172.16.100.131"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_model", "virtio"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_virtio_queues", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.111"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_model", "virtio"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_virtio_queues", "2"),
 				),
 			},
 			{
@@ -258,6 +264,8 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_ip", "172.16.100.131"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_model", "virtio"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_virtio_queues", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "0"),
 				),
 			},
@@ -1089,8 +1097,10 @@ resource "opennebula_template" "template" {
     }
 
     nic {
-  	  network_id = opennebula_virtual_network.network1.id
-  	  ip = "172.16.100.131"
+	  network_id = opennebula_virtual_network.network1.id
+	  ip = "172.16.100.131"
+	  model = "virtio"
+	  virtio_queues = "2"
     }
 
     os {
@@ -1154,8 +1164,10 @@ resource "opennebula_template" "template" {
     }
 
     nic {
-  	  network_id = opennebula_virtual_network.network1.id
-  	  ip = "172.16.100.131"
+	  network_id = opennebula_virtual_network.network1.id
+	  ip = "172.16.100.131"
+	  model = "virtio"
+	  virtio_queues = "2"
     }
 
     os {
@@ -1226,8 +1238,10 @@ resource "opennebula_template" "template" {
     }
 
     nic {
-  	  network_id = opennebula_virtual_network.network1.id
-  	  ip = "172.16.100.131"
+	  network_id = opennebula_virtual_network.network1.id
+	  ip = "172.16.100.131"
+	  model = "virtio"
+	  virtio_queues = "2"
     }
 
     os {
@@ -1245,6 +1259,8 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 	  network_id = opennebula_virtual_network.network2.id
 	  ip = "172.16.100.111"
+	  model = "virtio"
+	  virtio_queues = "2"
 	}
 
 	timeout = 5

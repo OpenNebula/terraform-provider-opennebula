@@ -171,6 +171,10 @@ func nicComputedVMFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
+		"computed_virtio_queues": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
 		"computed_physical_device": {
 			Type:     schema.TypeString,
 			Computed: true,
@@ -606,6 +610,7 @@ func flattendNICComputed(nic shared.NIC) map[string]interface{} {
 	network, _ := nic.Get(shared.Network)
 
 	model, _ := nic.Get(shared.Model)
+	virtioQueues, _ := nic.GetStr("VIRTIO_QUEUES")
 	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 
 	sgString := strings.Split(securityGroupsArray, ",")
@@ -621,6 +626,7 @@ func flattendNICComputed(nic shared.NIC) map[string]interface{} {
 		"computed_mac":             mac,
 		"computed_physical_device": physicalDevice,
 		"computed_model":           model,
+		"computed_virtio_queues":   virtioQueues,
 		"computed_security_groups": sg,
 	}
 }
@@ -690,6 +696,7 @@ NICLoop:
 			nicRead["ip"] = nicConfig["ip"]
 			nicRead["mac"] = nicConfig["mac"]
 			nicRead["model"] = nicConfig["model"]
+			nicRead["virtio_queues"] = nicConfig["virtio_queues"]
 			nicRead["physical_device"] = nicConfig["physical_device"]
 			nicRead["security_groups"] = nicConfig["security_groups"]
 
@@ -925,6 +932,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"ip",
 			"mac",
 			"security_groups",
+			"model",
+			"virtio_queues",
 			"physical_device")
 
 		// Detach the nics
