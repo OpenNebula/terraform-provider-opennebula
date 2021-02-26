@@ -107,7 +107,6 @@ func cpumodelSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Computed:    true,
 		MaxItems:    1,
 		Description: "Definition of CPU Model type for the Virtual Machine",
 		Elem: &schema.Resource{
@@ -125,7 +124,6 @@ func graphicsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Computed:    true,
 		MaxItems:    1,
 		Description: "Definition of graphics adapter assigned to the Virtual Machine",
 		Elem: &schema.Resource{
@@ -157,7 +155,6 @@ func osSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Computed:    true,
 		MaxItems:    1,
 		Description: "Definition of OS boot and type for the Virtual Machine",
 		Elem: &schema.Resource{
@@ -472,9 +469,11 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			"vmgroup_id": vmgid,
 			"role":       vmgRole,
 		})
-		err = d.Set("vmgroup", vmgMap)
-		if err != nil {
-			return err
+		if _, ok := d.GetOk("vmgroup"); ok {
+			err = d.Set("vmgroup", vmgMap)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -484,9 +483,11 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			"arch": arch,
 			"boot": boot,
 		})
-		err = d.Set("os", osMap)
-		if err != nil {
-			return err
+		if _, ok := d.GetOk("os"); ok {
+			err = d.Set("os", osMap)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -495,9 +496,11 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		cpumodelMap = append(cpumodelMap, map[string]interface{}{
 			"model": cpumodel,
 		})
-		err = d.Set("cpumodel", cpumodelMap)
-		if err != nil {
-			return err
+		if _, ok := d.GetOk("cpumodel"); ok {
+			err = d.Set("cpumodel", cpumodelMap)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -509,9 +512,11 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			"type":   t,
 			"keymap": keymap,
 		})
-		err = d.Set("graphics", graphMap)
-		if err != nil {
-			return err
+		if _, ok := d.GetOk("graphics"); ok {
+			err = d.Set("graphics", graphMap)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
