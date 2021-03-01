@@ -241,7 +241,7 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVirtualMachineTemplateNICInit,
+				Config: testAccVMTemplateNICResource,
 			},
 			{
 				Config: testAccVirtualMachineTemplateNIC,
@@ -281,7 +281,7 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachineTemplateNICInit,
+				Config: testAccVMTemplateNICResource,
 			},
 		},
 	})
@@ -552,25 +552,27 @@ resource "opennebula_virtual_machine" "test" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigDisk = `
-
+var testDiskImageResources = `
 resource "opennebula_image" "img1" {
-  name             = "image1"
-  type             = "DATABLOCK"
-  size             = "16"
-  datastore_id     = 1
-  persistent       = false
-  permissions      = "660"
-}
+	name             = "image1"
+	type             = "DATABLOCK"
+	size             = "16"
+	datastore_id     = 1
+	persistent       = false
+	permissions      = "660"
+  }
+  
+  resource "opennebula_image" "img2" {
+	name             = "image2"
+	type             = "DATABLOCK"
+	size             = "8"
+	datastore_id     = 1
+	persistent       = false
+	permissions      = "660"
+  }
+`
 
-resource "opennebula_image" "img2" {
-  name             = "image2"
-  type             = "DATABLOCK"
-  size             = "8"
-  datastore_id     = 1
-  persistent       = false
-  permissions      = "660"
-}
+var testAccVirtualMachineTemplateConfigDisk = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
@@ -609,25 +611,7 @@ resource "opennebula_virtual_machine" "test" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskUpdate = `
-
-resource "opennebula_image" "img1" {
-	name             = "image1"
-	type             = "DATABLOCK"
-	size             = "16"
-	datastore_id     = 1
-	persistent       = false
-	permissions      = "660"
-  }
-
-  resource "opennebula_image" "img2" {
-	name             = "image2"
-	type             = "DATABLOCK"
-	size             = "8"
-	datastore_id     = 1
-	persistent       = false
-	permissions      = "660"
-  }
+var testAccVirtualMachineTemplateConfigDiskUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -666,25 +650,7 @@ resource "opennebula_image" "img1" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskTargetUpdate = `
-
-resource "opennebula_image" "img1" {
-	name             = "image1"
-	type             = "DATABLOCK"
-	size             = "16"
-	datastore_id     = 1
-	persistent       = false
-	permissions      = "660"
-  }
-
-  resource "opennebula_image" "img2" {
-	name             = "image2"
-	type             = "DATABLOCK"
-	size             = "8"
-	datastore_id     = 1
-	persistent       = false
-	permissions      = "660"
-  }
+var testAccVirtualMachineTemplateConfigDiskTargetUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -723,25 +689,7 @@ resource "opennebula_image" "img1" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskSizeUpdate = `
-
-resource "opennebula_image" "img1" {
-	name             = "image1"
-	type             = "DATABLOCK"
-	size             = "16"
-	datastore_id     = 1
-	persistent       = false
-	permissions      = "660"
-  }
-
-  resource "opennebula_image" "img2" {
-	name             = "image2"
-	type             = "DATABLOCK"
-	size             = "8"
-	datastore_id     = 1
-	persistent       = false
-	permissions      = "660"
-  }
+var testAccVirtualMachineTemplateConfigDiskSizeUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -781,25 +729,7 @@ resource "opennebula_image" "img1" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskDetached = `
-
-resource "opennebula_image" "img1" {
-  name             = "image1"
-  type             = "DATABLOCK"
-  size             = "16"
-  datastore_id     = 1
-  persistent       = false
-  permissions      = "660"
-}
-
-resource "opennebula_image" "img2" {
-  name             = "image2"
-  type             = "DATABLOCK"
-  size             = "8"
-  datastore_id     = 1
-  persistent       = false
-  permissions      = "660"
-}
+var testAccVirtualMachineTemplateConfigDiskDetached = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
@@ -833,9 +763,9 @@ resource "opennebula_virtual_machine" "test" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigNIC = `
+var testNICVNetResources = `
 
-resource "opennebula_virtual_network" "net1" {
+resource "opennebula_virtual_network" "network1" {
 	name = "test-net1"
 	type            = "dummy"
 	bridge          = "onebr"
@@ -851,7 +781,7 @@ resource "opennebula_virtual_network" "net1" {
 	clusters = [0]
   }
 
-  resource "opennebula_virtual_network" "net2" {
+  resource "opennebula_virtual_network" "network2" {
 	name = "test-net2"
 	type            = "dummy"
 	bridge          = "onebr"
@@ -866,7 +796,9 @@ resource "opennebula_virtual_network" "net1" {
 	security_groups = [0]
 	clusters = [0]
   }
+`
 
+var testAccVirtualMachineTemplateConfigNIC = testNICVNetResources + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
@@ -897,7 +829,7 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	nic {
-		network_id = opennebula_virtual_network.net1.id
+		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
 	}
 
@@ -905,39 +837,7 @@ resource "opennebula_virtual_machine" "test" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigNICUpdate = `
-
-resource "opennebula_virtual_network" "net1" {
-	name = "test-net1"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 12
-	  ip4     = "172.16.100.130"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
-
-  resource "opennebula_virtual_network" "net2" {
-	name = "test-net2"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 16
-	  ip4     = "172.16.100.110"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
+var testAccVirtualMachineTemplateConfigNICUpdate = testNICVNetResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -968,7 +868,7 @@ resource "opennebula_virtual_network" "net1" {
 	  }
 
 	  nic {
-		  network_id = opennebula_virtual_network.net2.id
+		  network_id = opennebula_virtual_network.network2.id
 		  ip = "172.16.100.111"
 	  }
 	
@@ -976,39 +876,7 @@ resource "opennebula_virtual_network" "net1" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigNICIPUpdate = `
-
-resource "opennebula_virtual_network" "net1" {
-	name = "test-net1"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 12
-	  ip4     = "172.16.100.130"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
-
-  resource "opennebula_virtual_network" "net2" {
-	name = "test-net2"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 16
-	  ip4     = "172.16.100.110"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
+var testAccVirtualMachineTemplateConfigNICIPUpdate = testNICVNetResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -1039,7 +907,7 @@ resource "opennebula_virtual_network" "net1" {
 	  }
 
 	  nic {
-		  network_id = opennebula_virtual_network.net2.id
+		  network_id = opennebula_virtual_network.network2.id
 		  ip = "172.16.100.112"
 	  }
 	
@@ -1047,39 +915,7 @@ resource "opennebula_virtual_network" "net1" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigNICDetached = `
-
-resource "opennebula_virtual_network" "net1" {
-	name = "test-net1"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 12
-	  ip4     = "172.16.100.130"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
-
-  resource "opennebula_virtual_network" "net2" {
-	name = "test-net2"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 16
-	  ip4     = "172.16.100.110"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
+var testAccVirtualMachineTemplateConfigNICDetached = testNICVNetResources + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
@@ -1112,39 +948,8 @@ resource "opennebula_virtual_machine" "test" {
 	timeout = 5
 }
 `
-var testAccVirtualMachineTemplateNICInit = `
 
-resource "opennebula_virtual_network" "network1" {
-	name = "test-net1"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 12
-	  ip4     = "172.16.100.130"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-}
-
-resource "opennebula_virtual_network" "network2" {
-	name = "test-net2"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 16
-	  ip4     = "172.16.100.110"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-}
+var testAccVMTemplateNICResource = testNICVNetResources + `
 
 resource "opennebula_template" "template" {
     name        = "test-template"
@@ -1179,70 +984,7 @@ resource "opennebula_template" "template" {
 }
 `
 
-var testAccVirtualMachineTemplateNIC = `
-
-resource "opennebula_virtual_network" "network1" {
-	name = "test-net1"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 12
-	  ip4     = "172.16.100.130"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-}
-
-resource "opennebula_virtual_network" "network2" {
-	name = "test-net2"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 16
-	  ip4     = "172.16.100.110"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-}
-
-resource "opennebula_template" "template" {
-    name        = "test-template"
-    group       = "oneadmin"
-    permissions = "642"
-    memory = 128
-    cpu = 0.1
-
-    context = {
-      NETWORK  = "YES"
-      SET_HOSTNAME = "$NAME"
-    }
-
-    graphics {
-      type   = "VNC"
-      listen = "0.0.0.0"
-      keymap = "en-us"
-    }
-
-    nic {
-	  network_id = opennebula_virtual_network.network1.id
-	  ip = "172.16.100.131"
-	  model = "virtio"
-	  virtio_queues = "2"
-    }
-
-    os {
-      arch = "x86_64"
-      boot = ""
-    }
-}
+var testAccVirtualMachineTemplateNIC = testAccVMTemplateNICResource + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
@@ -1253,71 +995,7 @@ resource "opennebula_virtual_machine" "test" {
 }
 `
 
-var testAccVirtualMachineTemplateNICAdd = `
-
-resource "opennebula_virtual_network" "network1" {
-	name = "test-net1"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 12
-	  ip4     = "172.16.100.130"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-}
-
-resource "opennebula_virtual_network" "network2" {
-	name = "test-net2"
-	type            = "dummy"
-	bridge          = "onebr"
-	mtu             = 1500
-	ar {
-	  ar_type = "IP4"
-	  size    = 16
-	  ip4     = "172.16.100.110"
-	}
-	permissions = "642"
-	group = "oneadmin"
-	security_groups = [0]
-	clusters = [0]
-  }
-
-resource "opennebula_template" "template" {
-    name        = "test-template"
-    group       = "oneadmin"
-    permissions = "642"
-    memory = 128
-    cpu = 0.1
-
-    context = {
-      NETWORK  = "YES"
-      SET_HOSTNAME = "$NAME"
-    }
-
-    graphics {
-      type   = "VNC"
-      listen = "0.0.0.0"
-      keymap = "en-us"
-    }
-
-    nic {
-	  network_id = opennebula_virtual_network.network1.id
-	  ip = "172.16.100.131"
-	  model = "virtio"
-	  virtio_queues = "2"
-    }
-
-    os {
-      arch = "x86_64"
-      boot = ""
-    }
-
-}
+var testAccVirtualMachineTemplateNICAdd = testAccVMTemplateNICResource + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
