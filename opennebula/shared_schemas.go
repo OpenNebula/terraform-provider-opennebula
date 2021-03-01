@@ -28,6 +28,11 @@ func nicFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"virtio_queues": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Only if model is virtio",
+		},
 		"network_id": {
 			Type:     schema.TypeInt,
 			Required: true,
@@ -278,6 +283,8 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 			nic.Add(shared.MAC, v.(string))
 		case "model":
 			nic.Add(shared.Model, v.(string))
+		case "virtio_queues":
+			nic.Add("VIRTIO_QUEUES", v.(string))
 		case "physical_device":
 			nic.Add("PHYDEV", v.(string))
 		case "security_groups":
@@ -397,6 +404,7 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	network, _ := nic.Get(shared.Network)
 
 	model, _ := nic.Get(shared.Model)
+	virtioQueues, _ := nic.GetStr("VIRTIO_QUEUES")
 	networkId, _ := nic.GetI(shared.NetworkID)
 	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 
@@ -415,6 +423,7 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 		"physical_device": physicalDevice,
 		"network":         network,
 		"model":           model,
+		"virtio_queues":   virtioQueues,
 		"security_groups": sg,
 	}
 }

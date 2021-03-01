@@ -127,6 +127,7 @@ A disk update will be triggered in adding or removing a `disk` section, or by a 
 * `ip` - (Optional) IP of the virtual machine on this network.
 * `mac` - (Optional) MAC of the virtual machine on this network.
 * `model` - (Optional) Nic model driver. Example: `virtio`.
+* `virtio_queues` - (Optional) Virtio multi-queue size. Only if `model` is `virtio`.
 * `physical_device` - (Optional) Physical device hosting the virtual network.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
 
@@ -165,6 +166,7 @@ The following attribute are exported:
 * `computed_ip` - IP of the virtual machine on this network.
 * `computed_mac` - MAC of the virtual machine on this network.
 * `computed_model` - Nic model driver.
+* `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
 
@@ -184,6 +186,7 @@ The following attribute are exported:
 * `computed_ip` - IP of the virtual machine on this network.
 * `computed_mac` - MAC of the virtual machine on this network.
 * `computed_model` - Nic model driver.
+* `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
 
