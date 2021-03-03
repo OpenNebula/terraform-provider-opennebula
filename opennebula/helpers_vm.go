@@ -99,6 +99,8 @@ func vmDiskDetach(vmc *goca.VMController, timeout int, diskID int) error {
 // vmDiskResize is an helper that synchronously resize a disk
 func vmDiskResize(vmc *goca.VMController, timeout, diskID, newsize int) error {
 
+	log.Printf("[DEBUG] Resize disk %d", diskID)
+
 	vmdc := vmc.Disk(diskID)
 
 	err := vmdc.Resize(fmt.Sprintf("%d", newsize))

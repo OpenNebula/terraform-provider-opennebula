@@ -828,7 +828,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		// get unique elements of each list of configs
 		toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
 			&schema.Resource{
-				Schema: diskVMFields(),
+				Schema: diskFields(),
 			},
 			"image_id",
 			"target",
@@ -837,9 +837,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		// get disks to resize
 		_, toResize := diffListConfig(newDisksCfg, attachedDisksCfg,
 			&schema.Resource{
-				Schema: diskVMFields(),
+				Schema: diskFields(),
 			},
-			"image_id",
 			"size")
 
 		// Detach the disks
@@ -926,7 +925,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		// get unique elements of each list of configs
 		toDetach, toAttach := diffListConfig(newNicsCfg, attachedNicsCfg,
 			&schema.Resource{
-				Schema: nicVMFields(),
+				Schema: nicFields(),
 			},
 			"network_id",
 			"ip",

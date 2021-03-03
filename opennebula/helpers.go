@@ -98,30 +98,32 @@ func NoExists(err error) bool {
 // returns the diff of two lists of schemas, making diff on attrNames only
 func diffListConfig(refVecs, vecs []interface{}, s *schema.Resource, attrNames ...string) ([]interface{}, []interface{}) {
 
+	// remove schema fields that are not listed in attrNames
+	for scKey := range s.Schema {
+		present := false
+		for _, attrName := range attrNames {
+			if scKey == attrName {
+				present = true
+				break
+			}
+		}
+		if !present {
+			delete(s.Schema, scKey)
+		}
+	}
+
 	refSet := schema.NewSet(schema.HashResource(s), []interface{}{})
 	for _, iface := range refVecs {
 		sc := iface.(map[string]interface{})
 
-		// keep only attrNames values
-		filteredSc := make(map[string]interface{})
-		for _, name := range attrNames {
-			filteredSc[name] = sc[name]
-		}
-
-		refSet.Add(filteredSc)
+		refSet.Add(sc)
 	}
 
 	set := schema.NewSet(schema.HashResource(s), []interface{}{})
 	for _, iface := range vecs {
 		sc := iface.(map[string]interface{})
 
-		// keep only attrNames values
-		filteredSc := make(map[string]interface{})
-		for _, name := range attrNames {
-			filteredSc[name] = sc[name]
-		}
-
-		set.Add(filteredSc)
+		set.Add(sc)
 	}
 
 	pSet := refSet.Difference(set)
