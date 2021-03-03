@@ -108,7 +108,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachineTemplateConfigDisk,
+				Config: testAccVirtualMachinePersistentDisk,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
@@ -117,7 +117,16 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachineTemplateConfigDiskUpdate,
+				Config: testAccVirtualMachinePersistentDiskSizeUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+				),
+			},
+			{
+				Config: testAccVirtualMachineSwitchNonPersistentDisk,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
@@ -126,7 +135,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachineTemplateConfigDiskTargetUpdate,
+				Config: testAccVirtualMachineNonPersistentDiskTargetUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
@@ -135,7 +144,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachineTemplateConfigDiskSizeUpdate,
+				Config: testAccVirtualMachineNonPersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
@@ -144,7 +153,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachineTemplateConfigDiskDetached,
+				Config: testAccVirtualMachineDiskDetached,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
@@ -553,7 +562,7 @@ resource "opennebula_virtual_machine" "test" {
 `
 
 var testDiskImageResources = `
-resource "opennebula_image" "img1" {
+resource "opennebula_image" "image1" {
 	name             = "image1"
 	type             = "DATABLOCK"
 	size             = "16"
@@ -562,17 +571,17 @@ resource "opennebula_image" "img1" {
 	permissions      = "660"
   }
   
-  resource "opennebula_image" "img2" {
+  resource "opennebula_image" "image2" {
 	name             = "image2"
 	type             = "DATABLOCK"
 	size             = "8"
 	datastore_id     = 1
-	persistent       = false
+	persistent       = true
 	permissions      = "660"
   }
 `
 
-var testAccVirtualMachineTemplateConfigDisk = testDiskImageResources + `
+var testAccVirtualMachinePersistentDisk = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
@@ -603,7 +612,7 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	disk {
-		image_id = opennebula_image.img2.id
+		image_id = opennebula_image.image2.id
 		target = "vda"
 	}
 
@@ -611,7 +620,47 @@ resource "opennebula_virtual_machine" "test" {
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskUpdate = testDiskImageResources + `
+var testAccVirtualMachinePersistentDiskSizeUpdate = testDiskImageResources + `
+
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.1
+
+	context = {
+	  NETWORK  = "YES"
+	  SET_HOSTNAME = "$NAME"
+	}
+
+	graphics {
+	  type   = "VNC"
+	  listen = "0.0.0.0"
+	  keymap = "en-us"
+	}
+
+	os {
+	  arch = "x86_64"
+	  boot = ""
+	}
+
+	tags = {
+	  env = "prod"
+	  customer = "test"
+	}
+
+	disk {
+		image_id = opennebula_image.image2.id
+		target = "vda"
+		size = "16"
+	}
+
+	timeout = 5
+}
+`
+
+var testAccVirtualMachineSwitchNonPersistentDisk = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -642,7 +691,7 @@ var testAccVirtualMachineTemplateConfigDiskUpdate = testDiskImageResources + `
 	  }
 
 	  disk {
-		  image_id = opennebula_image.img1.id
+		  image_id = opennebula_image.image1.id
 		  target = "vdb"
 	  }
 	
@@ -650,7 +699,7 @@ var testAccVirtualMachineTemplateConfigDiskUpdate = testDiskImageResources + `
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskTargetUpdate = testDiskImageResources + `
+var testAccVirtualMachineNonPersistentDiskTargetUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -681,7 +730,7 @@ var testAccVirtualMachineTemplateConfigDiskTargetUpdate = testDiskImageResources
 	  }
 
 	  disk {
-		  image_id = opennebula_image.img1.id
+		  image_id = opennebula_image.image1.id
 		  target = "vdc"
 	  }
 	
@@ -689,7 +738,7 @@ var testAccVirtualMachineTemplateConfigDiskTargetUpdate = testDiskImageResources
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskSizeUpdate = testDiskImageResources + `
+var testAccVirtualMachineNonPersistentDiskSizeUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
 	  name        = "test-virtual_machine"
@@ -720,7 +769,7 @@ var testAccVirtualMachineTemplateConfigDiskSizeUpdate = testDiskImageResources +
 	  }
 
 	  disk {
-		  image_id = opennebula_image.img1.id
+		  image_id = opennebula_image.image1.id
 		  target = "vdc"
           size = 32
 	  }
@@ -729,7 +778,7 @@ var testAccVirtualMachineTemplateConfigDiskSizeUpdate = testDiskImageResources +
 }
 `
 
-var testAccVirtualMachineTemplateConfigDiskDetached = testDiskImageResources + `
+var testAccVirtualMachineDiskDetached = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
 	name        = "test-virtual_machine"
