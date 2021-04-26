@@ -6,6 +6,10 @@
 
 [OpenNebula](https://opennebula.io/) provider for [Terraform](https://www.terraform.io/).
 
+## Usage
+
+The documentation now resides in the [Terraform Registry](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs). There are lots of examples and a complete reference there.
+
 ## Development
 
 Bug reports and pull requests are welcome on GitHub at
@@ -125,10 +129,6 @@ This will initialize terraform to use OpenNebula Provider.
 | **username**  | OpenNebula username               |
 | **password**  | OpenNebula password OR token      |
 | **version**   | Version of the provider (optional) |
-
-## Usage
-
-Lots of Examples and details of data sources and resources parameters are available on the [Wiki](https://github.com/OpenNebula/terraform-provider-opennebula/wiki).
 
 ## References
 
