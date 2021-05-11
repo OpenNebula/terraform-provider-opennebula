@@ -2,11 +2,12 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
@@ -26,6 +27,7 @@ func TestAccImage(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "persistent", "true"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "type", "DATABLOCK"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "size", "128"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "computed_size", "128"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "dev_prefix", "vd"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "driver", "qcow2"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "permissions", "742"),
@@ -54,6 +56,7 @@ func TestAccImage(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "persistent", "false"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "type", "DATABLOCK"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "size", "128"),
+					resource.TestCheckResourceAttr("opennebula_image.testimage", "computed_size", "128"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "dev_prefix", "vd"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "driver", "qcow2"),
 					resource.TestCheckResourceAttr("opennebula_image.testimage", "permissions", "660"),
