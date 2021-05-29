@@ -509,6 +509,23 @@ func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface
 	return resourceOpennebulaVirtualMachineReadCustom(d, meta, flattenVMDisk, flattenVMNIC)
 }
 
+func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) map[string]interface{} {
+
+	diskMap := flattenDiskComputed(disk)
+
+	if diskConfig["size"].(int) > 0 {
+		diskMap["size"] = diskMap["computed_size"]
+	}
+	if len(diskConfig["target"].(string)) > 0 {
+		diskMap["target"] = diskMap["computed_target"]
+	}
+	if len(diskConfig["driver"].(string)) > 0 {
+		diskMap["driver"] = diskMap["computed_driver"]
+	}
+
+	return diskMap
+}
+
 func flattenDiskComputed(disk shared.Disk) map[string]interface{} {
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
@@ -546,6 +563,18 @@ func flattenVMTemplateDisk(d *schema.ResourceData, vmTemplate *vm.Template) erro
 	return nil
 }
 
+func matchDisk(diskConfig map[string]interface{}, disk shared.Disk) bool {
+
+	size, _ := disk.GetI(shared.Size)
+	driver, _ := disk.Get(shared.Driver)
+	target, _ := disk.Get(shared.TargetDisk)
+
+	return (len(diskConfig["target"].(string)) == 0 || target != diskConfig["computed_target"].(string)) ||
+		(diskConfig["size"].(int) == 0 || size != diskConfig["computed_size"].(int)) ||
+		(len(diskConfig["driver"].(string)) == 0 || driver != diskConfig["computed_driver"].(string))
+
+}
+
 // flattenVMDisk is similar to flattenDisk but deal with computed_* attributes
 // this is a temporary solution until we can use nested attributes marked computed and optional
 func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
@@ -557,38 +586,49 @@ func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
 diskLoop:
 	for _, disk := range disks {
 
-		imageID, _ := disk.GetI(shared.ImageID)
-
-		// exclude disk from template_disk based on the image_id
+		// exclude disk from template_disk
 		tplDiskConfigs := d.Get("template_disk").([]interface{})
 		for _, tplDiskConfigIf := range tplDiskConfigs {
 			tplDiskConfig := tplDiskConfigIf.(map[string]interface{})
 
-			if tplDiskConfig["image_id"] == imageID {
+			if matchDisk(tplDiskConfig, disk) {
 				continue diskLoop
 			}
 		}
 
-		diskRead := flattenDiskComputed(disk)
-		diskRead["image_id"] = imageID
-
 		// copy disk config values
+		var match bool
+		var diskMap map[string]interface{}
+
 		diskConfigs := d.Get("disk").([]interface{})
+
 		for j := 0; j < len(diskConfigs); j++ {
 			diskConfig := diskConfigs[j].(map[string]interface{})
 
-			if diskConfig["image_id"] != diskRead["image_id"] {
+			match = false
+
+			// try to reidentify the disk based on it's configuration values
+			if !matchDisk(diskConfig, disk) {
 				continue
 			}
 
-			diskRead["size"] = diskConfig["size"]
-			diskRead["target"] = diskConfig["target"]
-			diskRead["driver"] = diskConfig["driver"]
+			match = true
+			diskMap = flattenVMDiskComputed(diskConfig, disk)
+
+			imageID, _ := disk.GetI(shared.ImageID)
+			diskMap["image_id"] = imageID
+
+			diskList = append(diskList, diskMap)
+
 			break
 
 		}
 
-		diskList = append(diskList, diskRead)
+		if !match {
+			ID, _ := disk.ID()
+			log.Printf("[WARN] Configuration for disk ID: %d not found.", ID)
+		}
+
 	}
 
 	if len(diskList) > 0 {
