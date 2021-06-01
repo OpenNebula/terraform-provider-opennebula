@@ -882,7 +882,6 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"size")
 
 		// Detach the disks
-		var diskID int
 		for _, diskIf := range toDetach {
 			diskConfig := diskIf.(map[string]interface{})
 
@@ -891,15 +890,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 				continue
 			}
 
-			// retrieve the the disk_id
-			for _, d := range attachedDisksCfg {
-				cfg := d.(map[string]interface{})
-				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
-					continue
-				}
-				diskID = cfg["disk_id"].(int)
-				break
-			}
+			diskID := diskConfig["disk_id"].(int)
 
 			err := vmDiskDetach(vmc, timeout, diskID)
 			if err != nil {
@@ -919,7 +910,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 			diskTpl := makeDiskVector(diskConfig)
 
-			err := vmDiskAttach(vmc, timeout, diskTpl)
+			_, err := vmDiskAttach(vmc, timeout, diskTpl)
 			if err != nil {
 				return fmt.Errorf("vm disk attach: %s", err)
 			}
@@ -936,18 +927,23 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 			// retrieve the the disk_id
 			for _, d := range attachedDisksCfg {
+
 				cfg := d.(map[string]interface{})
-				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
+				if diskConfig["image_id"].(int) != cfg["image_id"].(int) ||
+					(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != cfg["computed_target"]) ||
+					(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != cfg["computed_driver"]) ||
+					diskConfig["size"].(int) <= cfg["computed_size"].(int) {
+
 					continue
 				}
-				diskID = cfg["disk_id"].(int)
 
-				if diskConfig["size"].(int) > cfg["computed_size"].(int) {
-					err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
-					if err != nil {
-						return fmt.Errorf("vm disk resize: %s", err)
-					}
+				diskID := cfg["disk_id"].(int)
+
+				err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
+				if err != nil {
+					return fmt.Errorf("vm disk resize: %s", err)
 				}
+
 			}
 		}
 	}
