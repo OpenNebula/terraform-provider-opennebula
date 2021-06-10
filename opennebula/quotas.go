@@ -235,7 +235,9 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if qds.Size > 0 {
 			ds["size"] = qds.Size
 		}
-		datastoreQuotas = append(datastoreQuotas, ds)
+		if len(ds) > 0 {
+			datastoreQuotas = append(datastoreQuotas, ds)
+		}
 		q = q | F0
 	}
 	// Get network quotas
@@ -245,7 +247,9 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if qn.Leases > 0 {
 			n["leases"] = qn.Leases
 		}
-		networkQuotas = append(networkQuotas, n)
+		if len(n) > 0 {
+			networkQuotas = append(networkQuotas, n)
+		}
 		q = q | F1
 	}
 	// Get VM quotas
@@ -272,7 +276,9 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if quotas.VM.SystemDiskSize > 0 {
 			vm["system_disk_size"] = quotas.VM.SystemDiskSize
 		}
-		vmQuotas = append(vmQuotas, vm)
+		if len(vm) > 0 {
+			vmQuotas = append(vmQuotas, vm)
+		}
 		q = q | F2
 	}
 	// Get Image quotas
@@ -282,7 +288,9 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if qimg.RVMs > 0 {
 			img["running_vms"] = qimg.RVMs
 		}
-		imageQuotas = append(imageQuotas, img)
+		if len(img) > 0 {
+			imageQuotas = append(imageQuotas, img)
+		}
 		q = q | F3
 	}
 
