@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	F0 uint8 = 1
-	F1       = 2
-	F2       = 4
-	F3       = 8
+	DSFlag  uint8 = 1
+	NetFlag       = 2
+	VMFlag        = 4
+	ImgFlag       = 8
 )
 
 func quotasSchema() *schema.Schema {
@@ -238,7 +238,7 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if len(ds) > 0 {
 			datastoreQuotas = append(datastoreQuotas, ds)
 		}
-		q = q | F0
+		q = q | DSFlag
 	}
 	// Get network quotas
 	for _, qn := range quotas.Network {
@@ -250,7 +250,7 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if len(n) > 0 {
 			networkQuotas = append(networkQuotas, n)
 		}
-		q = q | F1
+		q = q | NetFlag
 	}
 	// Get VM quotas
 	if quotas.VM != nil {
@@ -279,7 +279,7 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if len(vm) > 0 {
 			vmQuotas = append(vmQuotas, vm)
 		}
-		q = q | F2
+		q = q | VMFlag
 	}
 	// Get Image quotas
 	for _, qimg := range quotas.Image {
@@ -291,24 +291,24 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if len(img) > 0 {
 			imageQuotas = append(imageQuotas, img)
 		}
-		q = q | F3
+		q = q | ImgFlag
 	}
 
 	quotasMap := make(map[string]interface{}, 0)
 	for q > 0 {
 		switch {
-		case q&F0 > 0:
+		case q&DSFlag > 0:
 			quotasMap["datastore_quotas"] = datastoreQuotas
-			q = q ^ F0
-		case q&F1 > 0:
+			q = q ^ DSFlag
+		case q&NetFlag > 0:
 			quotasMap["network_quotas"] = networkQuotas
-			q = q ^ F1
-		case q&F2 > 0:
+			q = q ^ NetFlag
+		case q&VMFlag > 0:
 			quotasMap["vm_quotas"] = vmQuotas
-			q = q ^ F2
-		case q&F3 > 0:
+			q = q ^ VMFlag
+		case q&ImgFlag > 0:
 			quotasMap["image_quotas"] = imageQuotas
-			q = q ^ F3
+			q = q ^ ImgFlag
 		}
 	}
 
