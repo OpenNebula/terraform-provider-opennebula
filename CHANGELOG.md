@@ -1,3 +1,8 @@
+## 0.4.0 (Unreleased)
+
+BUG FIXES:
+* resources/opennebula_{user,group}: Fix crash on quota datas reading
+
 ## 0.3.0 (December 17, 2020)
 
 FEATURES:
