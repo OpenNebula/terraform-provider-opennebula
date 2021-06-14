@@ -387,10 +387,10 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		reservation_name := d.Get("name").(string)
 		reservation_size := d.Get("reservation_size").(int)
 
-		if reservation_vnet <= 0 {
+		if reservation_vnet < 0 {
 			return fmt.Errorf("Reservation VNET ID must be greater than 0!")
 		} else if reservation_size <= 0 {
-			return fmt.Errorf("Reservation size must be greater than 0!")
+			return fmt.Errorf("Reservation size must be strictly greater than 0!")
 		}
 
 		//The API only takes ATTRIBUTE=VALUE for VNET reservations...
