@@ -153,6 +153,26 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccVirtualMachineNonPersistentDiskAttachedTwice,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "32"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdd"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "64"),
+				),
+			},
+			{
+				Config: testAccVirtualMachineNonPersistentDiskSizeUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "32"),
+				),
+			},
+			{
 				Config: testAccVirtualMachineDiskDetached,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
@@ -773,6 +793,51 @@ var testAccVirtualMachineNonPersistentDiskSizeUpdate = testDiskImageResources + 
 		  target = "vdc"
           size = 32
 	  }
+	
+	  timeout = 5
+}
+`
+
+var testAccVirtualMachineNonPersistentDiskAttachedTwice = testDiskImageResources + `
+
+  resource "opennebula_virtual_machine" "test" {
+	  name        = "test-virtual_machine"
+	  group       = "oneadmin"
+	  permissions = "642"
+	  memory = 128
+	  cpu = 0.1
+	
+	  context = {
+		NETWORK  = "YES"
+		SET_HOSTNAME = "$NAME"
+	  }
+	
+	  graphics {
+		type   = "VNC"
+		listen = "0.0.0.0"
+		keymap = "en-us"
+	  }
+	
+	  os {
+		arch = "x86_64"
+		boot = ""
+	  }
+	
+	  tags = {
+		env = "prod"
+		customer = "test"
+	  }
+
+	  disk {
+		  image_id = opennebula_image.image1.id
+		  target = "vdc"
+          size = 32
+	  }
+	  disk {
+		image_id = opennebula_image.image1.id
+		target = "vdd"
+		size = 64
+	}
 	
 	  timeout = 5
 }

@@ -8,48 +8,97 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // vmDiskAttach is an helper that synchronously attach a disk
-func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) error {
+func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (int, error) {
 
 	imageID, err := diskTpl.GetI(shared.ImageID)
 	if err != nil {
-		return fmt.Errorf("disk template doesn't have an image ID")
+		return -1, fmt.Errorf("disk template doesn't have an image ID")
 	}
 
 	log.Printf("[DEBUG] Attach image (ID:%d) as disk", imageID)
 
+	// Retrieve disk list
+	vm, err := vmc.Info(false)
+	if err != nil {
+		return -1, err
+	}
+
+	set := schema.NewSet(schema.HashString, []interface{}{})
+	for _, disk := range vm.Template.GetDisks() {
+		set.Add(disk.String())
+	}
+
 	err = vmc.DiskAttach(diskTpl.String())
 	if err != nil {
-		return fmt.Errorf("can't attach image with ID:%d: %s\n", imageID, err)
+		return -1, fmt.Errorf("can't attach image with ID:%d: %s\n", imageID, err)
 	}
 
 	// wait before checking disk
 	_, err = waitForVMState(vmc, timeout, vmDiskUpdateReadyStates...)
 	if err != nil {
-		return fmt.Errorf(
+		return -1, fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
 	}
 
-	// Check that disk is attached
-	vm, err := vmc.Info(false)
+	// compare disk list to check that a new disk is attached
+	vm, err = vmc.Info(false)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	for _, attachedDisk := range vm.Template.GetDisks() {
+	oldDisks := make([]shared.Disk, 0, 1)
+	for _, disk := range vm.Template.GetDisks() {
 
-		attachedDiskImageID, _ := attachedDisk.GetI(shared.ImageID)
-		if attachedDiskImageID == imageID {
-			return nil
+		if set.Contains(disk.String()) {
+			continue
+		}
+
+		oldDisks = append(oldDisks, disk)
+	}
+
+	var attachedDisk *shared.Disk
+
+	switch len(oldDisks) {
+	case 0:
+
+		// If disk not attached, retrieve error message
+		vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+
+		return -1, fmt.Errorf("image %d: %s", imageID, vmerr)
+
+	case 1:
+		attachedDisk = &oldDisks[0]
+	default:
+	loop:
+		for i, disk := range oldDisks {
+
+			for _, pair := range diskTpl.Pairs {
+
+				value, err := disk.GetStr(pair.Key())
+				if err != nil {
+
+				}
+
+				if value != pair.Value {
+					continue loop
+				}
+			}
+
+			attachedDisk = &oldDisks[i]
+			break
+		}
+		if attachedDisk == nil {
+			return -1, fmt.Errorf("image %d: can't find the disk", imageID)
 		}
 	}
 
-	// If disk not attached, retrieve error message
-	vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+	diskID, _ := attachedDisk.GetI(shared.DiskID)
 
-	return fmt.Errorf("image %d: %s", imageID, vmerr)
+	return diskID, nil
 }
 
 // vmDiskDetach is an helper that synchronously detach a disk

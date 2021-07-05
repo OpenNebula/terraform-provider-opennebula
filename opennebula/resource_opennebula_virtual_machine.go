@@ -574,10 +574,16 @@ diskLoop:
 
 		// copy disk config values
 		diskConfigs := d.Get("disk").([]interface{})
+
 		for j := 0; j < len(diskConfigs); j++ {
 			diskConfig := diskConfigs[j].(map[string]interface{})
 
-			if diskConfig["image_id"] != diskRead["image_id"] {
+			// try to reidentify the disk based on it's configuration values
+			// image_id is not sufficient in case of an image attached twice
+			if diskConfig["image_id"] != diskRead["image_id"] ||
+				(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != diskRead["computed_target"]) ||
+				(diskConfig["size"].(int) > 0 && diskConfig["size"] != diskRead["computed_size"]) ||
+				(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != diskRead["computed_driver"]) {
 				continue
 			}
 
@@ -842,7 +848,6 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"size")
 
 		// Detach the disks
-		var diskID int
 		for _, diskIf := range toDetach {
 			diskConfig := diskIf.(map[string]interface{})
 
@@ -851,15 +856,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 				continue
 			}
 
-			// retrieve the the disk_id
-			for _, d := range attachedDisksCfg {
-				cfg := d.(map[string]interface{})
-				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
-					continue
-				}
-				diskID = cfg["disk_id"].(int)
-				break
-			}
+			diskID := diskConfig["disk_id"].(int)
 
 			err := vmDiskDetach(vmc, timeout, diskID)
 			if err != nil {
@@ -879,7 +876,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 			diskTpl := makeDiskVector(diskConfig)
 
-			err := vmDiskAttach(vmc, timeout, diskTpl)
+			_, err := vmDiskAttach(vmc, timeout, diskTpl)
 			if err != nil {
 				return fmt.Errorf("vm disk attach: %s", err)
 			}
@@ -896,18 +893,23 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 			// retrieve the the disk_id
 			for _, d := range attachedDisksCfg {
+
 				cfg := d.(map[string]interface{})
-				if cfg["image_id"].(int) != diskConfig["image_id"].(int) {
+				if diskConfig["image_id"].(int) != cfg["image_id"].(int) ||
+					(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != cfg["computed_target"]) ||
+					(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != cfg["computed_driver"]) ||
+					diskConfig["size"].(int) <= cfg["computed_size"].(int) {
+
 					continue
 				}
-				diskID = cfg["disk_id"].(int)
 
-				if diskConfig["size"].(int) > cfg["computed_size"].(int) {
-					err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
-					if err != nil {
-						return fmt.Errorf("vm disk resize: %s", err)
-					}
+				diskID := cfg["disk_id"].(int)
+
+				err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
+				if err != nil {
+					return fmt.Errorf("vm disk resize: %s", err)
 				}
+
 			}
 		}
 	}
