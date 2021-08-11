@@ -186,7 +186,7 @@ func vmDiskResize(vmc *goca.VMController, timeout, diskID, newsize int) error {
 }
 
 // vmNICAttach is an helper that synchronously attach a nic
-func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) error {
+func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) (int, error) {
 
 	networkID, err := nicTpl.GetI(shared.NetworkID)
 	if err != nil {
@@ -195,36 +195,85 @@ func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) error 
 
 	log.Printf("[DEBUG] Attach NIC to network (ID:%d)", networkID)
 
+	// Retrieve NIC list
+	vm, err := vmc.Info(false)
+	if err != nil {
+		return -1, err
+	}
+
+	refNICs := schema.NewSet(schema.HashString, []interface{}{})
+	for _, nic := range vm.Template.GetNICs() {
+		refNICs.Add(nic.String())
+	}
+
 	err = vmc.AttachNIC(nicTpl.String())
 	if err != nil {
-		return fmt.Errorf("can't attach network with ID:%d: %s\n", networkID, err)
+		return -1, fmt.Errorf("can't attach network with ID:%d: %s\n", networkID, err)
 	}
 
 	// wait before checking NIC
 	_, err = waitForVMState(vmc, timeout, vmNICUpdateReadyStates...)
 	if err != nil {
-		return fmt.Errorf(
+		return -1, fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)
 	}
 
-	// Check that NIC is attached
-	vm, err := vmc.Info(false)
+	// compare NIC list to check that a new NIC is attached
+	vm, err = vmc.Info(false)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	for _, attachedNic := range vm.Template.GetNICs() {
+	updatedNICs := make([]shared.NIC, 0, 1)
+	for _, nic := range vm.Template.GetNICs() {
 
-		attachedNicNetworkID, _ := attachedNic.GetI(shared.NetworkID)
-		if attachedNicNetworkID == networkID {
-			return nil
+		if refNICs.Contains(nic.String()) {
+			continue
+		}
+
+		updatedNICs = append(updatedNICs, nic)
+	}
+
+	var attachedNIC *shared.NIC
+
+	if len(updatedNICs) == 0 {
+
+		// If nic not attached, retrieve the VM error message
+
+		vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+
+		return -1, fmt.Errorf("network %d: %s", networkID, vmerr)
+
+	} else {
+
+		// If at least one nic has been updated, try to identify the one we just attached
+
+	loop:
+		for i, nic := range updatedNICs {
+
+			for _, pair := range nicTpl.Pairs {
+
+				value, err := nic.GetStr(pair.Key())
+				if err != nil {
+
+				}
+
+				if value != pair.Value {
+					continue loop
+				}
+			}
+
+			attachedNIC = &updatedNICs[i]
+			break
+		}
+		if attachedNIC == nil {
+			return -1, fmt.Errorf("network %d: can't find the nic", networkID)
 		}
 	}
 
-	// If NIC not attached, retrieve error message
-	vmerr, _ := vm.UserTemplate.Get(vmk.Error)
+	nicID, _ := attachedNIC.GetI(shared.NICID)
 
-	return fmt.Errorf("network ID %d: %s", networkID, vmerr)
+	return nicID, nil
 }
 
 // vmNICDetach is an helper that synchronously detach a NIC
