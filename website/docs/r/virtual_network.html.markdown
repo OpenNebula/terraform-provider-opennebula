@@ -92,7 +92,7 @@ The following arguments are supported:
 * `ar_type` - (Optional) Address range type. Supported values: `IP4`, `IP6`, `IP6_STATIC`, `IP4_6` or `IP4_6_STATIC` or `ETHER`. Defaults to `IP4`.
 * `ip4` - (Optional) Starting IPv4 address of the range. Required if `ar_type` is `IP4` or `IP4_6`.
 * `ip6` - (Optional) Starting IPv6 address of the range. Required if `ar_type` is `IP6_STATIC` or `IP4_6_STATIC`.
-* `size - (Optional) Address range size.
+* `size` - (Required) Address range size.
 * `mac` - (Optional) Starting MAC Address of the range.
 * `global_prefix` - (Optional) Global prefix for `IP6` or `IP_4_6`.
 * `ula_prefix` - (Optional) ULA prefix for `IP6` or `IP_4_6`.
@@ -107,6 +107,14 @@ The following attribute are exported:
 * `gid` - Group ID which owns the virtual network.
 * `uname` - User Name whom owns the virtual network.
 * `gname` - Group Name which owns the virtual network.
+
+### Address range computed attributes
+
+* `id` - ID of the address range
+* `computed_ip6` - Starting IPv6 address of the range.
+* `computed_mac` - Starting MAC Address of the range.
+* `computed_global_prefix` - Global prefix for type `IP6` or `IP_4_6`.
+* `computed_ula_prefix` - ULA prefix for type `IP6` or `IP_4_6`.
 
 ## Import
 
