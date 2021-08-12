@@ -641,7 +641,7 @@ diskLoop:
 	return nil
 }
 
-func flattendNICComputed(nic shared.NIC) map[string]interface{} {
+func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 	nicID, _ := nic.ID()
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
@@ -671,6 +671,29 @@ func flattendNICComputed(nic shared.NIC) map[string]interface{} {
 	}
 }
 
+func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[string]interface{} {
+
+	NICMap := flattenNICComputed(NIC)
+
+	if len(NICConfig["ip"].(string)) > 0 {
+		NICMap["ip"] = NICMap["computed_ip"]
+	}
+	if len(NICConfig["mac"].(string)) > 0 {
+		NICMap["mac"] = NICMap["computed_mac"]
+	}
+	if len(NICConfig["virtio_queues"].(string)) > 0 {
+		NICMap["virtio_queues"] = NICMap["computed_virtio_queues"]
+	}
+	if len(NICConfig["physical_device"].(string)) > 0 {
+		NICMap["physical_device"] = NICMap["computed_physical_device"]
+	}
+	if len(NICConfig["security_groups"].(string)) > 0 {
+		NICMap["security_groups"] = NICMap["computed_security_groups"]
+	}
+
+	return NICMap
+}
+
 // flattenVMTemplateNIC read NIC that come from template when instantiating a VM
 func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
@@ -681,7 +704,7 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 	for i, nic := range nics {
 
 		networkID, _ := nic.GetI(shared.NetworkID)
-		nicRead := flattendNICComputed(nic)
+		nicRead := flattenNICComputed(nic)
 		nicRead["network_id"] = networkID
 		nicList = append(nicList, nicRead)
 
@@ -698,6 +721,36 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 	return nil
 }
 
+func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
+
+	ip, _ := NIC.Get(shared.IP)
+	mac, _ := NIC.Get(shared.MAC)
+	physicalDevice, _ := NIC.GetStr("PHYDEV")
+
+	model, _ := NIC.Get(shared.Model)
+	virtioQueues, _ := NIC.GetStr("VIRTIO_QUEUES")
+	securityGroupsArray, _ := NIC.Get(shared.SecurityGroups)
+
+	sgStr := strings.Split(securityGroupsArray, ",")
+	sgConfig := NICConfig["computed_security_groups"].([]interface{})
+	if len(sgStr) != len(sgConfig) {
+		return false
+	}
+
+	for i := 0; i < len(sgStr); i++ {
+		if sgStr[i] != sgConfig[i].(string) {
+			return false
+		}
+	}
+
+	return len(NICConfig["ip"].(string)) == 0 || ip == NICConfig["computed_ip"].(string) &&
+		len(NICConfig["mac"].(string)) == 0 && mac == NICConfig["computed_mac"].(string) &&
+		len(NICConfig["physical_device"].(string)) == 0 && physicalDevice == NICConfig["computed_physical_device"].(string) &&
+		len(NICConfig["model"].(string)) == 0 && model == NICConfig["computed_model"].(string) &&
+		len(NICConfig["virtio_queues"].(string)) == 0 && virtioQueues == NICConfig["computed_virtio_queues"].(string)
+
+}
+
 // flattenVMNIC is similar to flattenNIC but deal with computed_* attributes
 // this is a temporary solution until we can use nested attributes marked computed and optional
 func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
@@ -709,45 +762,51 @@ func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
 NICLoop:
 	for i, nic := range nics {
 
-		networkID, _ := nic.GetI(shared.NetworkID)
-
-		// exclude NIC from template_nic based on the network_id
+		// exclude NIC listed in template_nic
 		tplNICConfigs := d.Get("template_nic").([]interface{})
 		for _, tplNICConfigIf := range tplNICConfigs {
 			tplNICConfig := tplNICConfigIf.(map[string]interface{})
 
-			if tplNICConfig["network_id"] == networkID {
+			if matchNIC(tplNICConfig, nic) {
 				continue NICLoop
 			}
 		}
 
-		nicRead := flattendNICComputed(nic)
-		nicRead["network_id"] = networkID
-
 		// copy nic config values
+		var match bool
+		var nicMap map[string]interface{}
+
 		nicsConfigs := d.Get("nic").([]interface{})
 		for j := 0; j < len(nicsConfigs); j++ {
 			nicConfig := nicsConfigs[j].(map[string]interface{})
 
-			if nicConfig["network_id"] != nicRead["network_id"] {
+			match = false
+
+			// try to reidentify the nic based on it's configuration values
+			// network_id is not sufficient in case of a network attached twice
+			if !matchNIC(nicConfig, nic) {
 				continue
 			}
 
-			nicRead["ip"] = nicConfig["ip"]
-			nicRead["mac"] = nicConfig["mac"]
-			nicRead["model"] = nicConfig["model"]
-			nicRead["virtio_queues"] = nicConfig["virtio_queues"]
-			nicRead["physical_device"] = nicConfig["physical_device"]
-			nicRead["security_groups"] = nicConfig["security_groups"]
+			match = true
+			nicMap = flattenVMNICComputed(nicConfig, nic)
+
+			networkID, _ := nic.GetI(shared.NetworkID)
+			nicMap["network_id"] = networkID
+
+			nicList = append(nicList, nicMap)
 
 			break
 
 		}
 
-		nicList = append(nicList, nicRead)
+		if !match {
+			ID, _ := nic.ID()
+			log.Printf("[WARN] Configuration for NIC ID: %d not found.", ID)
+		}
 
 		if i == 0 {
-			d.Set("ip", nicRead["computed_ip"])
+			d.Set("ip", nicMap["computed_ip"])
 		}
 	}
 
@@ -972,19 +1031,10 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"physical_device")
 
 		// Detach the nics
-		var nicID int
 		for _, nicIf := range toDetach {
 			nicConfig := nicIf.(map[string]interface{})
 
-			// retrieve the the nic_id
-			for _, d := range attachedNicsCfg {
-				cfg := d.(map[string]interface{})
-				if cfg["network_id"].(int) != nicConfig["network_id"].(int) {
-					continue
-				}
-				nicID = cfg["nic_id"].(int)
-				break
-			}
+			nicID := nicConfig["network_id"].(int)
 
 			err := vmNICDetach(vmc, timeout, nicID)
 			if err != nil {
@@ -999,7 +1049,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 			nicTpl := makeNICVector(nicConfig)
 
-			err := vmNICAttach(vmc, timeout, nicTpl)
+			_, err := vmNICAttach(vmc, timeout, nicTpl)
 			if err != nil {
 				return fmt.Errorf("vm nic attach: %s", err)
 			}

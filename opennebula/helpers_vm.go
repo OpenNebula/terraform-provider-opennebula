@@ -190,7 +190,7 @@ func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) (int, 
 
 	networkID, err := nicTpl.GetI(shared.NetworkID)
 	if err != nil {
-		return fmt.Errorf("NIC template doesn't have a network ID")
+		return -1, fmt.Errorf("NIC template doesn't have a network ID")
 	}
 
 	log.Printf("[DEBUG] Attach NIC to network (ID:%d)", networkID)
