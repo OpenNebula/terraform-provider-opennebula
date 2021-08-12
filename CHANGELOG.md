@@ -7,6 +7,7 @@ BUG FIXES:
 * resources/opennebula_virtual_data_center: Fix `zones` flattening and associated tests
 * resources/opennebula_user: Fix crash on quota datas reading
 * resources/opennebula_group: Fix crash on quota datas reading
+* resources/opennebula_virtual_machine: Fix several NICs attached to the same network
 
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update
