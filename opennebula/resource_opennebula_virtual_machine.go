@@ -134,10 +134,15 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			"template_disk": templateDiskVMSchema(),
 			"graphics":      graphicsSchema(),
 			"nic":           nicVMSchema(),
-			"template_nic":  templateNICVMSchema(),
-			"os":            osSchema(),
-			"vmgroup":       vmGroupSchema(),
-			"tags":          tagsSchema(),
+			"keep_nic_order": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Force the provider to keep nics order at update.",
+			},
+			"template_nic": templateNICVMSchema(),
+			"os":           osSchema(),
+			"vmgroup":      vmGroupSchema(),
+			"tags":         tagsSchema(),
 			"ip": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -1029,6 +1034,83 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"model",
 			"virtio_queues",
 			"physical_device")
+
+		if d.Get("keep_nic_order").(bool) && len(toDetach) > 0 {
+
+			// retrieve the minimal nic ID to detach
+			firstNIC := toDetach[0].(map[string]interface{})
+			minID := firstNIC["nic_id"].(int)
+			for _, nicIf := range toDetach[1:] {
+				nicConfig := nicIf.(map[string]interface{})
+
+				nicID := nicConfig["nic_id"].(int)
+				if nicID < minID {
+					minID = nicID
+				}
+			}
+
+			// NICs with greater nic ID should be detached
+		oldNICLoop:
+			for _, nicIf := range attachedNicsCfg {
+				nicConfig := nicIf.(map[string]interface{})
+
+				// collect greater nic IDs
+				nicID := nicConfig["nic_id"].(int)
+				if nicID > minID {
+
+					// add the nic if not already present in toDetach
+					for _, nicDetachIf := range toDetach {
+						nicDetachConfig := nicDetachIf.(map[string]interface{})
+
+						// nic is already present
+						detachNICID := nicDetachConfig["nic_id"].(int)
+						if detachNICID == nicID {
+							continue oldNICLoop
+						}
+					}
+
+					// add the NIC to detach it
+					toDetach = append(toDetach, nicConfig)
+
+					// add the NIC to reattach it
+					toAttach = append(toAttach, nicConfig)
+				}
+			}
+
+			// reorder toAttach NIC list according to new list order
+			newNICtoAttach := make([]interface{}, len(toAttach))
+			i := 0
+			for _, newNICIf := range newNicsCfg {
+				newNIC := newNICIf.(map[string]interface{})
+				newNICSecGroup := newNIC["security_groups"].([]interface{})
+
+				for _, NICToAttachIf := range toAttach {
+					NIC := NICToAttachIf.(map[string]interface{})
+
+					// if NIC have the same attributes
+
+					// compare security_groups
+					NICSecGroup := NIC["security_groups"].([]interface{})
+
+					if ArrayToString(NICSecGroup, ",") != ArrayToString(newNICSecGroup, ",") {
+						continue
+					}
+
+					// compare other attributes
+					if (NIC["ip"] == newNIC["ip"] &&
+						NIC["mac"] == newNIC["mac"]) &&
+						NIC["model"] == newNIC["model"] &&
+						NIC["virtio_queues"] == newNIC["virtio_queues"] &&
+						NIC["physical_device"] == newNIC["physical_device"] {
+
+						newNICtoAttach[i] = NIC
+						i++
+						break
+					}
+				}
+			}
+			toAttach = newNICtoAttach
+		}
 
 		// Detach the nics
 		for _, nicIf := range toDetach {
