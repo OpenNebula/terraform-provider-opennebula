@@ -367,11 +367,13 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	tpl := securitygroup.Template
+	tpl := &securitygroup.Template
 	changes := false
 
 	if d.HasChange("rule") && d.Get("rule") != "" {
-		generateSecurityGroupRules(d, &tpl)
+
+		tpl.Del((string(sgk.RuleVec)))
+		generateSecurityGroupRules(d, tpl)
 		changes = true
 	}
 
