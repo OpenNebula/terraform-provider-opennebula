@@ -1045,6 +1045,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		// Attach the nics
 		for _, nicIf := range toAttach {
+
 			nicConfig := nicIf.(map[string]interface{})
 
 			nicTpl := makeNICVector(nicConfig)
@@ -1053,6 +1054,28 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			if err != nil {
 				return fmt.Errorf("vm nic attach: %s", err)
 			}
+		}
+	}
+
+	if d.HasChange("context") {
+
+		log.Printf("[INFO] Update NIC configuration")
+
+		tpl := dyn.NewTemplate()
+		contextVec := tpl.AddVector("CONTEXT")
+
+		//Generate CONTEXT definition
+		context := d.Get("context").(map[string]interface{})
+
+		// Add new context elements to the template
+		for key, value := range context {
+			keyUp := strings.ToUpper(key)
+			contextVec.AddPair(keyUp, fmt.Sprint(value))
+		}
+
+		err := vmc.UpdateConf(tpl.String())
+		if err != nil {
+			return fmt.Errorf("vm updateconf: %s", err)
 		}
 	}
 
