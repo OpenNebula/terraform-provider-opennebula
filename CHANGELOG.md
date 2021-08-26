@@ -2,6 +2,7 @@
 
 BUG FIXES:
 * resources/opennebula_virtual_network: fix type at read for reservation_vnet
+* resources/opennebula_virtual_network: reservation_vnet: Zero is a valid ID
 
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update
