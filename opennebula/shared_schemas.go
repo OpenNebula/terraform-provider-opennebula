@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"strconv"
@@ -234,6 +235,25 @@ func tagsSchema() *schema.Schema {
 		Description: "Add custom tags to the resource",
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
+		},
+	}
+}
+
+var locktypes = []string{"USE", "MANAGE", "ADMIN", "ALL", "UNLOCK"}
+
+func lockSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Lock level of the new resource: USE, MANAGE, ADMIN, ALL, UNLOCK",
+		ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+			value := v.(string)
+
+			if inArray(value, locktypes) < 0 {
+				errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(locktypes, ",")))
+			}
+
+			return
 		},
 	}
 }

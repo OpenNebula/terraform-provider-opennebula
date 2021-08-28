@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
@@ -134,6 +135,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template, If empty, it uses caller group",
 			},
+			"lock": lockSchema(),
 		},
 	}
 }
@@ -225,6 +227,20 @@ func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) 
 
 	if d.Get("group") != "" || d.Get("gid") != "" {
 		err = changeTemplateGroup(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	if lock, ok := d.GetOk("lock"); ok && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = tc.Lock(level)
 		if err != nil {
 			return err
 		}
@@ -328,6 +344,10 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if tpl.LockInfos != nil {
+		d.Set("lock", LockLevelToString(tpl.LockInfos.Locked))
+	}
+
 	return nil
 }
 
@@ -352,6 +372,16 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	tpl, err := tc.Info(false, false)
 	if err != nil {
 		return err
+	}
+
+	lock, lockOk := d.GetOk("lock")
+	if d.HasChange("lock") && lockOk && lock.(string) == "UNLOCK" {
+
+		err = tc.Unlock()
+		if err != nil {
+			return err
+		}
+
 	}
 
 	if d.HasChange("name") {
@@ -427,6 +457,21 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		err = tc.Update(tpl.Template.String(), 1)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("lock") && lockOk && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = tc.Lock(level)
 		if err != nil {
 			return err
 		}
