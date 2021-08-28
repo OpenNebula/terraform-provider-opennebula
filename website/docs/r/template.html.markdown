@@ -84,6 +84,7 @@ The following arguments are supported:
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `tags` - (Optional) Template tags (Key = Value).
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
+* `lock` - (Optional) Lock the template with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 
 ### Graphics parameters
 
