@@ -2,6 +2,9 @@
 
 FEATURES:
 * resources/opennebula_virtual_machine: Optionally preserve NIC ordering
+* resources/opennebula_virtual_machine: Enable locking
+* resources/opennebula_virtual_network: Enable locking
+* resources/opennebula_template: Enable locking
 
 BUG FIXES:
 * resources/opennebula_virtual_network: fix type at read for reservation_vnet
