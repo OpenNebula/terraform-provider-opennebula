@@ -62,6 +62,10 @@ resource "opennebula_template" "mytemplate" {
 
   sched_requirements = "FREE_CPU > 60"
   
+  user_inputs = {
+    BLOG_TITLE="M|text|Blog Title",
+  }
+
   tags = {
     environment = "dev"
   }
@@ -86,6 +90,7 @@ The following arguments are supported:
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
 * `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
+* `user_inputs` - (Optional) Ask the user instantiating the template to define the values described.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule
 * `tags` - (Optional) Template tags (Key = Value).
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
