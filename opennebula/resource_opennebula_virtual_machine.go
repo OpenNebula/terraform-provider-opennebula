@@ -3,6 +3,7 @@ package opennebula
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -154,7 +156,8 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
-			"lock": lockSchema(),
+			"lock":               lockSchema(),
+			"sched_requirements": schedReqSchema(),
 		},
 	}
 }
@@ -988,6 +991,47 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[INFO] Successfully updated group for VM %s\n", vmInfos.Name)
 	}
 
+	var tpl *vm.Template
+	update := false
+	deleteElements := false
+
+	attributeKeys := []string{"sched_requirements"}
+	for _, key := range attributeKeys {
+		if d.HasChange(key) {
+			update = true
+			if isEmptyValue(reflect.ValueOf(d.Get(key))) {
+				deleteElements = true
+			}
+		}
+	}
+
+	if deleteElements {
+		tpl = &vmInfos.Template
+	} else {
+		tpl = vm.NewTemplate()
+	}
+
+	if d.HasChange("sched_requirements") {
+		schedRequirements := d.Get("sched_requirements").(string)
+		if len(schedRequirements) > 0 {
+			// Placement already delete the key before adding
+			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+		}
+	}
+
+	if update {
+
+		updateType := parameters.Merge
+		if deleteElements == true {
+			updateType = parameters.Replace
+		}
+
+		err = vmc.Update(tpl.String(), updateType)
+		if err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("tags") {
 		tagsInterface := d.Get("tags").(map[string]interface{})
 		for k, v := range tagsInterface {
@@ -1263,7 +1307,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	updateConf := false
 
 	// retrieve only template sections managed by updateconf method
-	tpl := vm.NewTemplate()
+	tpl = vm.NewTemplate()
 	for _, name := range []string{"OS", "FEATURES", "INPUT", "GRAPHICS", "RAW", "CONTEXT"} {
 		vectors := vmInfos.Template.GetVectors(name)
 		for _, vec := range vectors {

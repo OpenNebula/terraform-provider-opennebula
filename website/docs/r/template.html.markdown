@@ -59,6 +59,8 @@ resource "opennebula_template" "mytemplate" {
     role       = "vmgroup-role"
   }
 
+  sched_requirements = "FREE_CPU > 60"
+  
   tags = {
     environment = "dev"
   }
@@ -82,6 +84,7 @@ The following arguments are supported:
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
 * `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
+* `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule
 * `tags` - (Optional) Template tags (Key = Value).
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 * `lock` - (Optional) Lock the template with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
