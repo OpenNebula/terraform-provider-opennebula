@@ -266,6 +266,14 @@ func schedReqSchema() *schema.Schema {
 	}
 }
 
+func descriptionSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "A description of the entity",
+	}
+}
+
 func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 	disk := shared.NewDisk()
 
@@ -441,6 +449,10 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	}
 
+	descr, ok := d.GetOk("description")
+	if ok {
+		tpl.Add(vmk.Description, descr.(string))
+	}
 }
 
 func flattenNIC(nic shared.NIC) map[string]interface{} {
@@ -600,6 +612,14 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 	schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
 	if len(schedReq) > 0 {
 		err = d.Set("sched_requirements", schedReq)
+		if err != nil {
+			return err
+		}
+	}
+
+	desc, _ := vmTemplate.GetStr("DESCRIPTION")
+	if len(desc) > 0 {
+		err = d.Set("description", desc)
 		if err != nil {
 			return err
 		}
