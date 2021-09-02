@@ -140,6 +140,11 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			"lock":               lockSchema(),
 			"sched_requirements": schedReqSchema(),
 			"description":        descriptionSchema(),
+			"user_inputs": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Provides the template creator with the possibility to dynamically ask the user instantiating the template for dynamic values that must be defined.",
+			},
 		},
 	}
 }
@@ -322,6 +327,20 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
+	if uInputs != nil && len(uInputs.Pairs) > 0 {
+		uInputsMap := make(map[string]interface{}, 0)
+
+		for _, ui := range uInputs.Pairs {
+			uInputsMap[ui.Key()] = ui.Value
+		}
+
+		err = d.Set("user_inputs", uInputsMap)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = flattenTemplate(d, &tpl.Template, true)
 	if err != nil {
 		return err
@@ -437,7 +456,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	update := false
 	deleteElements := false
 
-	attributeKeys := []string{"raw", "sched_requirements", "description"}
+	attributeKeys := []string{"raw", "sched_requirements", "description", "user_inputs"}
 	for _, key := range attributeKeys {
 		if d.HasChange(key) {
 			update = true
@@ -484,6 +503,21 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 
 		if len(description) > 0 {
 			newTpl.Add(vmk.Description, description)
+		}
+	}
+
+	if d.HasChange("user_inputs") {
+		newTpl.Del("USER_INPUTS")
+
+		uInputs := d.Get("user_inputs").(map[string]interface{})
+		if len(uInputs) > 0 {
+
+			vec := newTpl.AddVector("USER_INPUTS")
+			if len(uInputs) > 0 {
+				for k, v := range uInputs {
+					vec.AddPair(k, v)
+				}
+			}
 		}
 	}
 
@@ -563,6 +597,15 @@ func generateTemplate(d *schema.ResourceData) (string, error) {
 	for key, value := range context {
 		keyUp := strings.ToUpper(key)
 		tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
+	}
+
+	uInputs := d.Get("user_inputs").(map[string]interface{})
+	if len(uInputs) > 0 {
+		vec := tpl.AddVector("USER_INPUTS")
+
+		for k, v := range uInputs {
+			vec.AddPair(k, v)
+		}
 	}
 
 	generateVMTemplate(d, tpl)
