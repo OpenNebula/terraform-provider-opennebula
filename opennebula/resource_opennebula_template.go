@@ -3,12 +3,14 @@ package opennebula
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -135,7 +137,8 @@ func resourceOpennebulaTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template, If empty, it uses caller group",
 			},
-			"lock": lockSchema(),
+			"lock":               lockSchema(),
+			"sched_requirements": schedReqSchema(),
 		},
 	}
 }
@@ -429,24 +432,61 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
 	}
 
+	var newTpl *vm.Template
+	update := false
+	deleteElements := false
+
+	attributeKeys := []string{"raw", "sched_requirements"}
+	for _, key := range attributeKeys {
+		if d.HasChange(key) {
+			update = true
+			if isEmptyValue(reflect.ValueOf(d.Get(key))) {
+				deleteElements = true
+			}
+		}
+	}
+
+	if deleteElements {
+		newTpl = &tpl.Template
+	} else {
+		newTpl = vm.NewTemplate()
+	}
+
 	if d.HasChange("raw") {
+		newTpl.Del("RAW")
 
-		newTpl := vm.NewTemplate()
-
-		//Generate RAW definition
 		raw := d.Get("raw").([]interface{})
-		for i := 0; i < len(raw); i++ {
-			rawConfig := raw[i].(map[string]interface{})
-			rawVec := newTpl.AddVector("RAW")
-			rawVec.AddPair("TYPE", rawConfig["type"].(string))
-			rawVec.AddPair("DATA", rawConfig["data"].(string))
+		if len(raw) > 0 {
+			for i := 0; i < len(raw); i++ {
+				rawConfig := raw[i].(map[string]interface{})
+				rawVec := newTpl.AddVector("RAW")
+				rawVec.AddPair("TYPE", rawConfig["type"].(string))
+				rawVec.AddPair("DATA", rawConfig["data"].(string))
+			}
+		}
+	}
+
+	if d.HasChange("sched_requirements") {
+		newTpl.Del(string(vmk.SchedRequirements))
+
+		schedRequirements := d.Get("sched_requirements").(string)
+		if len(schedRequirements) > 0 {
+			// Placement already delete the key before adding
+			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
+		}
+	}
+
+	if update {
+
+		updateType := parameters.Merge
+		if deleteElements == true {
+			updateType = parameters.Replace
 		}
 
-		err = tc.Update(newTpl.String(), 1)
+		err = tc.Update(newTpl.String(), updateType)
 		if err != nil {
 			return err
 		}
-
 	}
 
 	if d.HasChange("tags") {

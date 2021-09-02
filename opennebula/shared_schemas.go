@@ -258,6 +258,14 @@ func lockSchema() *schema.Schema {
 	}
 }
 
+func schedReqSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Scheduling requirements to deploy the resource following specific rule",
+	}
+}
+
 func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 	disk := shared.NewDisk()
 
@@ -426,6 +434,13 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 		tpl.AddPair(strings.ToUpper(k), v)
 	}
 
+	schedReq, ok := d.GetOk("sched_requirements")
+	if ok {
+		schedReqStr := strings.Replace(schedReq.(string), "\"", "\\\"", 3)
+		tpl.AddPair("SCHED_REQUIREMENTS", schedReqStr)
+
+	}
+
 }
 
 func flattenNIC(nic shared.NIC) map[string]interface{} {
@@ -579,6 +594,14 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+	if len(schedReq) > 0 {
+		err = d.Set("sched_requirements", schedReq)
+		if err != nil {
+			return err
 		}
 	}
 
