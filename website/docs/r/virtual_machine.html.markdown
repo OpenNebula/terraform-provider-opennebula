@@ -20,6 +20,7 @@ a new virtual machine is created. When destroyed, this virtual machine is remove
 resource "opennebula_virtual_machine" "demo" {
   count       = 2
   name        = "tfdemovm"
+  description = "this is a VM template"
   cpu         = 1
   vcpu        = 1
   memory      = 1024
@@ -76,6 +77,7 @@ resource "opennebula_virtual_machine" "demo" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine.
+* `description`: (Optional) The description of the template.
 * `permissions` - (Optional) Permissions applied on virtual machine. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details. Changing this argument triggers a new resource.
 * `pending` - (Optional) Pending state during VM creation. Defaults to `false`.

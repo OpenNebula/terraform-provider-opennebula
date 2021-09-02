@@ -158,6 +158,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			},
 			"lock":               lockSchema(),
 			"sched_requirements": schedReqSchema(),
+			"description":        descriptionSchema(),
 		},
 	}
 }
@@ -995,7 +996,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	update := false
 	deleteElements := false
 
-	attributeKeys := []string{"sched_requirements"}
+	attributeKeys := []string{"sched_requirements", "description"}
 	for _, key := range attributeKeys {
 		if d.HasChange(key) {
 			update = true
@@ -1016,6 +1017,16 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		if len(schedRequirements) > 0 {
 			// Placement already delete the key before adding
 			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+		}
+	}
+
+	if d.HasChange("description") {
+		tpl.Del(string(vmk.Description))
+
+		description := d.Get("description").(string)
+
+		if len(description) > 0 {
+			tpl.Add(vmk.Description, description)
 		}
 	}
 

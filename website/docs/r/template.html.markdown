@@ -18,6 +18,7 @@ a new template is created. When destroyed, this template is removed.
 ```hcl
 resource "opennebula_template" "mytemplate" {
   name        = "mytemplate"
+  description = "this is a VM template"
   cpu         = 1
   vcpu        = 1
   memory      = 1024
@@ -72,6 +73,7 @@ resource "opennebula_template" "mytemplate" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine template.
+* `description`: (Optional) The description of the template.
 * `permissions` - (Optional) Permissions applied on template. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `group` - (Optional) Name of the group which owns the template. Defaults to the caller primary group.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if `template_****id` is not set**.

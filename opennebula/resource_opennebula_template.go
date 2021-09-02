@@ -139,6 +139,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			},
 			"lock":               lockSchema(),
 			"sched_requirements": schedReqSchema(),
+			"description":        descriptionSchema(),
 		},
 	}
 }
@@ -436,7 +437,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	update := false
 	deleteElements := false
 
-	attributeKeys := []string{"raw", "sched_requirements"}
+	attributeKeys := []string{"raw", "sched_requirements", "description"}
 	for _, key := range attributeKeys {
 		if d.HasChange(key) {
 			update = true
@@ -473,6 +474,16 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		if len(schedRequirements) > 0 {
 			// Placement already delete the key before adding
 			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
+		}
+	}
+
+	if d.HasChange("description") {
+		newTpl.Del(string(vmk.Description))
+
+		description := d.Get("description").(string)
+
+		if len(description) > 0 {
+			newTpl.Add(vmk.Description, description)
 		}
 	}
 
