@@ -19,10 +19,15 @@ BUG FIXES:
 * resources/opennebula_virtual_machine_group: remove `vms` field
 * data/opennebula_user: remove password field
 
+FEATURES:
+* resources/opennebula_virtual_machine: Add description, sched_requirements, sched_ds_requirements
+* resources/opennebula_template: Add description, user_inputs, sched_requirements, sched_ds_requirements
+
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update
 * resources/opennebula_virtual_machine: enable context, os, graphics sections update
 * resources/opennebula_virtual_machine: Allow VM deletion from other states than RUNNING
+* resources/opennebula_image: Enable description update
 
 ## 0.3.0 (December 17, 2020)
 
