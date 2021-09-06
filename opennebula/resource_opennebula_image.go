@@ -40,7 +40,6 @@ func resourceOpennebulaImage() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "Description of the Image, in OpenNebula's XML or String format",
 			},
 			"permissions": {
@@ -455,6 +454,7 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 			if err == nil {
 				d.Set("description", desc)
 			}
+
 		default:
 			if tagsInterface, ok := d.GetOk("tags"); ok {
 				for k, _ := range tagsInterface.(map[string]interface{}) {
@@ -553,6 +553,21 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 			}
 		}
 		log.Printf("[INFO] Successfully updated Image Type %s\n", image.Name)
+	}
+
+	update := false
+	tpl := img.NewTemplate()
+
+	if d.HasChange("description") {
+		update = true
+		tpl.Add("DESCRIPTION", d.Get("description").(string))
+	}
+
+	if update {
+		err = ic.Update(tpl.String(), 1)
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("tags") {
