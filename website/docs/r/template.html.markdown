@@ -80,6 +80,7 @@ The following arguments are supported:
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
+* `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `tags` - (Optional) Template tags (Key = Value).
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
@@ -123,6 +124,14 @@ Minimum 1 item. Maximum 8 items.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
 
 Minimum 1 item. Maximum 8 items.
+
+### Raw parameters
+
+`raw` supports the following arguments:
+
+* `type` - (Required) - Hypervisor. Supported values: `kvm`, `lxd`, `vmware`.
+* `data` - (Required) - Raw data to pass to the hypervisor.
+
 
 ### VM group parameters
 
