@@ -619,7 +619,10 @@ func generateTemplate(d *schema.ResourceData) (string, error) {
 		}
 	}
 
-	generateVMTemplate(d, tpl)
+	err := generateVMTemplate(d, tpl)
+	if err != nil {
+		return "", err
+	}
 
 	//Generate RAW definition
 	raw := d.Get("raw").([]interface{})

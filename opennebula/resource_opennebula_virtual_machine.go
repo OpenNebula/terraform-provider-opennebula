@@ -598,11 +598,14 @@ func matchDisk(diskConfig map[string]interface{}, disk shared.Disk) bool {
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
+	volatileType, _ := disk.Get("TYPE")
+	volatileFormat, _ := disk.Get("FORMAT")
 
 	return emptyOrEqual(diskConfig["target"], target) &&
 		emptyOrEqual(diskConfig["size"], size) &&
-		emptyOrEqual(diskConfig["driver"], driver)
-
+		emptyOrEqual(diskConfig["driver"], driver) &&
+		emptyOrEqual(diskConfig["volatile_type"], volatileType) &&
+		emptyOrEqual(diskConfig["volatile_format"], volatileFormat)
 }
 
 func matchDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) bool {
@@ -657,6 +660,16 @@ diskLoop:
 
 			imageID, _ := disk.GetI(shared.ImageID)
 			diskMap["image_id"] = imageID
+
+			// for volatile disk, TYPE has the same value
+			// than DISK_TYPE
+			if imageID == -1 {
+				volatileType, _ := disk.Get("TYPE")
+				diskMap["volatile_type"] = volatileType
+			}
+
+			volatileFormat, _ := disk.Get("FORMAT")
+			diskMap["volatile_format"] = volatileFormat
 
 			diskList = append(diskList, diskMap)
 
@@ -1092,7 +1105,9 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			},
 			"image_id",
 			"target",
-			"driver")
+			"driver",
+			"volatile_type",
+			"volatile_format")
 
 		// reorder toAttach disk list according to new disks list order
 		newDisktoAttach := make([]interface{}, len(toAttach))
@@ -1128,8 +1143,11 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		for _, diskIf := range toDetach {
 			diskConfig := diskIf.(map[string]interface{})
 
-			imageID := diskConfig["image_id"].(int)
-			if imageID == -1 {
+			// ignore disk without image_id and type
+			if diskConfig["image_id"].(int) == -1 &&
+				len(diskConfig["volatile_type"].(string)) == 0 {
+
+				log.Printf("[INFO] ignore disk without image_id and type")
 				continue
 			}
 
@@ -1146,8 +1164,11 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		for _, diskIf := range toAttach {
 			diskConfig := diskIf.(map[string]interface{})
 
-			imageID := diskConfig["image_id"].(int)
-			if imageID == -1 {
+			// ignore disk without image_id and type
+			if diskConfig["image_id"].(int) == -1 &&
+				len(diskConfig["volatile_type"].(string)) == 0 {
+
+				log.Printf("[INFO] ignore disk without image_id and type")
 				continue
 			}
 
@@ -1163,8 +1184,11 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		for _, diskIf := range toResize {
 			diskConfig := diskIf.(map[string]interface{})
 
-			imageID := diskConfig["image_id"].(int)
-			if imageID == -1 {
+			// ignore disk without image_id and type
+			if diskConfig["image_id"].(int) == -1 &&
+				len(diskConfig["volatile_type"].(string)) == 0 {
+
+				log.Printf("[INFO] ignore disk without image_id and type")
 				continue
 			}
 
@@ -1676,7 +1700,10 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) 
 		}
 	}
 
-	generateVMTemplate(d, tpl)
+	err := generateVMTemplate(d, tpl)
+	if err != nil {
+		return "", err
+	}
 
 	tplStr := tpl.String()
 	log.Printf("[INFO] VM definition: %s", tplStr)
