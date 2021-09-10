@@ -14,12 +14,7 @@ import (
 // vmDiskAttach is an helper that synchronously attach a disk
 func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (int, error) {
 
-	imageID, err := diskTpl.GetI(shared.ImageID)
-	if err != nil {
-		return -1, fmt.Errorf("disk template doesn't have an image ID")
-	}
-
-	log.Printf("[DEBUG] Attach image (ID:%d) as disk", imageID)
+	log.Printf("[DEBUG] Attach disk to virtual machine (ID:%d)", vmc.ID)
 
 	// Retrieve disk list
 	vm, err := vmc.Info(false)
@@ -34,7 +29,8 @@ func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (in
 
 	err = vmc.DiskAttach(diskTpl.String())
 	if err != nil {
-		return -1, fmt.Errorf("can't attach image with ID:%d: %s\n", imageID, err)
+		return -1, fmt.Errorf("can't attach image to virtual machine (ID:%d): %s\n", vmc.ID, err)
+
 	}
 
 	// wait before checking disk
@@ -68,7 +64,7 @@ func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (in
 		// If disk not attached, retrieve error message
 		vmerr, _ := vm.UserTemplate.Get(vmk.Error)
 
-		return -1, fmt.Errorf("image %d: %s", imageID, vmerr)
+		return -1, fmt.Errorf("virtual machine (ID:%d): %s", vmc.ID, vmerr)
 
 	case 1:
 		attachedDisk = &oldDisks[0]
@@ -92,7 +88,7 @@ func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (in
 			break
 		}
 		if attachedDisk == nil {
-			return -1, fmt.Errorf("image %d: can't find the disk", imageID)
+			return -1, fmt.Errorf("can't find the disk attached to the virtual machine (ID:%d)", vmc.ID)
 		}
 	}
 
