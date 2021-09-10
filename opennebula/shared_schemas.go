@@ -87,6 +87,36 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"volatile_type": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Type of the volatile disk: swap or fs.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"swap", "fs"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(validtypes, ",")))
+				}
+
+				return
+			},
+		},
+		"volatile_format": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Format of the volatile disk: raw or qcow2.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"raw", "qcow2"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("Format %q must be one of: %s", k, strings.Join(validtypes, ",")))
+				}
+
+				return
+			},
+		},
 	}
 }
 
@@ -288,7 +318,10 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 	for k, v := range diskConfig {
 
 		if k == "image_id" {
-			disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
+			imageID := v.(int)
+			if imageID >= 0 {
+				disk.Add(shared.ImageID, strconv.Itoa(imageID))
+			}
 			continue
 		}
 
@@ -303,6 +336,10 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 			disk.Add(shared.Driver, v.(string))
 		case "size":
 			disk.Add(shared.Size, strconv.Itoa(v.(int)))
+		case "volatile_type":
+			disk.Add("TYPE", v.(string))
+		case "volatile_format":
+			disk.Add("FORMAT", v.(string))
 		}
 	}
 
@@ -380,7 +417,7 @@ func addGraphic(tpl *vm.Template, graphics []interface{}) {
 	}
 }
 
-func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
+func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 
 	//Generate NIC definition
 	nics := d.Get("nic").([]interface{})
@@ -401,8 +438,17 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	for i := 0; i < len(disks); i++ {
 		diskconfig := disks[i].(map[string]interface{})
 
+		// ConflictsWith can't be used among attributes of a nested part: disk, nic etc.
+		// So we need to add a check here
+		if diskconfig["image_id"].(int) != -1 &&
+			(len(diskconfig["volatile_type"].(string)) > 0 ||
+				len(diskconfig["volatile_format"].(string)) > 0) {
+			return fmt.Errorf("disk attritutes image_id can't be defined at the same time as volatile_type or volatile_format")
+		}
+
 		// Ignore disk creation if Image ID is -1
-		if diskconfig["image_id"].(int) < 0 {
+		if diskconfig["image_id"].(int) == -1 &&
+			len(diskconfig["volatile_type"].(string)) == 0 {
 			continue
 		}
 
@@ -468,6 +514,8 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	if ok {
 		tpl.Add(vmk.Description, descr.(string))
 	}
+
+	return nil
 }
 
 func flattenNIC(nic shared.NIC) map[string]interface{} {
@@ -512,12 +560,16 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
 	imageID, _ := disk.GetI(shared.ImageID)
+	volatileType, _ := disk.Get("TYPE")
+	volatileFormat, _ := disk.Get("FORMAT")
 
 	return map[string]interface{}{
-		"image_id": imageID,
-		"size":     size,
-		"target":   target,
-		"driver":   driver,
+		"image_id":        imageID,
+		"size":            size,
+		"target":          target,
+		"driver":          driver,
+		"volatile_type":   volatileType,
+		"volatile_format": volatileFormat,
 	}
 }
 
