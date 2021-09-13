@@ -711,7 +711,15 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		d.Set("automatic_vlan_id", true)
 	}
 	d.Set("type", vn.VNMad)
-	d.Set("reservation_vnet", vn.ParentNetworkID)
+
+	if len(vn.ParentNetworkID) > 0 {
+		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
+		if err != nil {
+			return fmt.Errorf("Can't parse parent network ID: %s", err)
+		}
+		d.Set("reservation_vnet", parentNetworkID)
+	}
+
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
 	err = flattenVnetTemplate(d, &vn.Template)
