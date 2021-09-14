@@ -93,6 +93,7 @@ The following arguments are supported:
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule.
+* `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
 * `tags` - (Optional) Virtual Machine tags (Key = Value).
 * `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.

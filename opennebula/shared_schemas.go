@@ -266,6 +266,14 @@ func schedReqSchema() *schema.Schema {
 	}
 }
 
+func schedDSReqSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Storage placement requirements to deploy the resource following specific rule",
+	}
+}
+
 func descriptionSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeString,
@@ -449,6 +457,13 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	}
 
+	schedDSReq, ok := d.GetOk("sched_ds_requirements")
+	if ok {
+		schedDSReqStr := strings.Replace(schedDSReq.(string), "\"", "\\\"", 3)
+		tpl.AddPair("SCHED_DS_REQUIREMENTS", schedDSReqStr)
+
+	}
+
 	descr, ok := d.GetOk("description")
 	if ok {
 		tpl.Add(vmk.Description, descr.(string))
@@ -612,6 +627,14 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 	schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
 	if len(schedReq) > 0 {
 		err = d.Set("sched_requirements", schedReq)
+		if err != nil {
+			return err
+		}
+	}
+
+	schedDSReq, _ := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+	if len(schedDSReq) > 0 {
+		err = d.Set("sched_ds_requirements", schedDSReq)
 		if err != nil {
 			return err
 		}

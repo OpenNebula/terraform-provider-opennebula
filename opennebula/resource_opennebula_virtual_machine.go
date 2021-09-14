@@ -156,9 +156,10 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
-			"lock":               lockSchema(),
-			"sched_requirements": schedReqSchema(),
-			"description":        descriptionSchema(),
+			"lock":                  lockSchema(),
+			"sched_requirements":    schedReqSchema(),
+			"sched_ds_requirements": schedDSReqSchema(),
+			"description":           descriptionSchema(),
 		},
 	}
 }
@@ -996,7 +997,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	update := false
 	deleteElements := false
 
-	attributeKeys := []string{"sched_requirements", "description"}
+	attributeKeys := []string{"sched_requirements", "sched_ds_requirements", "description"}
 	for _, key := range attributeKeys {
 		if d.HasChange(key) {
 			update = true
@@ -1017,6 +1018,14 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		if len(schedRequirements) > 0 {
 			// Placement already delete the key before adding
 			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+		}
+	}
+
+	if d.HasChange("sched_ds_requirements") {
+		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+		if len(schedDSRequirements) > 0 {
+			// Placement already delete the key before adding
+			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
 		}
 	}
 

@@ -137,9 +137,10 @@ func resourceOpennebulaTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template, If empty, it uses caller group",
 			},
-			"lock":               lockSchema(),
-			"sched_requirements": schedReqSchema(),
-			"description":        descriptionSchema(),
+			"lock":                  lockSchema(),
+			"sched_requirements":    schedReqSchema(),
+			"sched_ds_requirements": schedDSReqSchema(),
+			"description":           descriptionSchema(),
 			"user_inputs": {
 				Type:        schema.TypeMap,
 				Optional:    true,
@@ -456,7 +457,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	update := false
 	deleteElements := false
 
-	attributeKeys := []string{"raw", "sched_requirements", "description", "user_inputs"}
+	attributeKeys := []string{"raw", "sched_requirements", "sched_ds_requirements", "description", "user_inputs"}
 	for _, key := range attributeKeys {
 		if d.HasChange(key) {
 			update = true
@@ -493,6 +494,16 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		if len(schedRequirements) > 0 {
 			// Placement already delete the key before adding
 			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
+		}
+	}
+
+	if d.HasChange("sched_ds_requirements") {
+		newTpl.Del(string(vmk.SchedDSRequirements))
+
+		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+		if len(schedDSRequirements) > 0 {
+			// Placement already delete the key before adding
+			newTpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
 		}
 	}
 
