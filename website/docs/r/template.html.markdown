@@ -92,6 +92,7 @@ The following arguments are supported:
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `user_inputs` - (Optional) Ask the user instantiating the template to define the values described.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule
+* `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
 * `tags` - (Optional) Template tags (Key = Value).
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 * `lock` - (Optional) Lock the template with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
