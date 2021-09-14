@@ -12,6 +12,7 @@ BUG FIXES:
 
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update
+* resources/opennebula_virtual_machine: enable context, os, graphics sections update
 
 ## 0.3.0 (December 17, 2020)
 
