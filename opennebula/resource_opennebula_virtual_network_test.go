@@ -38,13 +38,16 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "2"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ar_type", "IP4"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.size", "16"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ip4", "172.16.100.110"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ar_type", "IP4"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.size", "12"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ip4", "172.16.100.130"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.243662212.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.243662212.size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.243662212.ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.4282430103.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.4282430103.size", "15"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.4282430103.ip4", "172.16.100.170"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1816832807.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1816832807.size", "12"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1816832807.ip4", "172.16.100.130"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.112"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.1", "172.16.100.131"),
@@ -76,17 +79,18 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "3"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ar_type", "IP4"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.size", "16"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.ip4", "172.16.100.110"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.0.mac", "02:01:ac:10:64:6e"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ar_type", "IP4"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.size", "13"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1.ip4", "172.16.100.140"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.ar_type", "IP6"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.size", "2"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2.ip6", "2001:db8:0:85a3::ac1f:8001"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.4282430103.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.4282430103.size", "15"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.4282430103.ip4", "172.16.100.170"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2475302130.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2475302130.size", "17"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.2475302130.ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1095814213.ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1095814213.size", "13"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.1095814213.ip4", "172.16.100.140"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.3729916233.ar_type", "IP6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.3729916233.size", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.112"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.1", "172.16.100.141"),
@@ -232,6 +236,11 @@ resource "opennebula_virtual_network" "test" {
   }
   ar {
     ar_type = "IP4"
+    size    = 15
+    ip4     = "172.16.100.170"
+  }
+  ar {
+    ar_type = "IP4"
     size    = 12
     ip4     = "172.16.100.130"
   }
@@ -258,8 +267,12 @@ resource "opennebula_virtual_network" "test" {
   network_mask    = "255.255.0.0"
   ar {
     ar_type = "IP4"
-    size    = 16
-    mac     = "02:01:ac:10:64:6e"
+    size    = 15
+    ip4     = "172.16.100.170"
+  }
+  ar {
+    ar_type = "IP4"
+    size    = 17
     ip4     = "172.16.100.110"
   }
   ar {
@@ -270,7 +283,6 @@ resource "opennebula_virtual_network" "test" {
   ar {
     ar_type = "IP6"
     size    = 2
-    ip6     = "2001:db8:0:85a3::ac1f:8001"
   }
   hold_ips = ["172.16.100.112", "172.16.100.141"]
   security_groups = [0]
@@ -297,8 +309,12 @@ resource "opennebula_virtual_network" "test" {
   ar {
     ar_type = "IP4"
     size    = 16
-    mac     = "02:01:ac:10:64:6e"
     ip4     = "172.16.100.110"
+  }
+  ar {
+    ar_type = "IP4"
+    size    = 15
+    ip4     = "172.16.100.170"
   }
   ar {
     ar_type = "IP4"
@@ -308,9 +324,7 @@ resource "opennebula_virtual_network" "test" {
   ar {
     ar_type = "IP6"
     size    = 2
-    ip6     = "2001:db8:0:85a3::ac1f:8001"
   }
-  hold_ips = ["172.16.100.112", "172.16.100.141"]
   security_groups = [0]
   clusters = [0]
   permissions = "660"

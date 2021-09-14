@@ -3,6 +3,9 @@
 BUG FIXES:
 * resources/opennebula_virtual_network: fix type at read for reservation_vnet
 
+ENHANCEMENTS:
+* resources/opennebula_virtual_network: Enhance address range update
+
 ## 0.3.0 (December 17, 2020)
 
 FEATURES:
