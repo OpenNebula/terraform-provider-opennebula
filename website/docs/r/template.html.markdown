@@ -117,10 +117,12 @@ The following arguments are supported:
 
 `disk` supports the following arguments
 
-* `image_id` - (Required) ID of the image to attach to the virtual machine.
+* `image_id` - (Optional) ID of the image to attach to the virtual machine. Conflicts with `volatile_type` and `volatile_format`.
 * `size` - (Optional) Size (in MB) of the image attached to the virtual machine. Not possible to change a cloned image size.
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `driver` - (Optional) OpenNebula image driver.
+* `volatile_type` - (Optional) Type of the volatile disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id`.
+* `volatile_format` - (Optional) Format of the volatile disk: `raw` or `qcow2`. Conflicts with `image_id`.
 
 Minimum 1 item. Maximum 8 items.
 
