@@ -2,10 +2,11 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
@@ -23,15 +24,17 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_user.user", "password", "p@ssw0rd"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "auth_driver", "core"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.datastore_quotas.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.datastore_quotas.0.id", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.datastore_quotas.0.images", "3"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.datastore_quotas.0.size", "100"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.image_quotas.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.network_quotas.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.vm_quotas.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.vm_quotas.2832483756.cpu", "4"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.4169128061.vm_quotas.2832483756.memory", "8192"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_user.user", "quotas.*", map[string]string{
+						"datastore_quotas.#":        "1",
+						"datastore_quotas.0.id":     "1",
+						"datastore_quotas.0.images": "3",
+						"datastore_quotas.0.size":   "100",
+						"image_quotas.#":            "0",
+						"network_quotas.#":          "0",
+						"vm_quotas.#":               "1",
+						"vm_quotas.0.cpu":           "4",
+						"vm_quotas.0.memory":        "8192",
+					}),
 				),
 			},
 			{
@@ -41,15 +44,17 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_user.user", "password", "p@ssw0rd2"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "auth_driver", "core"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.datastore_quotas.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.datastore_quotas.0.id", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.datastore_quotas.0.images", "4"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.datastore_quotas.0.size", "100"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.image_quotas.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.network_quotas.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.vm_quotas.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.vm_quotas.2832483756.cpu", "4"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.261273647.vm_quotas.2832483756.memory", "8192"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_user.user", "quotas.*", map[string]string{
+						"datastore_quotas.#":        "1",
+						"datastore_quotas.0.id":     "1",
+						"datastore_quotas.0.images": "4",
+						"datastore_quotas.0.size":   "100",
+						"image_quotas.#":            "0",
+						"network_quotas.#":          "0",
+						"vm_quotas.#":               "1",
+						"vm_quotas.0.cpu":           "4",
+						"vm_quotas.0.memory":        "8192",
+					}),
 				),
 			},
 		},
