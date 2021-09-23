@@ -91,7 +91,7 @@ func quotasSchema() *schema.Schema {
 					},
 				},
 				"vm_quotas": {
-					Type:        schema.TypeSet,
+					Type:        schema.TypeList,
 					Optional:    true,
 					Description: "VM quotas",
 					Elem: &schema.Resource{
@@ -155,7 +155,7 @@ func generateQuotas(d *schema.ResourceData) (string, error) {
 	datastore := quotasMap["datastore_quotas"].([]interface{})
 	network := quotasMap["network_quotas"].([]interface{})
 	image := quotasMap["image_quotas"].([]interface{})
-	vm := quotasMap["vm_quotas"].(*schema.Set).List()
+	vm := quotasMap["vm_quotas"].([]interface{})
 
 	for i := 0; i < len(datastore); i++ {
 		datastoreTpl := tpl.AddVector("DATASTORE")
