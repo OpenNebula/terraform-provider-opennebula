@@ -256,8 +256,11 @@ func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId(strconv.FormatUint(uint64(group.ID), 10))
 	d.Set("name", group.Name)
-	d.Set("template", group.Template)
-	d.Set("delete_on_destruction", d.Get("delete_on_destruction"))
+	d.Set("template", group.Template.String())
+	deleteOnDestruction, ok := d.Get("delete_on_destruction").(bool)
+	if ok {
+		d.Set("delete_on_destruction", deleteOnDestruction)
+	}
 
 	// read only configured users in current group resource
 	appliedUserIDs := make([]int, 0)
