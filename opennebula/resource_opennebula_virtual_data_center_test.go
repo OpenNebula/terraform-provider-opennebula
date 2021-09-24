@@ -2,12 +2,12 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
@@ -23,12 +23,15 @@ func TestAccVirtualDataCenter(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_data_center.vdc", "name", "terravdc"),
 					testAccCheckVirtualDataCenterGroups([]int{0}),
-					testAccCheckVirtualDataCenterZones(0, vdcZone{
-						ID:           0,
-						ClusterIDs:   []int{0},
-						HostIDs:      []int{0},
-						DatastoreIDs: []int{0, 1, 2},
-					}),
+					testAccCheckVirtualDataCenterZones(0,
+						map[string]interface{}{
+							"id":            0,
+							"cluster_ids":   []int{0},
+							"host_ids":      []int{0},
+							"datastore_ids": []int{0, 1, 2},
+							"vnet_ids":      []int{},
+						},
+					),
 				),
 			},
 			{
@@ -36,12 +39,15 @@ func TestAccVirtualDataCenter(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_data_center.vdc", "name", "terravdc2"),
 					testAccCheckVirtualDataCenterGroups([]int{0, 1}),
-					testAccCheckVirtualDataCenterZones(0, vdcZone{
-						ID:           0,
-						ClusterIDs:   []int{0},
-						HostIDs:      []int{0},
-						DatastoreIDs: []int{0, 2},
-					}),
+					testAccCheckVirtualDataCenterZones(0,
+						map[string]interface{}{
+							"id":            0,
+							"cluster_ids":   []int{0},
+							"host_ids":      []int{0},
+							"datastore_ids": []int{0, 2},
+							"vnet_ids":      []int{},
+						},
+					),
 				),
 			},
 		},
@@ -90,7 +96,7 @@ func testAccCheckVirtualDataCenterGroups(slice []int) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckVirtualDataCenterZones(zoneidx int, expected vdcZone) resource.TestCheckFunc {
+func testAccCheckVirtualDataCenterZones(zoneidx int, expected map[string]interface{}) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		controller := testAccProvider.Meta().(*goca.Controller)
 
@@ -105,14 +111,34 @@ func testAccCheckVirtualDataCenterZones(zoneidx int, expected vdcZone) resource.
 			if vdc == nil {
 				return fmt.Errorf("Expected VDC %s to exist when checking permissions", rs.Primary.ID)
 			}
-			zones := generateZoneMapFromStructs(vdc)
+			zones := flattenZones(vdc)
 			for i, zone := range zones {
 				if i != zoneidx {
 					continue
 				}
-				if !reflect.DeepEqual(zone, structs.Map(expected)) {
-					return fmt.Errorf("VDC (%s) Zones are not the expected ones, got %+v instead of %+v", rs.Primary.ID, zones, expected)
+
+				for k, _ := range zone {
+					// compare id
+					if k == "id" {
+						if zone[k].(int) != expected[k].(int) {
+							return fmt.Errorf("VDC (%s) Zone resources ID lists differ, got %+v instead of %+v", rs.Primary.ID, zone, expected)
+						}
+						continue
+					}
+					// compare slice of IDs
+					ids := zone[k].([]int)
+					if len(ids) != len(expected[k].([]int)) {
+						return fmt.Errorf("VDC (%s) Zone resources ID lists differ, got %+v instead of %+v", rs.Primary.ID, zone, expected)
+					}
+					expectedIDs := expected[k].([]int)
+					for i := range ids {
+						if ids[i] != expectedIDs[i] {
+							return fmt.Errorf("VDC (%s) Zone resources ID lists differ, got %+v instead of %+v", rs.Primary.ID, zone, expected)
+						}
+					}
+
 				}
+
 			}
 		}
 		return nil

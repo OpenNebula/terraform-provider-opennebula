@@ -5,7 +5,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/fatih/structs"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -14,14 +13,6 @@ import (
 )
 
 type vdcResources struct {
-	ClusterIDs   []int
-	HostIDs      []int
-	DatastoreIDs []int
-	VNetIDs      []int
-}
-
-type vdcZone struct {
-	ID           int
 	ClusterIDs   []int
 	HostIDs      []int
 	DatastoreIDs []int
@@ -222,8 +213,8 @@ func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interf
 
 	d.SetId(fmt.Sprintf("%v", vdc.ID))
 	d.Set("name", vdc.Name)
-	d.Set("zones", generateZoneMapFromStructs(vdc))
-	d.Set("groups_ids", vdc.Groups.ID)
+	d.Set("zones", flattenZones(vdc))
+	d.Set("group_ids", vdc.Groups.ID)
 
 	return nil
 }
@@ -388,7 +379,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 	return resourceOpennebulaVirtualDataCenterRead(d, meta)
 }
 
-func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
+func flattenZones(vdc *vdc.VDC) []map[string]interface{} {
 
 	zones := make(map[int]*vdcResources, 0)
 
@@ -435,14 +426,13 @@ func generateZoneMapFromStructs(vdc *vdc.VDC) []map[string]interface{} {
 
 	zonemap := make([]map[string]interface{}, 0)
 	for k, v := range zones {
-		z := vdcZone{
-			ID:           k,
-			ClusterIDs:   v.ClusterIDs,
-			HostIDs:      v.HostIDs,
-			DatastoreIDs: v.DatastoreIDs,
-			VNetIDs:      v.VNetIDs,
+		zmap := map[string]interface{}{
+			"id":            k,
+			"cluster_ids":   v.ClusterIDs,
+			"host_ids":      v.HostIDs,
+			"datastore_ids": v.DatastoreIDs,
+			"vnet_ids":      v.VNetIDs,
 		}
-		zmap := structs.Map(z)
 		zonemap = append(zonemap, zmap)
 	}
 
