@@ -6,7 +6,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 cloud.google.com/go/storage
-# github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20210201144350-4e670bf7bf70
+# github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20210824074935-e55e3a53c4c0
 github.com/OpenNebula/one/src/oca/go/src/goca
 github.com/OpenNebula/one/src/oca/go/src/goca/dynamic
 github.com/OpenNebula/one/src/oca/go/src/goca/errors

@@ -8,6 +8,7 @@ BUG FIXES:
 * resources/opennebula_user: Fix crash on quota datas reading
 * resources/opennebula_group: Fix crash on quota datas reading
 * resources/opennebula_virtual_machine: Fix several NICs attached to the same network
+* resources/opennebula_security_group: fix rule conversion from struct to config
 
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update

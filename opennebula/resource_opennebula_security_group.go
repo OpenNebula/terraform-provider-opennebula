@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/structs"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -286,15 +285,18 @@ func flattenSecurityGroupTags(d *schema.ResourceData, sgTpl *securitygroup.Templ
 	return nil
 }
 
-func generateSecurityGroupMapFromStructs(slice []securitygroup.Rule) []map[string]interface{} {
+func generateSecurityGroupMapFromStructs(rulesVectors []securitygroup.Rule) []map[string]interface{} {
 
-	secrulemap := make([]map[string]interface{}, 0)
-
-	for i := 0; i < len(slice); i++ {
-		secrulemap = append(secrulemap, structs.Map(slice[i]))
+	rules := make([]map[string]interface{}, 0, len(rulesVectors))
+	for _, ruleVec := range rulesVectors {
+		rule := make(map[string]interface{}, len(ruleVec.Pairs))
+		for _, pair := range ruleVec.Pairs {
+			rule[strings.ToLower(pair.Key())] = pair.Value
+		}
+		rules = append(rules, rule)
 	}
 
-	return secrulemap
+	return rules
 }
 
 func resourceOpennebulaSecurityGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -365,11 +367,13 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	tpl := securitygroup.Template
+	tpl := &securitygroup.Template
 	changes := false
 
 	if d.HasChange("rule") && d.Get("rule") != "" {
-		generateSecurityGroupRules(d, &tpl)
+
+		tpl.Del((string(sgk.RuleVec)))
+		generateSecurityGroupRules(d, tpl)
 		changes = true
 	}
 
