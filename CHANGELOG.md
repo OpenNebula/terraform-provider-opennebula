@@ -5,6 +5,8 @@ BUG FIXES:
 * resources/opennebula_virtual_network: reservation_vnet: Zero is a valid ID
 * resources/opennebula_virtual_machine: Fix several disks attached to the same images
 * resources/opennebula_virtual_data_center: Fix `zones` flattening and associated tests
+* resources/opennebula_user: Fix crash on quota datas reading
+* resources/opennebula_group: Fix crash on quota datas reading
 
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update
