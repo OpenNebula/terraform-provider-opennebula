@@ -867,7 +867,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-	vm, err := vmc.Info(false)
+	vmInfos, err := vmc.Info(false)
 	if err != nil {
 		return err
 	}
@@ -879,8 +879,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 		// TODO: fix it after 5.10 release
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-		vm, err := vmc.Info(false)
-		log.Printf("[INFO] Successfully updated name (%s) for VM ID %x\n", vm.Name, vm.ID)
+		vmInfos, err := vmc.Info(false)
+		log.Printf("[INFO] Successfully updated name (%s) for VM ID %x\n", vmInfos.Name, vmInfos.ID)
 	}
 
 	if d.HasChange("permissions") && d.Get("permissions") != "" {
@@ -890,7 +890,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 				return err
 			}
 		}
-		log.Printf("[INFO] Successfully updated Permissions VM %s\n", vm.Name)
+		log.Printf("[INFO] Successfully updated Permissions VM %s\n", vmInfos.Name)
 	}
 
 	if d.HasChange("group") {
@@ -898,19 +898,27 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		if err != nil {
 			return err
 		}
-		log.Printf("[INFO] Successfully updated group for VM %s\n", vm.Name)
+		log.Printf("[INFO] Successfully updated group for VM %s\n", vmInfos.Name)
 	}
 
 	if d.HasChange("tags") {
 		tagsInterface := d.Get("tags").(map[string]interface{})
 		for k, v := range tagsInterface {
-			vm.UserTemplate.Del(strings.ToUpper(k))
-			vm.UserTemplate.AddPair(strings.ToUpper(k), v.(string))
+			vmInfos.UserTemplate.Del(strings.ToUpper(k))
+			vmInfos.UserTemplate.AddPair(strings.ToUpper(k), v.(string))
 		}
 
-		err = vmc.Update(vm.UserTemplate.String(), 1)
+		err = vmc.Update(vmInfos.UserTemplate.String(), 1)
 		if err != nil {
 			return err
+		}
+
+		timeout := d.Get("timeout").(int)
+
+		_, err = waitForVMState(vmc, timeout, "RUNNING")
+		if err != nil {
+			return fmt.Errorf(
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
 		}
 	}
 
@@ -1045,6 +1053,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		// Attach the nics
 		for _, nicIf := range toAttach {
+
 			nicConfig := nicIf.(map[string]interface{})
 
 			nicTpl := makeNICVector(nicConfig)
@@ -1053,6 +1062,72 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			if err != nil {
 				return fmt.Errorf("vm nic attach: %s", err)
 			}
+		}
+	}
+
+	updateConf := false
+	tpl := vm.NewTemplate()
+
+	if d.HasChange("os") {
+		updateConf = true
+
+		log.Printf("[DEBUG] Update os")
+
+		//Generate OS definition
+		addOS(tpl, d.Get("os").([]interface{}))
+
+	}
+
+	if d.HasChange("graphics") {
+		updateConf = true
+
+		log.Printf("[DEBUG] Update graphics")
+
+		//Generate GRAPHICS definition
+		addGraphic(tpl, d.Get("graphics").([]interface{}))
+
+	}
+
+	if d.HasChange("context") {
+
+		updateConf = true
+
+		log.Printf("[DEBUG] Update context")
+
+		contextVec := tpl.AddVector("CONTEXT")
+
+		//Generate CONTEXT definition
+		context := d.Get("context").(map[string]interface{})
+
+		// Add new context elements to the template
+		for key, value := range context {
+			keyUp := strings.ToUpper(key)
+			contextVec.AddPair(keyUp, fmt.Sprint(value))
+		}
+
+	}
+
+	if updateConf == true {
+
+		timeout := d.Get("timeout").(int)
+
+		_, err = waitForVMState(vmc, timeout, "RUNNING")
+		if err != nil {
+			return fmt.Errorf(
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+		}
+
+		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
+
+		err := vmc.UpdateConf(tpl.String())
+		if err != nil {
+			return fmt.Errorf("vm updateconf: %s", err)
+		}
+
+		_, err = waitForVMState(vmc, timeout, "RUNNING")
+		if err != nil {
+			return fmt.Errorf(
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
 		}
 	}
 
@@ -1071,11 +1146,20 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 		return err
 	}
 
+	// wait state to be ready
+	timeout := d.Get("timeout").(int)
+
+	_, err = waitForVMState(vmc, timeout, "RUNNING")
+	if err != nil {
+		return fmt.Errorf(
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+	}
+
 	if err = vmc.TerminateHard(); err != nil {
 		return err
 	}
 
-	timeout := d.Get("timeout").(int)
+	//timeout := d.Get("timeout").(int)
 	ret, err := waitForVMState(vmc, timeout, "DONE")
 	if err != nil {
 

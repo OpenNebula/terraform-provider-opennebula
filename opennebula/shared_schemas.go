@@ -296,6 +296,43 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 	return nic
 }
 
+func addOS(tpl *vm.Template, os []interface{}) {
+
+	for i := 0; i < len(os); i++ {
+		osconfig := os[i].(map[string]interface{})
+		tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
+		tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+	}
+
+}
+
+func addGraphic(tpl *vm.Template, graphics []interface{}) {
+
+	for i := 0; i < len(graphics); i++ {
+		graphicsconfig := graphics[i].(map[string]interface{})
+
+		for k, v := range graphicsconfig {
+
+			if isEmptyValue(reflect.ValueOf(v)) {
+				continue
+			}
+
+			switch k {
+			case "listen":
+				tpl.AddIOGraphic(vmk.Listen, v.(string))
+			case "type":
+				tpl.AddIOGraphic(vmk.GraphicType, v.(string))
+			case "port":
+				tpl.AddIOGraphic(vmk.Port, v.(string))
+			case "keymap":
+				tpl.AddIOGraphic(vmk.Keymap, v.(string))
+			}
+
+		}
+
+	}
+}
+
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 
 	//Generate NIC definition
@@ -327,37 +364,10 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) {
 	}
 
 	//Generate GRAPHICS definition
-	graphics := d.Get("graphics").([]interface{})
-	for i := 0; i < len(graphics); i++ {
-		graphicsconfig := graphics[i].(map[string]interface{})
-
-		for k, v := range graphicsconfig {
-
-			if isEmptyValue(reflect.ValueOf(v)) {
-				continue
-			}
-
-			switch k {
-			case "listen":
-				tpl.AddIOGraphic(vmk.Listen, v.(string))
-			case "type":
-				tpl.AddIOGraphic(vmk.GraphicType, v.(string))
-			case "port":
-				tpl.AddIOGraphic(vmk.Port, v.(string))
-			case "keymap":
-				tpl.AddIOGraphic(vmk.Keymap, v.(string))
-			}
-
-		}
-	}
+	addGraphic(tpl, d.Get("graphics").([]interface{}))
 
 	//Generate OS definition
-	os := d.Get("os").([]interface{})
-	for i := 0; i < len(os); i++ {
-		osconfig := os[i].(map[string]interface{})
-		tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
-		tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
-	}
+	addOS(tpl, d.Get("os").([]interface{}))
 
 	//Generate CPU Model definition
 	cpumodel := d.Get("cpumodel").([]interface{})
