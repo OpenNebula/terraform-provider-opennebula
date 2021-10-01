@@ -1,5 +1,8 @@
 ## 0.4.0 (Unreleased)
 
+FEATURES:
+* resources/opennebula_virtual_machine: Optionally preserve NIC ordering
+
 BUG FIXES:
 * resources/opennebula_virtual_network: fix type at read for reservation_vnet
 * resources/opennebula_virtual_network: reservation_vnet: Zero is a valid ID

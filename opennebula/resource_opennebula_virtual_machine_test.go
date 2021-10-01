@@ -278,9 +278,34 @@ func TestAccVirtualMachineNICUpdate(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccVirtualMachineTemplateConfigMultipleNICs,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.keep_nic_order", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.132"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.113"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.133"),
+				),
+			},
+			{
+				Config: testAccVirtualMachineTemplateConfigMultipleNICsOrderedUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.keep_nic_order", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.134"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.113"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.133"),
+				),
+			},
+			{
 				Config: testAccVirtualMachineTemplateConfigNICDetached,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.keep_nic_order", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "0"),
 				),
 			},
@@ -1169,6 +1194,109 @@ var testAccVirtualMachineTemplateConfigNICIPUpdate = testNICVNetResources + `
 	  nic {
 		  network_id = opennebula_virtual_network.network2.id
 		  ip = "172.16.100.112"
+	  }
+	
+	  timeout = 5
+}
+`
+
+var testAccVirtualMachineTemplateConfigMultipleNICs = testNICVNetResources + `
+
+  resource "opennebula_virtual_machine" "test" {
+	  name        = "test-virtual_machine"
+	  group       = "oneadmin"
+	  permissions = "642"
+	  memory = 128
+	  cpu = 0.1
+	
+	  context = {
+		NETWORK  = "YES"
+		SET_HOSTNAME = "$NAME"
+	  }
+	
+	  graphics {
+		type   = "VNC"
+		listen = "0.0.0.0"
+		keymap = "en-us"
+	  }
+	
+	  os {
+		arch = "x86_64"
+		boot = ""
+	  }
+	
+	  tags = {
+		env = "prod"
+		customer = "test"
+	  }
+
+	  nic {
+		network_id = opennebula_virtual_network.network2.id
+		ip         = "172.16.100.112"
+	  }
+	  nic {
+		network_id = opennebula_virtual_network.network1.id
+		ip         = "172.16.100.132"
+	  }
+	  nic {
+		network_id = opennebula_virtual_network.network2.id
+		ip         = "172.16.100.113"
+	  }
+	  nic {
+		network_id = opennebula_virtual_network.network1.id
+		ip         = "172.16.100.133"
+	  }
+	
+	  timeout = 5
+}
+`
+
+var testAccVirtualMachineTemplateConfigMultipleNICsOrderedUpdate = testNICVNetResources + `
+
+  resource "opennebula_virtual_machine" "test" {
+	  name        = "test-virtual_machine"
+	  group       = "oneadmin"
+	  permissions = "642"
+	  memory = 128
+	  cpu = 0.1
+	
+	  context = {
+		NETWORK  = "YES"
+		SET_HOSTNAME = "$NAME"
+	  }
+	
+	  graphics {
+		type   = "VNC"
+		listen = "0.0.0.0"
+		keymap = "en-us"
+	  }
+	
+	  os {
+		arch = "x86_64"
+		boot = ""
+	  }
+	
+	  tags = {
+		env = "prod"
+		customer = "test"
+	  }
+
+	  keep_nic_order = true
+	  nic {
+		network_id = opennebula_virtual_network.network2.id
+		ip         = "172.16.100.112"
+	  }
+	  nic {
+		network_id = opennebula_virtual_network.network1.id
+		ip         = "172.16.100.134"
+	  }
+	  nic {
+		network_id = opennebula_virtual_network.network2.id
+		ip         = "172.16.100.113"
+	  }
+	  nic {
+		network_id = opennebula_virtual_network.network1.id
+		ip         = "172.16.100.133"
 	  }
 	
 	  timeout = 5
