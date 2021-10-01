@@ -11,6 +11,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
 )
@@ -237,6 +238,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Description: "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
 			"tags": tagsSchema(),
+			"lock": lockSchema(),
 		},
 	}
 }
@@ -523,6 +525,20 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
+	if lock, ok := d.GetOk("lock"); ok && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+		err := StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = vnc.Lock(level)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceOpennebulaVirtualNetworkRead(d, meta)
 }
 
@@ -790,6 +806,10 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		log.Printf("[WARN] Error setting ar for Virtual Network %x, error: %s", vn.ID, err)
 	}
 
+	if vn.Lock != nil {
+		d.Set("lock", LockLevelToString(vn.Lock.Locked))
+	}
+
 	return nil
 }
 
@@ -913,6 +933,15 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	vnc, err := getVirtualNetworkController(d, meta)
 	if err != nil {
 		return err
+	}
+
+	lock, lockOk := d.GetOk("lock")
+	if d.HasChange("lock") && lockOk && lock.(string) == "UNLOCK" {
+
+		err = vnc.Unlock()
+		if err != nil {
+			return err
+		}
 	}
 
 	tpl := vn.NewTemplate()
@@ -1087,6 +1116,21 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 			if r_err != nil {
 				return r_err
 			}
+		}
+	}
+
+	if d.HasChange("lock") && lockOk && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = vnc.Lock(level)
+		if err != nil {
+			return err
 		}
 	}
 

@@ -19,7 +19,6 @@ import (
 )
 
 var imagetypes = []string{"OS", "CDROM", "DATABLOCK", "KERNEL", "RAMDISK", "CONTEXT"}
-var locktypes = []string{"USE", "MANAGE", "ADMIN", "ALL", "UNLOCK"}
 
 func resourceOpennebulaImage() *schema.Resource {
 	return &schema.Resource{
@@ -109,21 +108,7 @@ func resourceOpennebulaImage() *schema.Resource {
 				Default:     false,
 				Description: "Flag which indicates if the Image has to be persistent",
 			},
-			"lock": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Lock level of the new Image: USE, MANAGE, ADMIN, ALL, UNLOCK",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-
-					if inArray(value, locktypes) < 0 {
-						errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(locktypes, ",")))
-					}
-
-					return
-				},
-			},
+			"lock": lockSchema(),
 			"path": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -325,17 +310,15 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	if lock, ok := d.GetOk("lock"); ok {
-		if lock.(string) == "UNLOCK" {
-			err = ic.Unlock()
-		} else {
-			var level shared.LockLevel
-			err = StringToLockLevel(lock.(string), &level)
-			if err != nil {
-				return err
-			}
-			err = ic.Lock(level)
+	if lock, ok := d.GetOk("lock"); ok && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
 		}
+
+		err = ic.Lock(level)
 		if err != nil {
 			return err
 		}
@@ -519,6 +502,15 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
+	lock, lockOk := d.GetOk("lock")
+	if d.HasChange("lock") && lockOk && lock.(string) == "UNLOCK" {
+
+		err = ic.Unlock()
+		if err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("name") {
 		err := ic.Rename(d.Get("name").(string))
 		if err != nil {
@@ -553,23 +545,6 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		log.Printf("[INFO] Successfully updated persistent flag for Image %s\n", image.Name)
 	}
 
-	if d.HasChange("lock") {
-		lock := d.Get("lock").(string)
-		if lock == "UNLOCK" {
-			err = ic.Unlock()
-		} else {
-			var level shared.LockLevel
-			err = StringToLockLevel(lock, &level)
-			if err != nil {
-				return err
-			}
-			err = ic.Lock(level)
-		}
-		if err != nil {
-			return err
-		}
-	}
-
 	if d.HasChange("type") {
 		if imagetype, ok := d.GetOk("permissions"); ok {
 			err = ic.Chtype(imagetype.(string))
@@ -588,6 +563,21 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 
 		err = ic.Update(image.Template.String(), 1)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("lock") && lockOk && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = ic.Lock(level)
 		if err != nil {
 			return err
 		}

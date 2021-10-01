@@ -90,6 +90,7 @@ The following arguments are supported:
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Machine tags (Key = Value).
 * `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
+* `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 
 ### Graphics parameters
 

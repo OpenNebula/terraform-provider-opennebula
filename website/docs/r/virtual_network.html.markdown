@@ -84,6 +84,7 @@ The following arguments are supported:
 * `ip_hold` - (Deprecated) Start IP of the range to be held. Conflicts with `reservation_vnet` and `reservation_size`.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Network tags (Key = Value).
+* `lock` - (Optional) Lock the virtual network with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 
 ### Address Range parameters
 

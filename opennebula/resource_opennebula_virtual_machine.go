@@ -153,6 +153,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
 			},
+			"lock": lockSchema(),
 		},
 	}
 }
@@ -424,6 +425,20 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
+	if lock, ok := d.GetOk("lock"); ok && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = vmc.Lock(level)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Customize read step to process disk and NIC from template in a different way.
 	// The goal is to avoid diffs that would trigger unwanted disk/NIC update.
 	if templateID != -1 {
@@ -505,6 +520,10 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 	err = flattenTags(d, &vm.UserTemplate)
 	if err != nil {
 		return err
+	}
+
+	if vm.LockInfos != nil {
+		d.Set("lock", LockLevelToString(vm.LockInfos.Locked))
 	}
 
 	return nil
@@ -877,6 +896,15 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
+	lock, lockOk := d.GetOk("lock")
+	if d.HasChange("lock") && lockOk && lock.(string) == "UNLOCK" {
+
+		err = vmc.Unlock()
+		if err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("name") {
 		err := vmc.Rename(d.Get("name").(string))
 		if err != nil {
@@ -1210,6 +1238,21 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		if err != nil {
 			return fmt.Errorf(
 				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+		}
+	}
+
+	if d.HasChange("lock") && lockOk && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			return err
+		}
+
+		err = vmc.Lock(level)
+		if err != nil {
+			return err
 		}
 	}
 
