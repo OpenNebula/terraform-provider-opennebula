@@ -11,6 +11,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20210201144350-4e670bf7bf70 h1:A1PYvW8XKVXEH1aW41EEO6PmqeLe9+XmMNEEynIk+6I=
 github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20210201144350-4e670bf7bf70/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20210824074935-e55e3a53c4c0 h1:pr0jP9soi+yGLrbA8oR8A90KFB/gS3VdkMqRYOZxfd8=
+github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20210824074935-e55e3a53c4c0/go.mod h1:dvAwZi1Aol7eu6BENzHtl8ztGBkacB9t/fJj+fYk+Xg=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/agext/levenshtein v1.2.2 h1:0S/Yg6LYmFJ5stwQeRp6EeOcCbj7xiqQSdNelsXvaqE=
 github.com/agext/levenshtein v1.2.2/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
