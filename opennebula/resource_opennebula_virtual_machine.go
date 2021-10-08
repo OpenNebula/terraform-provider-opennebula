@@ -755,24 +755,65 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 	virtioQueues, _ := NIC.GetStr("VIRTIO_QUEUES")
 	securityGroupsArray, _ := NIC.Get(shared.SecurityGroups)
 
-	sgStr := strings.Split(securityGroupsArray, ",")
+	if NICConfig["security_groups"] != nil && len(NICConfig["security_groups"].([]interface{})) > 0 {
+
+		sg := strings.Split(securityGroupsArray, ",")
+		sgConfig := NICConfig["security_groups"].([]interface{})
+
+		if len(sg) != len(sgConfig) {
+			return false
+		}
+
+		for i := 0; i < len(sg); i++ {
+			sgInt, err := strconv.ParseInt(sg[i], 10, 0)
+			if err != nil {
+				return false
+			}
+			if int(sgInt) != sgConfig[i].(int) {
+				return false
+			}
+		}
+
+	}
+
+	return emptyOrEqual(NICConfig["ip"], ip) &&
+		emptyOrEqual(NICConfig["mac"], mac) &&
+		emptyOrEqual(NICConfig["physical_device"], physicalDevice) &&
+		emptyOrEqual(NICConfig["model"], model) &&
+		emptyOrEqual(NICConfig["virtio_queues"], virtioQueues)
+}
+
+func matchNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
+	ip, _ := NIC.Get(shared.IP)
+	mac, _ := NIC.Get(shared.MAC)
+	physicalDevice, _ := NIC.GetStr("PHYDEV")
+
+	model, _ := NIC.Get(shared.Model)
+	virtioQueues, _ := NIC.GetStr("VIRTIO_QUEUES")
+	securityGroupsArray, _ := NIC.Get(shared.SecurityGroups)
+
+	sg := strings.Split(securityGroupsArray, ",")
 	sgConfig := NICConfig["computed_security_groups"].([]interface{})
-	if len(sgStr) != len(sgConfig) {
+
+	if len(sg) != len(sgConfig) {
 		return false
 	}
 
-	for i := 0; i < len(sgStr); i++ {
-		if sgStr[i] != sgConfig[i].(string) {
+	for i := 0; i < len(sg); i++ {
+		sgInt, err := strconv.ParseInt(sg[i], 10, 0)
+		if err != nil {
+			return false
+		}
+		if int(sgInt) != sgConfig[i].(int) {
 			return false
 		}
 	}
 
-	return len(NICConfig["ip"].(string)) == 0 || ip == NICConfig["computed_ip"].(string) &&
-		len(NICConfig["mac"].(string)) == 0 && mac == NICConfig["computed_mac"].(string) &&
-		len(NICConfig["physical_device"].(string)) == 0 && physicalDevice == NICConfig["computed_physical_device"].(string) &&
-		len(NICConfig["model"].(string)) == 0 && model == NICConfig["computed_model"].(string) &&
-		len(NICConfig["virtio_queues"].(string)) == 0 && virtioQueues == NICConfig["computed_virtio_queues"].(string)
-
+	return ip == NICConfig["computed_ip"].(string) &&
+		mac == NICConfig["computed_mac"].(string) &&
+		physicalDevice == NICConfig["computed_physical_device"].(string) &&
+		model == NICConfig["computed_model"].(string) &&
+		virtioQueues == NICConfig["computed_virtio_queues"].(string)
 }
 
 // flattenVMNIC is similar to flattenNIC but deal with computed_* attributes
@@ -791,7 +832,7 @@ NICLoop:
 		for _, tplNICConfigIf := range tplNICConfigs {
 			tplNICConfig := tplNICConfigIf.(map[string]interface{})
 
-			if matchNIC(tplNICConfig, nic) {
+			if matchNICComputed(tplNICConfig, nic) {
 				continue NICLoop
 			}
 		}
