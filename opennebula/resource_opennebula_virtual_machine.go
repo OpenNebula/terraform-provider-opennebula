@@ -617,6 +617,8 @@ func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
 	// Set disks to resource
 	disks := vmTemplate.GetDisks()
+	diskConfigs := d.Get("disk").([]interface{})
+
 	diskList := make([]interface{}, 0, len(disks))
 
 diskLoop:
@@ -633,15 +635,11 @@ diskLoop:
 		}
 
 		// copy disk config values
-		var match bool
 		var diskMap map[string]interface{}
 
-		diskConfigs := d.Get("disk").([]interface{})
-
+		match := false
 		for j := 0; j < len(diskConfigs); j++ {
 			diskConfig := diskConfigs[j].(map[string]interface{})
-
-			match = false
 
 			// try to reidentify the disk based on it's configuration values
 			if !matchDisk(diskConfig, disk) {
@@ -1021,6 +1019,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		timeout := d.Get("timeout").(int)
 
 		// get unique elements of each list of configs
+		// NOTE: diffListConfig relies on Set, so we may loose list ordering of disks here
+		// it's why we reorder the attach list below
 		toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
 			&schema.Resource{
 				Schema: diskFields(),
