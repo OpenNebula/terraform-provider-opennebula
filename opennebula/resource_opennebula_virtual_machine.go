@@ -1004,7 +1004,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
 		}
 	}
 
@@ -1307,7 +1307,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
 		}
 
 		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
@@ -1320,7 +1320,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
 		}
 	}
 
@@ -1360,7 +1360,7 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	_, err = waitForVMState(vmc, timeout, "RUNNING")
 	if err != nil {
 		return fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
 	}
 
 	if err = vmc.TerminateHard(); err != nil {
