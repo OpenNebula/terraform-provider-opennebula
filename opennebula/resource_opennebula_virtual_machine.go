@@ -1158,40 +1158,41 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 				}
 			}
 
-			// reorder toAttach NIC list according to new list order
-			newNICtoAttach := make([]interface{}, len(toAttach))
-			i := 0
-			for _, newNICIf := range newNicsCfg {
-				newNIC := newNICIf.(map[string]interface{})
-				newNICSecGroup := newNIC["security_groups"].([]interface{})
+		}
 
-				for _, NICToAttachIf := range toAttach {
-					NIC := NICToAttachIf.(map[string]interface{})
+		// reorder toAttach NIC list according to new nics list order
+		newNICtoAttach := make([]interface{}, len(toAttach))
+		i := 0
+		for _, newNICIf := range newNicsCfg {
+			newNIC := newNICIf.(map[string]interface{})
+			newNICSecGroup := newNIC["security_groups"].([]interface{})
 
-					// if NIC have the same attributes
+			for _, NICToAttachIf := range toAttach {
+				NIC := NICToAttachIf.(map[string]interface{})
 
-					// compare security_groups
-					NICSecGroup := NIC["security_groups"].([]interface{})
+				// if NIC have the same attributes
 
-					if ArrayToString(NICSecGroup, ",") != ArrayToString(newNICSecGroup, ",") {
-						continue
-					}
+				// compare security_groups
+				NICSecGroup := NIC["security_groups"].([]interface{})
 
-					// compare other attributes
-					if (NIC["ip"] == newNIC["ip"] &&
-						NIC["mac"] == newNIC["mac"]) &&
-						NIC["model"] == newNIC["model"] &&
-						NIC["virtio_queues"] == newNIC["virtio_queues"] &&
-						NIC["physical_device"] == newNIC["physical_device"] {
+				if ArrayToString(NICSecGroup, ",") != ArrayToString(newNICSecGroup, ",") {
+					continue
+				}
 
-						newNICtoAttach[i] = NIC
-						i++
-						break
-					}
+				// compare other attributes
+				if (NIC["ip"] == newNIC["ip"] &&
+					NIC["mac"] == newNIC["mac"]) &&
+					NIC["model"] == newNIC["model"] &&
+					NIC["virtio_queues"] == newNIC["virtio_queues"] &&
+					NIC["physical_device"] == newNIC["physical_device"] {
+
+					newNICtoAttach[i] = NIC
+					i++
+					break
 				}
 			}
-			toAttach = newNICtoAttach
 		}
+		toAttach = newNICtoAttach
 
 		// Detach the nics
 		for _, nicIf := range toDetach {
