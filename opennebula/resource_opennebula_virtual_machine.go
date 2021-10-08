@@ -705,6 +705,9 @@ func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[
 	if len(NICConfig["mac"].(string)) > 0 {
 		NICMap["mac"] = NICMap["computed_mac"]
 	}
+	if len(NICConfig["model"].(string)) > 0 {
+		NICMap["model"] = NICMap["computed_model"]
+	}
 	if len(NICConfig["virtio_queues"].(string)) > 0 {
 		NICMap["virtio_queues"] = NICMap["computed_virtio_queues"]
 	}
