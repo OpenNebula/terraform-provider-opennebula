@@ -1029,6 +1029,28 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"target",
 			"driver")
 
+		// reorder toAttach disk list according to new disks list order
+		newDisktoAttach := make([]interface{}, len(toAttach))
+		i := 0
+		for _, newDiskIf := range newDisksCfg {
+			newDisk := newDiskIf.(map[string]interface{})
+
+			for _, diskToAttachIf := range toAttach {
+				disk := diskToAttachIf.(map[string]interface{})
+
+				// if disk have the same attributes
+				if (disk["target"] == newDisk["target"]) &&
+					disk["size"] == newDisk["size"] &&
+					disk["driver"] == newDisk["driver"] {
+
+					newDisktoAttach[i] = disk
+					i++
+					break
+				}
+			}
+		}
+		toAttach = newDisktoAttach
+
 		// get disks to resize
 		_, toResize := diffListConfig(newDisksCfg, attachedDisksCfg,
 			&schema.Resource{
