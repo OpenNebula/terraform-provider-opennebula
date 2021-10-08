@@ -21,6 +21,7 @@ var (
 	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
 	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
+	vmDeleteReadyStates     = []string{"RUNNING", "HOLD"}
 )
 
 type flattenVMPart func(d *schema.ResourceData, vmTemplate *vm.Template) error
@@ -1357,10 +1358,10 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	// wait state to be ready
 	timeout := d.Get("timeout").(int)
 
-	_, err = waitForVMState(vmc, timeout, "RUNNING")
+	_, err = waitForVMState(vmc, timeout, vmDeleteReadyStates...)
 	if err != nil {
 		return fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDeleteReadyStates, " "), err)
 	}
 
 	if err = vmc.TerminateHard(); err != nil {
