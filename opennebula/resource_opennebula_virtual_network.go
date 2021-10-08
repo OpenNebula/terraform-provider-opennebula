@@ -773,10 +773,25 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	err = flattenVnetARs(d, vn)
+	if err != nil {
+		return err
+	}
+
+	if vn.Lock != nil {
+		d.Set("lock", LockLevelToString(vn.Lock.Locked))
+	}
+
+	return nil
+}
+
+func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
+
 	ARSet := make([]map[string]interface{}, 0, len(vn.ARs))
+	ARConfigs := d.Get("ar").(*schema.Set).List()
+
 	for _, AR := range vn.ARs {
 
-		ARConfigs := d.Get("ar").(*schema.Set).List()
 		match := false
 
 		// retrieve the associated AR config
@@ -803,10 +818,6 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 
 	if err := d.Set("ar", ARSet); err != nil {
 		log.Printf("[WARN] Error setting ar for Virtual Network %x, error: %s", vn.ID, err)
-	}
-
-	if vn.Lock != nil {
-		d.Set("lock", LockLevelToString(vn.Lock.Locked))
 	}
 
 	return nil
