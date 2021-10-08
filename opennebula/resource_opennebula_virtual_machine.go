@@ -711,7 +711,7 @@ func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[
 	if len(NICConfig["physical_device"].(string)) > 0 {
 		NICMap["physical_device"] = NICMap["computed_physical_device"]
 	}
-	if len(NICConfig["security_groups"].(string)) > 0 {
+	if len(NICConfig["security_groups"].([]interface{})) > 0 {
 		NICMap["security_groups"] = NICMap["computed_security_groups"]
 	}
 
