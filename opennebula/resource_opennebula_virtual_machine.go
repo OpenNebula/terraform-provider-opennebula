@@ -593,9 +593,21 @@ func matchDisk(diskConfig map[string]interface{}, disk shared.Disk) bool {
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
 
-	return (len(diskConfig["target"].(string)) == 0 || target != diskConfig["computed_target"].(string)) ||
-		(diskConfig["size"].(int) == 0 || size != diskConfig["computed_size"].(int)) ||
-		(len(diskConfig["driver"].(string)) == 0 || driver != diskConfig["computed_driver"].(string))
+	return emptyOrEqual(diskConfig["target"], target) &&
+		emptyOrEqual(diskConfig["size"], size) &&
+		emptyOrEqual(diskConfig["driver"], driver)
+
+}
+
+func matchDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) bool {
+
+	size, _ := disk.GetI(shared.Size)
+	driver, _ := disk.Get(shared.Driver)
+	target, _ := disk.Get(shared.TargetDisk)
+
+	return (target == diskConfig["computed_target"].(string)) &&
+		(size == diskConfig["computed_size"].(int)) &&
+		(driver == diskConfig["computed_driver"].(string))
 
 }
 
@@ -615,7 +627,7 @@ diskLoop:
 		for _, tplDiskConfigIf := range tplDiskConfigs {
 			tplDiskConfig := tplDiskConfigIf.(map[string]interface{})
 
-			if matchDisk(tplDiskConfig, disk) {
+			if matchDiskComputed(tplDiskConfig, disk) {
 				continue diskLoop
 			}
 		}
