@@ -717,12 +717,11 @@ func matchARs(ARConfig map[string]interface{}, AR vn.AR) bool {
 
 	return AR.Type == ARConfig["ar_type"].(string) &&
 		AR.Size == ARConfig["size"].(int) &&
-		len(ARConfig["ip4"].(string)) > 0 || AR.IP == ARConfig["ip4"].(string) &&
-		len(ARConfig["ip6"].(string)) > 0 || AR.IP6 == ARConfig["ip6"].(string) &&
-		len(ARConfig["mac"].(string)) > 0 || AR.MAC == ARConfig["mac"].(string) &&
-		len(ARConfig["global_prefix"].(string)) > 0 || AR.GlobalPrefix == ARConfig["global_prefix"].(string) &&
-		len(ARConfig["ula_prefix"].(string)) > 0 || AR.ULAPrefix == ARConfig["ula_prefix"].(string)
-
+		emptyOrEqual(ARConfig["ip4"], AR.IP) &&
+		emptyOrEqual(ARConfig["ip6"], AR.IP6) &&
+		emptyOrEqual(ARConfig["mac"], AR.MAC) &&
+		emptyOrEqual(ARConfig["global_prefix"], AR.GlobalPrefix) &&
+		emptyOrEqual(ARConfig["ula_prefix"], AR.ULAPrefix)
 }
 
 func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
