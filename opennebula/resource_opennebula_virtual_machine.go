@@ -822,6 +822,8 @@ func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
 	// Set Nics to resource
 	nics := vmTemplate.GetNICs()
+	nicsConfigs := d.Get("nic").([]interface{})
+
 	nicList := make([]interface{}, 0, len(nics))
 
 NICLoop:
@@ -838,14 +840,11 @@ NICLoop:
 		}
 
 		// copy nic config values
-		var match bool
 		var nicMap map[string]interface{}
 
-		nicsConfigs := d.Get("nic").([]interface{})
+		match := false
 		for j := 0; j < len(nicsConfigs); j++ {
 			nicConfig := nicsConfigs[j].(map[string]interface{})
-
-			match = false
 
 			// try to reidentify the nic based on it's configuration values
 			// network_id is not sufficient in case of a network attached twice
@@ -1100,6 +1099,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		timeout := d.Get("timeout").(int)
 
 		// get unique elements of each list of configs
+		// NOTE: diffListConfig relies on Set, so we may loose list ordering of NICs here
+		// it's why we reorder the attach list below
 		toDetach, toAttach := diffListConfig(newNicsCfg, attachedNicsCfg,
 			&schema.Resource{
 				Schema: nicFields(),
@@ -1112,6 +1113,9 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			"virtio_queues",
 			"physical_device")
 
+		// in case of NICs updated in the middle of the NIC list
+		// they would be reattached at the end of the list (we don't have in place XML-RPC update method).
+		// keep_nic_order prevent this behavior adding more NICs to detach/attach to keep initial ordering
 		if d.Get("keep_nic_order").(bool) && len(toDetach) > 0 {
 
 			// retrieve the minimal nic ID to detach
