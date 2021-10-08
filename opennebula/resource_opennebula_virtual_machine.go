@@ -1198,7 +1198,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		for _, nicIf := range toDetach {
 			nicConfig := nicIf.(map[string]interface{})
 
-			nicID := nicConfig["network_id"].(int)
+			nicID := nicConfig["nic_id"].(int)
 
 			err := vmNICDetach(vmc, timeout, nicID)
 			if err != nil {
