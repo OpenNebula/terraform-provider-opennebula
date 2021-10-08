@@ -263,6 +263,11 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 
 	for k, v := range diskConfig {
 
+		if k == "image_id" {
+			disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
+			continue
+		}
+
 		if isEmptyValue(reflect.ValueOf(v)) {
 			continue
 		}
@@ -274,8 +279,6 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 			disk.Add(shared.Driver, v.(string))
 		case "size":
 			disk.Add(shared.Size, strconv.Itoa(v.(int)))
-		case "image_id":
-			disk.Add(shared.ImageID, strconv.Itoa(v.(int)))
 		}
 	}
 
