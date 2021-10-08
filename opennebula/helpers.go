@@ -66,6 +66,10 @@ func LockLevelToString(lock int) string {
 	return ""
 }
 
+func emptyOrEqual(config interface{}, value interface{}) bool {
+	return isEmptyValue(reflect.ValueOf(config)) || value == config
+}
+
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.String, reflect.Array, reflect.Map, reflect.Slice:
