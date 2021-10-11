@@ -35,6 +35,10 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "FREE_CPU > 50"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "user_inputs.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "user_inputs.BLOG_TITLE", "M|text|Blog Title"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "description", "VM created for provider acceptance tests"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -176,6 +180,7 @@ resource "opennebula_template" "template" {
   cpu = "0.5"
   vcpu = "1"
   memory = "512"
+  description = "VM created for provider acceptance tests"
 
   context = {
     dns_hostname = "yes"
@@ -197,6 +202,13 @@ resource "opennebula_template" "template" {
     env = "prod"
     customer = "test"
   }
+
+  sched_requirements = "FREE_CPU > 50"
+
+  user_inputs = {
+	BLOG_TITLE="M|text|Blog Title"
+  }
+
 }
 `
 

@@ -44,6 +44,8 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "FREE_CPU > 50"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "description", "VM created for provider acceptance tests"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "5"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
@@ -533,6 +535,7 @@ resource "opennebula_virtual_machine" "test" {
   permissions = "642"
   memory = 128
   cpu = 0.1
+  description = "VM created for provider acceptance tests"
 
   context = {
 	TESTVAR = "TEST"
@@ -557,6 +560,8 @@ resource "opennebula_virtual_machine" "test" {
     env = "prod"
     customer = "test"
   }
+
+  sched_requirements = "FREE_CPU > 50"
 
   timeout = 5
 }
