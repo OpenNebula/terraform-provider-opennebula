@@ -1261,16 +1261,45 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	updateConf := false
+
+	// retrieve only template sections managed by updateconf method
 	tpl := vm.NewTemplate()
+	for _, name := range []string{"OS", "FEATURES", "INPUT", "GRAPHICS", "RAW", "CONTEXT"} {
+		vectors := vmInfos.Template.GetVectors(name)
+		for _, vec := range vectors {
+			tpl.Elements = append(tpl.Elements, vec)
+		}
+	}
 
 	if d.HasChange("os") {
 		updateConf = true
 
 		log.Printf("[DEBUG] Update os")
 
-		//Generate OS definition
-		addOS(tpl, d.Get("os").([]interface{}))
+		old, new := d.GetChange("os")
+		newOSSlice := new.([]interface{})
 
+		if len(newOSSlice) == 0 {
+			// No os configuration to apply
+			tpl.Del("OS")
+		} else {
+
+			appliedOSSlice := old.([]interface{})
+
+			if len(appliedOSSlice) == 0 {
+				// No os configuration applied
+				addOS(tpl, newOSSlice)
+			} else {
+
+				newOS := newOSSlice[0].(map[string]interface{})
+				appliedOS := appliedOSSlice[0].(map[string]interface{})
+
+				err := updateVMTemplateVec(tpl, "OS", appliedOS, newOS)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	if d.HasChange("graphics") {
@@ -1278,9 +1307,30 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		log.Printf("[DEBUG] Update graphics")
 
-		//Generate GRAPHICS definition
-		addGraphic(tpl, d.Get("graphics").([]interface{}))
+		old, new := d.GetChange("graphics")
+		newGraphicsSlice := new.([]interface{})
 
+		if len(newGraphicsSlice) == 0 {
+			// No graphics configuration to apply
+			tpl.Del("GRAPHICS")
+		} else {
+
+			appliedGraphicsSlice := old.([]interface{})
+
+			if len(appliedGraphicsSlice) == 0 {
+				// No graphics configuration applied
+				addGraphic(tpl, newGraphicsSlice)
+			} else {
+
+				newGraphics := newGraphicsSlice[0].(map[string]interface{})
+				appliedGraphics := appliedGraphicsSlice[0].(map[string]interface{})
+
+				updateVMTemplateVec(tpl, "GRAPHICS", appliedGraphics, newGraphics)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	if d.HasChange("context") {
@@ -1289,20 +1339,42 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		log.Printf("[DEBUG] Update context")
 
-		contextVec := tpl.AddVector("CONTEXT")
+		old, new := d.GetChange("context")
+		appliedContext := old.(map[string]interface{})
+		newContext := new.(map[string]interface{})
 
-		//Generate CONTEXT definition
-		context := d.Get("context").(map[string]interface{})
+		if len(newContext) == 0 {
+			// No context configuration to apply
+			tpl.Del(vmk.ContextVec)
+		} else {
 
-		// Add new context elements to the template
-		for key, value := range context {
-			keyUp := strings.ToUpper(key)
-			contextVec.AddPair(keyUp, fmt.Sprint(value))
+			var contextVec *dyn.Vector
+			if len(appliedContext) == 0 {
+				// No context configuration applied
+				contextVec = tpl.AddVector(vmk.ContextVec)
+
+				// Add new elements
+				for key, value := range newContext {
+					keyUp := strings.ToUpper(key)
+
+					_, ok := appliedContext[keyUp]
+					if ok {
+						continue
+					}
+
+					contextVec.AddPair(keyUp, value)
+				}
+
+			} else {
+				updateVMTemplateVec(tpl, "CONTEXT", appliedContext, newContext)
+				if err != nil {
+					return err
+				}
+			}
 		}
-
 	}
 
-	if updateConf == true {
+	if updateConf {
 
 		timeout := d.Get("timeout").(int)
 
@@ -1342,6 +1414,51 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	return resourceOpennebulaVirtualMachineRead(d, meta)
+}
+
+// updateVMVec update a vector of an existing VM template
+func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg map[string]interface{}) error {
+
+	// Retrieve vector
+	var targetVec *dyn.Vector
+	vectors := tpl.GetVectors(vecName)
+	switch len(vectors) {
+	case 0:
+		return fmt.Errorf("No %s vector present", vecName)
+	case 1:
+		targetVec = vectors[0]
+
+		// Remove or update existing elements
+		for key := range appliedCfg {
+			keyUp := strings.ToUpper(key)
+
+			value, ok := newCfg[keyUp]
+			if ok {
+				// update existing element
+				targetVec.Del(keyUp)
+				targetVec.AddPair(keyUp, fmt.Sprint(value))
+			} else {
+				// remove element
+				targetVec.Del(keyUp)
+			}
+		}
+	default:
+		return fmt.Errorf("Multiple %s vectors", vecName)
+	}
+
+	// Add new elements
+	for key, value := range newCfg {
+		keyUp := strings.ToUpper(key)
+
+		_, ok := appliedCfg[keyUp]
+		if ok {
+			continue
+		}
+
+		targetVec.AddPair(keyUp, value)
+	}
+
+	return nil
 }
 
 func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
