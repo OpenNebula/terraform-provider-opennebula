@@ -9,6 +9,7 @@ NOTES:
 FEATURES:
 
 * **New Data Source**: `opennebula_cluster`: allow filtering based on `name` and `tags`
+* **New Resources**: `opennebula_virtual_router`, `opennebula_virtual_router_instance`, `opennebula_virtual_router_instance_template`, `opennebula_virtual_router_nic`
 
 ENHANCEMENTS:
 
