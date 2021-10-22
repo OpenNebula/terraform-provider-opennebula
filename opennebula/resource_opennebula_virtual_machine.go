@@ -21,7 +21,7 @@ var (
 	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
 	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
-	vmDeleteReadyStates     = []string{"RUNNING", "HOLD"}
+	vmDeleteReadyStates     = []string{"RUNNING", "HOLD", "POWEROFF", "STOPPED", "UNDEPLOYED", "SUSPENDED"}
 )
 
 type flattenVMPart func(d *schema.ResourceData, vmTemplate *vm.Template) error
@@ -1435,7 +1435,7 @@ func waitForVMState(vmc *goca.VMController, timeout int, states ...string) (inte
 
 			switch vmState {
 
-			case vm.Done, vm.Hold:
+			case vm.Done, vm.Hold, vm.Suspended, vm.Stopped, vm.Poweroff, vm.Undeployed:
 				return vmInfos, vmState.String(), nil
 			case vm.Active:
 				switch vmLcmState {
