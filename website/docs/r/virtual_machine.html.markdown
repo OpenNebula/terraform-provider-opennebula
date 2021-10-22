@@ -26,10 +26,10 @@ resource "opennebula_virtual_machine" "demo" {
   group       = "terraform"
   permissions = "660"
 
-  context {
+  context = {
     NETWORK      = "YES"
     HOSTNAME     = "$NAME"
-    START_SCRIPT ="yum upgrade"
+    START_SCRIPT = "yum upgrade"
   }
 
   graphics {

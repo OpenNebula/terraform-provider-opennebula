@@ -24,10 +24,10 @@ resource "opennebula_template" "mytemplate" {
   group       = "terraform"
   permissions = "660"
 
-  context {
+  context = {
     NETWORK      = "YES"
     HOSTNAME     = "$NAME"
-    START_SCRIPT ="yum upgrade"
+    START_SCRIPT = "yum upgrade"
   }
 
   graphics {
