@@ -155,68 +155,91 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccVirtualMachinePersistentDisk,
+				Config: testAccVirtualMachineVolatileDisk,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "8"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+				),
+			},
+			{
+				Config: testAccVirtualMachinePersistentDisk,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdb"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "8"),
 				),
 			},
 			{
 				Config: testAccVirtualMachinePersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdb"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "16"),
 				),
 			},
 			{
 				Config: testAccVirtualMachineSwitchNonPersistentDisk,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdb"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdc"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "16"),
 				),
 			},
 			{
 				Config: testAccVirtualMachineNonPersistentDiskTargetUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdd"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "16"),
 				),
 			},
 			{
 				Config: testAccVirtualMachineNonPersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "32"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdd"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "32"),
 				),
 			},
 			{
 				Config: testAccVirtualMachineNonPersistentDiskAttachedTwice,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "32"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdd"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "64"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "32"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.2.computed_target", "vde"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.2.computed_size", "64"),
 				),
 			},
 			{
 				Config: testAccVirtualMachineNonPersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vdc"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "32"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdd"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "32"),
 				),
 			},
 			{
@@ -726,6 +749,46 @@ resource "opennebula_image" "image1" {
   }
 `
 
+var testAccVirtualMachineVolatileDisk = testDiskImageResources + `
+
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.1
+
+	context = {
+	  NETWORK  = "YES"
+	  SET_HOSTNAME = "$NAME"
+	}
+
+	graphics {
+	  type   = "VNC"
+	  listen = "0.0.0.0"
+	  keymap = "en-us"
+	}
+
+	os {
+	  arch = "x86_64"
+	  boot = ""
+	}
+
+	tags = {
+	  env = "prod"
+	  customer = "test"
+	}
+
+	disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	}
+
+	timeout = 5
+}
+`
+
 var testAccVirtualMachinePersistentDisk = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
@@ -757,8 +820,13 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	}
+	disk {
 		image_id = opennebula_image.image2.id
-		target = "vda"
+		target = "vdb"
 	}
 
 	timeout = 5
@@ -796,8 +864,13 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	}
+	disk {
 		image_id = opennebula_image.image2.id
-		target = "vda"
+		target = "vdb"
 		size = "16"
 	}
 
@@ -836,8 +909,13 @@ var testAccVirtualMachineSwitchNonPersistentDisk = testDiskImageResources + `
 	  }
 
 	  disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	  }
+	  disk {
 		  image_id = opennebula_image.image1.id
-		  target = "vdb"
+		  target = "vdc"
 	  }
 	
 	  timeout = 5
@@ -875,8 +953,13 @@ var testAccVirtualMachineNonPersistentDiskTargetUpdate = testDiskImageResources 
 	  }
 
 	  disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	  }
+	  disk {
 		  image_id = opennebula_image.image1.id
-		  target = "vdc"
+		  target = "vdd"
 	  }
 	
 	  timeout = 5
@@ -914,8 +997,13 @@ var testAccVirtualMachineNonPersistentDiskSizeUpdate = testDiskImageResources + 
 	  }
 
 	  disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	  }
+	  disk {
 		  image_id = opennebula_image.image1.id
-		  target = "vdc"
+		  target = "vdd"
           size = 32
 	  }
 	
@@ -954,13 +1042,18 @@ var testAccVirtualMachineNonPersistentDiskAttachedTwice = testDiskImageResources
 	  }
 
 	  disk {
+		volatile_type = "swap"
+		size          = 16
+		target        = "vda"
+	  }
+	  disk {
 		  image_id = opennebula_image.image1.id
-		  target = "vdc"
+		  target = "vdd"
           size = 32
 	  }
 	  disk {
 		image_id = opennebula_image.image1.id
-		target = "vdd"
+		target = "vde"
 		size = 64
 	}
 	
