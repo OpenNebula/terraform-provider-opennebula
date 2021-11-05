@@ -1057,6 +1057,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			&schema.Resource{
 				Schema: diskFields(),
 			},
+			"image_id",
 			"size")
 
 		// Detach the disks
