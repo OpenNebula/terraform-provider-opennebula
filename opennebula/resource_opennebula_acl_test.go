@@ -14,6 +14,7 @@ func TestAccACL(t *testing.T) {
 	invalidUserErr, _ := regexp.Compile("ID String something malformed")
 	invalidResourceErr, _ := regexp.Compile("resource 'a' malformed")
 	invalidRightsErr, _ := regexp.Compile("right 'aa' does not exist")
+	invalidZoneErr, _ := regexp.Compile("ID String bad malformed")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -42,6 +43,10 @@ func TestAccACL(t *testing.T) {
 			{
 				Config:      testACLInvalidRights,
 				ExpectError: invalidRightsErr,
+			},
+			{
+				Config:      testACLInvalidZone,
+				ExpectError: invalidZoneErr,
 			},
 		},
 	})
@@ -73,6 +78,7 @@ resource "opennebula_acl" "acl_foo" {
   user = "@1"
   resource = "HOST+CLUSTER+DATASTORE/*"
   rights = "USE+MANAGE+ADMIN"
+  zone = "#0"
 }
 `
 
@@ -81,6 +87,7 @@ resource "opennebula_acl" "acl_foo" {
   user = "@0"
   resource = "HOST+CLUSTER+DATASTORE/*"
   rights = "USE+MANAGE+ADMIN"
+  zone = "*"
 }
 `
 
@@ -105,5 +112,14 @@ resource "opennebula_acl" "acl_invalid" {
   user = "@1"
   resource = "HOST+CLUSTER+DATASTORE/*"
   rights = "aa"
+}
+`
+
+var testACLInvalidZone = `
+resource "opennebula_acl" "acl_invalid" {
+  user = "@1"
+  resource = "HOST+CLUSTER+DATASTORE/*"
+  rights = "USE+MANAGE+ADMIN"
+  zone = "bad"
 }
 `

@@ -65,6 +65,12 @@ func resourceOpennebulaACL() *schema.Resource {
 				ForceNew:    true,
 				Description: "Rights component of the new rule. ACL String Syntax is expected.",
 			},
+			"zone": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Zone component of the new rule. ACL String Syntax is expected.",
+			},
 		},
 	}
 }
@@ -88,9 +94,23 @@ func resourceOpennebulaACLCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	aclID, err := controller.ACLs().CreateRule(userHex, resourceHex, rightsHex)
-	if err != nil {
-		return err
+	var aclID int
+	zone := d.Get("zone").(string)
+	if len(zone) > 0 {
+		zoneHex, err := acl.ParseZone(zone)
+		if err != nil {
+			return err
+		}
+
+		aclID, err = controller.ACLs().CreateRule(userHex, resourceHex, rightsHex, zoneHex)
+		if err != nil {
+			return err
+		}
+	} else {
+		aclID, err = controller.ACLs().CreateRule(userHex, resourceHex, rightsHex)
+		if err != nil {
+			return err
+		}
 	}
 	d.SetId(fmt.Sprintf("%v", aclID))
 

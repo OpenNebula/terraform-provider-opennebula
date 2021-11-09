@@ -62,6 +62,10 @@ The following arguments are supported:
     - MANAGE
     - ADMIN
     - CREATE
+* `zone` - (Optional) Zone component of the new rule.
+    - `#<id>` matches a single zone id
+    - `*` matches everything.
+
 
 ## Import
 
