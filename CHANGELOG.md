@@ -25,6 +25,7 @@ ENHANCEMENTS:
 * resources/opennebula_virtual_network: compatibility added for network states
 * resources/opennebula_virtal_machine: enable VM vcpu, cpu and memory update
 * resources/opennebula_user: add `tags` sections
+* resources/opennebula_acl: enable `zone` parameter
 
 FEATURES:
 
