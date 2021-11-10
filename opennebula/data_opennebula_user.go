@@ -17,11 +17,6 @@ func dataOpennebulaUser() *schema.Resource {
 				Required:    true,
 				Description: "Name of the User",
 			},
-			"password": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Password of the User",
-			},
 			"auth_driver": {
 				Type:        schema.TypeString,
 				Optional:    true,

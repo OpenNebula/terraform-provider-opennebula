@@ -27,7 +27,6 @@ data "opennebula_user" "user" {
 The following attribute is exported:
 * `id` - ID of the user.
 * `name` - The name of the user.
-* `password` - Password of the user (if set)
 * `auth_driver` - Authentication Driver for User management
 * `primary_group` - Primary group ID of the User.
 * `groups` - List of secondary groups ID of the user.
