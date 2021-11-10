@@ -66,7 +66,6 @@ The following attribute are exported:
 The Following attributes are exported under `role`:
 
 * `id` - ID of the role.
-* `vms` - List of Virtual Machine IDs using this role.
 
 ## Import
 
