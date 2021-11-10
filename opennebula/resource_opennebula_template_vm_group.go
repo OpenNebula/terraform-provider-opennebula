@@ -78,14 +78,6 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 								return
 							},
 						},
-						"vms": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeInt,
-							},
-							Description: "VMs using VM Group",
-						},
 					},
 				},
 			},
@@ -304,7 +296,6 @@ func flattenVMGroupRoles(d *schema.ResourceData, vmgRoles []vmgroup.Role) error 
 
 		hAff := make([]int, 0)
 		hAntiAff := make([]int, 0)
-		vms := make([]int, 0)
 		if vmgr.HostAffined != "" {
 			hostAffString := strings.Split(vmgr.HostAffined, ",")
 			for _, h := range hostAffString {
@@ -319,20 +310,12 @@ func flattenVMGroupRoles(d *schema.ResourceData, vmgRoles []vmgroup.Role) error 
 				hAntiAff = append(hAff, int(hostAntiAffInt))
 			}
 		}
-		if vmgr.VMs != "" {
-			vmsString := strings.Split(vmgr.VMs, ",")
-			for _, vm := range vmsString {
-				vmInt, _ := strconv.ParseInt(vm, 10, 32)
-				vms = append(vms, int(vmInt))
-			}
-		}
 		roles = append(roles, map[string]interface{}{
 			"id":                vmgr.ID,
 			"name":              vmgr.Name,
 			"host_affined":      hAff,
 			"host_anti_affined": hAntiAff,
 			"policy":            vmgr.Policy,
-			"vms":               vms,
 		})
 	}
 
