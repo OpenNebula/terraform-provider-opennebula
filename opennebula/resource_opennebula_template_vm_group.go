@@ -257,9 +257,12 @@ func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("permissions", permissionsUnixString(*vmg.Permissions))
 
 	// Get Human readable vmg information
-	err = flattenVMGroupRoles(d, vmg.Roles)
-	if err != nil {
-		return err
+	_, ok := d.GetOk("roles")
+	if ok {
+		err = flattenVMGroupRoles(d, vmg.Roles)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = flattenVMGroupTags(d, &vmg.Template)
