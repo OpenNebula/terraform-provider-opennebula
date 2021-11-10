@@ -16,6 +16,7 @@ BUG FIXES:
 * resources/opennebula_virtual_machine: Fix several NICs attached to the same network
 * resources/opennebula_security_group: fix rule conversion from struct to config
 * resources/opennebula_virtual_machine_group: make `role` reading conditional
+* resources/opennebula_virtual_machine_group: remove `vms` field
 
 ENHANCEMENTS:
 * resources/opennebula_virtual_network: Enhance address range update
