@@ -127,7 +127,11 @@ func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) erro
 	uc := controller.User(userID)
 
 	if _, ok := d.GetOk("quotas"); ok {
-		err = uc.Quota(generateQuotas(d))
+		quotasStr, err := generateQuotas(d)
+		if err != nil {
+			return err
+		}
+		err = uc.Quota(quotasStr)
 		if err != nil {
 			return err
 		}
@@ -248,7 +252,11 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if d.HasChange("quotas") {
 		if _, ok := d.GetOk("quotas"); ok {
-			err = uc.Quota(generateQuotas(d))
+			quotasStr, err := generateQuotas(d)
+			if err != nil {
+				return err
+			}
+			err = uc.Quota(quotasStr)
 			if err != nil {
 				return err
 			}
