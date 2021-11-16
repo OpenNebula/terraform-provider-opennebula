@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -38,11 +39,13 @@ func quotasSchema() *schema.Schema {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum number of Images allowed (default: default quota)",
+								Default:     -1,
 							},
 							"size": {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum size in MB allowed on the datastore (default: default quota)",
+								Default:     -1,
 							},
 						},
 					},
@@ -62,6 +65,7 @@ func quotasSchema() *schema.Schema {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum number of Leases allowed for this network (default: default quota)",
+								Default:     -1,
 							},
 						},
 					},
@@ -81,6 +85,7 @@ func quotasSchema() *schema.Schema {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum number of Running VMs allowed for this image (default: default quota)",
+								Default:     -1,
 							},
 						},
 					},
@@ -95,36 +100,43 @@ func quotasSchema() *schema.Schema {
 								Type:        schema.TypeFloat,
 								Optional:    true,
 								Description: "Maximum number of CPU allowed (default: default quota)",
+								Default:     -1,
 							},
 							"memory": {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum Memory (MB) allowed (default: default quota)",
+								Default:     -1,
 							},
 							"running_cpu": {
 								Type:        schema.TypeFloat,
 								Optional:    true,
 								Description: "Maximum number of 'running' CPUs allowed (default: default quota)",
+								Default:     -1,
 							},
 							"running_memory": {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "'Running' Memory (MB) allowed (default: default quota)",
+								Default:     -1,
 							},
 							"running_vms": {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum number of Running VMs allowed (default: default quota)",
+								Default:     -1,
 							},
 							"system_disk_size": {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum System Disk size (MB) allowed (default: default quota)",
+								Default:     -1,
 							},
 							"vms": {
 								Type:        schema.TypeInt,
 								Optional:    true,
 								Description: "Maximum number of VMs allowed (default: default quota)",
+								Default:     -1,
 							},
 						},
 					},
@@ -134,7 +146,7 @@ func quotasSchema() *schema.Schema {
 	}
 }
 
-func generateQuotas(d *schema.ResourceData) string {
+func generateQuotas(d *schema.ResourceData) (string, error) {
 	quotas := d.Get("quotas").(*schema.Set).List()
 
 	tpl := dyn.NewTemplate()
@@ -151,10 +163,14 @@ func generateQuotas(d *schema.ResourceData) string {
 		datastoreMap := datastore[i].(map[string]interface{})
 
 		datastoreTpl.AddPair("ID", datastoreMap["id"].(int))
-		if datastoreMap["images"].(int) > 0 {
+		if datastoreMap["images"].(int) == -1 {
+			if datastoreMap["size"].(int) == -1 {
+				return "", fmt.Errorf("can't build datastore quota, images or size must be defined\n")
+			}
+		} else {
 			datastoreTpl.AddPair("IMAGES", datastoreMap["images"].(int))
 		}
-		if datastoreMap["size"].(int) > 0 {
+		if datastoreMap["size"].(int) != -1 {
 			datastoreTpl.AddPair("SIZE", datastoreMap["size"].(int))
 		}
 	}
@@ -166,8 +182,10 @@ func generateQuotas(d *schema.ResourceData) string {
 
 		networkTpl.AddPair("ID", networkMap["id"].(int))
 
-		if networkMap["leases"].(int) > 0 {
+		if networkMap["leases"].(int) != -1 {
 			networkTpl.AddPair("LEASES", networkMap["leases"].(int))
+		} else {
+			return "", fmt.Errorf("can't build network quota, leases must be defined\n")
 		}
 	}
 
@@ -178,8 +196,10 @@ func generateQuotas(d *schema.ResourceData) string {
 
 		imageTpl.AddPair("ID", imageMap["id"].(int))
 
-		if imageMap["running_vms"].(int) > 0 {
+		if imageMap["running_vms"].(int) != -1 {
 			imageTpl.AddPair("RVMS", imageMap["running_vms"].(int))
+		} else {
+			return "", fmt.Errorf("can't build image quota, running_vms must be defined\n")
 		}
 	}
 
@@ -188,25 +208,25 @@ func generateQuotas(d *schema.ResourceData) string {
 
 		vmTpl := tpl.AddVector("VM")
 
-		if vmMap["cpu"].(float64) > 0.0 {
+		if vmMap["cpu"].(float64) != -1.0 {
 			vmTpl.AddPair("CPU", float32(vmMap["cpu"].(float64)))
 		}
-		if vmMap["memory"].(int) > 0 {
+		if vmMap["memory"].(int) != -1 {
 			vmTpl.AddPair("MEMORY", vmMap["memory"].(int))
 		}
-		if vmMap["running_cpu"].(float64) > 0.0 {
+		if vmMap["running_cpu"].(float64) != -1.0 {
 			vmTpl.AddPair("RUNNING_CPU", float32(vmMap["running_cpu"].(float64)))
 		}
-		if vmMap["running_memory"].(int) > 0 {
+		if vmMap["running_memory"].(int) != -1 {
 			vmTpl.AddPair("RUNNING_MEMORY", vmMap["running_memory"].(int))
 		}
-		if vmMap["running_vms"].(int) > 0 {
+		if vmMap["running_vms"].(int) != -1 {
 			vmTpl.AddPair("RUNNING_VMS", vmMap["running_vms"].(int))
 		}
-		if vmMap["system_disk_size"].(int) > 0 {
+		if vmMap["system_disk_size"].(int) != -1 {
 			vmTpl.AddPair("SYSTEM_DISK_SIZE", vmMap["system_disk_size"].(int))
 		}
-		if vmMap["vms"].(int) > 0 {
+		if vmMap["vms"].(int) != -1 {
 			vmTpl.AddPair("VMS", vmMap["vms"].(int))
 		}
 	}
@@ -214,7 +234,7 @@ func generateQuotas(d *schema.ResourceData) string {
 	tplStr := tpl.String()
 
 	log.Printf("[INFO] Quotas definition: %s", tplStr)
-	return tplStr
+	return tplStr, nil
 }
 
 func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasList) error {
@@ -229,12 +249,8 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 	for _, qds := range quotas.Datastore {
 		ds := make(map[string]interface{})
 		ds["id"] = qds.ID
-		if qds.Images > 0 {
-			ds["images"] = qds.Images
-		}
-		if qds.Size > 0 {
-			ds["size"] = qds.Size
-		}
+		ds["images"] = qds.Images
+		ds["size"] = qds.Size
 		if len(ds) > 0 {
 			datastoreQuotas = append(datastoreQuotas, ds)
 		}
@@ -244,9 +260,7 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 	for _, qn := range quotas.Network {
 		n := make(map[string]interface{})
 		n["id"] = qn.ID
-		if qn.Leases > 0 {
-			n["leases"] = qn.Leases
-		}
+		n["leases"] = qn.Leases
 		if len(n) > 0 {
 			networkQuotas = append(networkQuotas, n)
 		}
@@ -255,27 +269,15 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 	// Get VM quotas
 	if quotas.VM != nil {
 		vm := make(map[string]interface{})
-		if quotas.VM.CPU > 0.0 {
-			vm["cpu"] = quotas.VM.CPU
-		}
-		if quotas.VM.Memory > 0 {
-			vm["memory"] = quotas.VM.Memory
-		}
-		if quotas.VM.RunningCPU > 0.0 {
-			vm["running_cpu"] = quotas.VM.RunningCPU
-		}
-		if quotas.VM.RunningMemory > 0 {
-			vm["running_memory"] = quotas.VM.RunningMemory
-		}
-		if quotas.VM.VMs > 0 {
-			vm["vms"] = quotas.VM.VMs
-		}
-		if quotas.VM.RunningVMs > 0 {
-			vm["running_vms"] = quotas.VM.RunningVMs
-		}
-		if quotas.VM.SystemDiskSize > 0 {
-			vm["system_disk_size"] = quotas.VM.SystemDiskSize
-		}
+
+		vm["cpu"] = quotas.VM.CPU
+		vm["memory"] = quotas.VM.Memory
+		vm["running_cpu"] = quotas.VM.RunningCPU
+		vm["running_memory"] = quotas.VM.RunningMemory
+		vm["vms"] = quotas.VM.VMs
+		vm["running_vms"] = quotas.VM.RunningVMs
+		vm["system_disk_size"] = quotas.VM.SystemDiskSize
+
 		if len(vm) > 0 {
 			vmQuotas = append(vmQuotas, vm)
 		}
@@ -285,9 +287,7 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 	for _, qimg := range quotas.Image {
 		img := make(map[string]interface{})
 		img["id"] = qimg.ID
-		if qimg.RVMs > 0 {
-			img["running_vms"] = qimg.RVMs
-		}
+		img["running_vms"] = qimg.RVMs
 		if len(img) > 0 {
 			imageQuotas = append(imageQuotas, img)
 		}
