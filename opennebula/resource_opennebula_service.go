@@ -197,6 +197,15 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
+	_, err = waitForServiceState(d, meta, "running")
+	if err != nil {
+		service, _ := sc.Info()
+
+		svState := service.Template.Body.StateRaw
+		return fmt.Errorf(
+			"Error waiting for Service (%s) to be in state RUNNING: %s (state: %v)", d.Id(), err, svState)
+	}
+
 	return resourceOpennebulaServiceRead(d, meta)
 }
 
@@ -468,7 +477,7 @@ func waitForServiceState(d *schema.ResourceData, meta interface{}, state string)
 		return service, err
 	}
 
-	log.Printf("Waiting for Service (%s) to be in state Done", d.Id())
+	log.Printf("Waiting for Service (%s) to be in state %s", d.Id(), state)
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"}, Target: []string{state},
@@ -485,7 +494,11 @@ func waitForServiceState(d *schema.ResourceData, meta interface{}, state string)
 			service, err = sc.Info()
 			if err != nil {
 				if strings.Contains(err.Error(), "Error getting") {
-					return service, "notfound", nil
+					if state == "done" {
+						return service, "done", nil // DONE == notfound for ONE > 5.12
+					} else {
+						return service, "notfound", nil
+					}
 				}
 				return service, "", err
 			}
