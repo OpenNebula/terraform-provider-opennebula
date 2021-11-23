@@ -17,6 +17,7 @@ BUG FIXES:
 * resources/opennebula_security_group: fix rule conversion from struct to config
 * resources/opennebula_virtual_machine_group: make `role` reading conditional
 * resources/opennebula_virtual_machine_group: remove `vms` field
+* resources/opennebula_service: add compatibility with OneFlow server > `5.12.x`
 * data/opennebula_user: remove password field
 
 FEATURES:
