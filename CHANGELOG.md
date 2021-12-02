@@ -28,6 +28,7 @@ ENHANCEMENTS:
 * resources/opennebula_virtual_machine: enable context, os, graphics sections update
 * resources/opennebula_virtual_machine: Allow VM deletion from other states than RUNNING
 * resources/opennebula_image: Enable description update
+* resources/opennebula_virtual_machine: Enable volatile disks
 
 ## 0.3.0 (December 17, 2020)
 
