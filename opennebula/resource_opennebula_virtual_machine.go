@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -1726,7 +1727,7 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) 
 	return tplStr, nil
 }
 
-func resourceVMCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {
+func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 
 	onChange := diff.Get("on_disk_change").(string)
 
