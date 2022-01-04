@@ -26,7 +26,7 @@ data "opennebula_group" "ExistingGroup" {
 
 The following attribute is exported:
 * `id` - ID of the group.
-* `users` - List of User IDs part of the group.
+* `users` - (Deprecated): List of User IDs part of the group. Use groupe membership management through user resource instead.
 * `admins` - List of Administrator user IDs part of the group.
 * `quotas` - Quotas configured for the group.
 

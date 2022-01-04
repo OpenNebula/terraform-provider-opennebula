@@ -40,11 +40,11 @@ func resourceOpennebulaGroup() *schema.Resource {
 			"users": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "List of user IDs part of the group",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				Deprecated: "use user resource for group membership instead.",
 			},
 			"admins": {
 				Type:        schema.TypeList,
@@ -164,10 +164,27 @@ func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("name", group.Name)
 	d.Set("template", group.Template)
 	d.Set("delete_on_destruction", d.Get("delete_on_destruction"))
-	err = d.Set("users", group.Users.ID)
-	if err != nil {
-		return err
+
+	// read only configured users in current group resource
+	appliedUserIDs := make([]int, 0)
+	userIDsCfg := d.Get("users").([]interface{})
+	for _, idCfgIf := range userIDsCfg {
+		for _, id := range group.Users.ID {
+			if id != idCfgIf.(int) {
+				continue
+			}
+			appliedUserIDs = append(appliedUserIDs, id)
+			break
+		}
 	}
+
+	if len(appliedUserIDs) > 0 {
+		err = d.Set("users", appliedUserIDs)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = d.Set("admins", group.Admins.ID)
 	if err != nil {
 		return err
