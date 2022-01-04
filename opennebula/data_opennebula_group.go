@@ -21,6 +21,7 @@ func dataOpennebulaGroup() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				Deprecated: "use user data source for group membership instead.",
 			},
 			"admins": {
 				Type:        schema.TypeList,
