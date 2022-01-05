@@ -2,10 +2,11 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
@@ -51,6 +52,13 @@ func TestAccGroup(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccGroupWithUser,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser"),
+					resource.TestCheckResourceAttrSet("opennebula_user.user", "primary_group"),
+				),
+			},
+			{
 				Config: testAccGroupLigh,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
@@ -78,6 +86,15 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 
 	return nil
 }
+
+var testAccGroupUser = `
+resource "opennebula_user" "user" {
+	name          = "iamuser"
+	password      = "password"
+	auth_driver   = "core"
+	primary_group = opennebula_group.group.id
+  }
+`
 
 var testAccGroupConfigBasic = `
 resource "opennebula_group" "group" {
@@ -130,6 +147,8 @@ resource "opennebula_group" "group" {
     }
 }
 `
+
+var testAccGroupWithUser = testAccGroupConfigUpdate + testAccGroupUser
 
 var testAccGroupLigh = `
 resource "opennebula_group" "group" {
