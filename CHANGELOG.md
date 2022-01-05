@@ -31,6 +31,9 @@ ENHANCEMENTS:
 * resources/opennebula_image: Enable description update
 * resources/opennebula_virtual_machine: Enable volatile disks
 
+DEPRECATION:
+* resources/opennebula_group: deprecate `users` to move group membership management on user resource side
+
 ## 0.3.0 (December 17, 2020)
 
 FEATURES:
