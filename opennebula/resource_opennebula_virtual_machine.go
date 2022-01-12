@@ -175,6 +175,14 @@ func nicComputedVMFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
+		"computed_ip6_global": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_ip6_link": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
 		"computed_mac": {
 			Type:     schema.TypeString,
 			Computed: true,
@@ -700,6 +708,8 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 	ip, _ := nic.Get(shared.IP)
 	mac, _ := nic.Get(shared.MAC)
 	physicalDevice, _ := nic.GetStr("PHYDEV")
+	ip6_global, _ := nic.GetStr("IP6_GLOBAL")
+	ip6_link, _ := nic.GetStr("IP6_LINK")
 	network, _ := nic.Get(shared.Network)
 
 	model, _ := nic.Get(shared.Model)
@@ -716,6 +726,8 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 		"nic_id":                   nicID,
 		"network":                  network,
 		"computed_ip":              ip,
+		"computed_ip6_global":      ip6_global,
+		"computed_ip6_link":        ip6_link,
 		"computed_mac":             mac,
 		"computed_physical_device": physicalDevice,
 		"computed_model":           model,
@@ -730,6 +742,12 @@ func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[
 
 	if len(NICConfig["ip"].(string)) > 0 {
 		NICMap["ip"] = NICMap["computed_ip"]
+	}
+	if len(NICConfig["ip6_global"].(string)) > 0 {
+		NICMap["ip6_global"] = NICMap["computed_ip6_global"]
+	}
+	if len(NICConfig["ip6_link"].(string)) > 0 {
+		NICMap["ip6_link"] = NICMap["computed_ip6_link"]
 	}
 	if len(NICConfig["mac"].(string)) > 0 {
 		NICMap["mac"] = NICMap["computed_mac"]
@@ -1234,6 +1252,8 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			},
 			"network_id",
 			"ip",
+			"ip6_global",
+			"ip6_link",
 			"mac",
 			"security_groups",
 			"model",

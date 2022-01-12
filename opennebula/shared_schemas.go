@@ -21,6 +21,14 @@ func nicFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"ip6_global": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_link": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"mac": {
 			Type:     schema.TypeString,
 			Optional: true,
