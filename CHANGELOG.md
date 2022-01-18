@@ -1,5 +1,8 @@
 ## 0.4.0 (Unreleased)
 
+NOTES:
+* This release shouldn't be used in a production related environment without some heavy testing first.
+
 FEATURES:
 * resources/opennebula_virtual_machine: Optionally preserve NIC ordering
 * resources/opennebula_virtual_machine: Enable locking
