@@ -1,4 +1,10 @@
-## 0.4.0 (Unreleased)
+## 0.4.1 (Unreleased)
+
+## 0.4.0 (January 20th, 2022)
+
+*/!\ DISCALAIMER:*
+This release is *NOT* stable, it is considered as a BETA for 0.4 validation purpose
+The current stable release remains 0.3.0.
 
 FEATURES:
 * resources/opennebula_virtual_machine: Optionally preserve NIC ordering
