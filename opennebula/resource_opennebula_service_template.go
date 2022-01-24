@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -36,6 +37,23 @@ func resourceOpennebulaServiceTemplate() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "Service Template body in json format",
+				// Check JSON structure diffs, not binary diffs
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					old_template := &srv_tmpl.ServiceTemplate{}
+					new_template := &srv_tmpl.ServiceTemplate{}
+
+					err := json.Unmarshal([]byte(old), &old_template)
+					if err != nil {
+						return false
+					}
+
+					err = json.Unmarshal([]byte(new), &new_template)
+					if err != nil {
+						return false
+					}
+
+					return reflect.DeepEqual(old_template, new_template)
+				},
 			},
 			"permissions": {
 				Type:        schema.TypeString,

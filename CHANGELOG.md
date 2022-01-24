@@ -1,5 +1,8 @@
 ## 0.4.1 (Unreleased)
 
+BUG FIXES:
+* resources/opennebula_service_template: Fix `template` diff method to perform deep equal check over `ServiceTemplate` struct instead of binary file diff.
+
 ## 0.4.0 (January 20th, 2022)
 
 */!\ DISCALAIMER:*
