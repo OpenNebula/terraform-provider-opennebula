@@ -204,10 +204,9 @@ func changeSecurityGroupGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("group") != "" {
-		group := d.Get("group").(string)
-		gid, err = controller.Groups().ByName(group)
+		gid, err = controller.Groups().ByName(d.Get("group").(string))
 		if err != nil {
-			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
+			return err
 		}
 	} else {
 		gid = d.Get("gid").(int)
@@ -215,7 +214,7 @@ func changeSecurityGroupGroup(d *schema.ResourceData, meta interface{}) error {
 
 	err = sgc.Chown(-1, gid)
 	if err != nil {
-		return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
+		return err
 	}
 
 	return nil

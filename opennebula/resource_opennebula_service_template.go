@@ -241,12 +241,11 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 	}
 
 	if d.HasChange("gid") {
-		gid := d.Get("gid").(int)
-		group, err := controller.Group(gid).Info(true)
+		group, err := controller.Group(d.Get("gid").(int)).Info(true)
 		if err != nil {
-			return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
+			return err
 		}
-		err = stc.Chgrp(gid)
+		err = stc.Chgrp(d.Get("gid").(int))
 		if err != nil {
 			return err
 		}
@@ -254,10 +253,9 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		d.Set("gname", group.Name)
 		log.Printf("[INFO] Successfully updated group for service template %s\n", stemplate.Name)
 	} else if d.HasChange("gname") {
-		group := d.Get("group").(string)
-		gid, err := controller.Groups().ByName(group)
+		gid, err := controller.Groups().ByName(d.Get("gname").(string))
 		if err != nil {
-			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
+			return err
 		}
 		err = stc.Chgrp(gid)
 		if err != nil {
