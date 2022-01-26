@@ -773,9 +773,12 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	err = flattenVnetARs(d, vn)
-	if err != nil {
-		return err
+	ARIf := d.Get("ar")
+	if ARIf != nil {
+		err = flattenVnetARs(d, vn)
+		if err != nil {
+			return err
+		}
 	}
 
 	if vn.Lock != nil {
