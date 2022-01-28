@@ -84,6 +84,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "FREE_CPU > 50"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
@@ -122,6 +123,123 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "FREE_CPU > 50"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
+					testAccCheckVirtualMachinePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						OwnerA: 0,
+						GroupU: 1,
+						GroupM: 1,
+					}),
+				),
+			},
+			{
+				Config: testAccVirtualMachineUserTemplateUpdate1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "196"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "0.2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.NETWORK", "YES"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.TESTVAR", "UPDATE"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
+					testAccCheckVirtualMachinePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						OwnerA: 0,
+						GroupU: 1,
+						GroupM: 1,
+					}),
+				),
+			},
+			{
+				Config: testAccVirtualMachineUserTemplateUpdate2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "196"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "0.2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.NETWORK", "YES"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.TESTVAR", "UPDATE"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "description", "This is an acceptance test VM"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gname"),
+					testAccCheckVirtualMachinePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						OwnerA: 0,
+						GroupU: 1,
+						GroupM: 1,
+					}),
+				),
+			},
+			{
+				Config: testAccVirtualMachineUserTemplateUpdate3,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-renamed"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "196"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "0.2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.NETWORK", "YES"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.TESTVAR", "UPDATE"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "description", "VM created for provider acceptance tests"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
@@ -636,6 +754,7 @@ resource "opennebula_virtual_machine" "test" {
   permissions = "660"
   memory = 196
   cpu = 0.2
+  description = "VM created for provider acceptance tests"
 
   context = {
 	TESTVAR = "TEST"
@@ -662,11 +781,54 @@ resource "opennebula_virtual_machine" "test" {
     customer = "test"
     version = "2"
   }
+
+  sched_requirements = "FREE_CPU > 50"
+
   timeout = 4
 }
 `
 
 var testAccVirtualMachineContextUpdate = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-renamed"
+  group       = "oneadmin"
+  permissions = "660"
+  memory = 196
+  cpu = 0.2
+  description = "VM created for provider acceptance tests"
+
+  context = {
+	TESTVAR = "UPDATE"
+    NETWORK  = "YES"
+    SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  disk {}
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
+  }
+
+  sched_requirements = "FREE_CPU > 50"
+
+  timeout = 4
+}
+`
+
+var testAccVirtualMachineUserTemplateUpdate1 = `
 resource "opennebula_virtual_machine" "test" {
   name        = "test-virtual_machine-renamed"
   group       = "oneadmin"
@@ -695,9 +857,89 @@ resource "opennebula_virtual_machine" "test" {
 
   tags = {
     env = "dev"
-    customer = "test"
-    version = "2"
   }
+
+  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+
+  timeout = 4
+}
+`
+
+var testAccVirtualMachineUserTemplateUpdate2 = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-renamed"
+  group       = "oneadmin"
+  permissions = "660"
+  memory = 196
+  cpu = 0.2
+  description = "This is an acceptance test VM"
+
+  context = {
+	TESTVAR = "UPDATE"
+    NETWORK  = "YES"
+    SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  disk {}
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "3"
+  }
+
+  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+
+  timeout = 4
+}
+`
+
+var testAccVirtualMachineUserTemplateUpdate3 = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-renamed"
+  group       = "oneadmin"
+  permissions = "660"
+  memory = 196
+  cpu = 0.2
+  description = "VM created for provider acceptance tests"
+
+  context = {
+	TESTVAR = "UPDATE"
+    NETWORK  = "YES"
+    SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  disk {}
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "dev"
+    customer = "test2"
+  }
+
+  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+
   timeout = 4
 }
 `
