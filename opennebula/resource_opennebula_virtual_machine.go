@@ -3,7 +3,6 @@ package opennebula
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -1006,83 +1005,88 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[INFO] Successfully updated group for VM %s\n", vmInfos.Name)
 	}
 
-	var tpl *vm.Template
 	update := false
-	deleteElements := false
+	tpl := vm.NewTemplate()
 
-	attributeKeys := []string{"sched_requirements", "sched_ds_requirements", "description"}
-	for _, key := range attributeKeys {
-		if d.HasChange(key) {
-			update = true
-			if isEmptyValue(reflect.ValueOf(d.Get(key))) {
-				deleteElements = true
+	// copy existing template and re-escape chars if needed
+	for _, e := range vmInfos.UserTemplate.Template.Elements {
+		pair, ok := e.(*dyn.Pair)
+		if ok {
+			// copy a pair
+			escapedValue := strings.ReplaceAll(pair.Value, "\"", "\\\"")
+			tpl.AddPair(e.Key(), escapedValue)
+		} else {
+			// copy a vector
+			vector, _ := e.(*dyn.Vector)
+
+			newVec := tpl.AddVector(e.Key())
+			for _, p := range vector.Pairs {
+				escapedValue := strings.ReplaceAll(p.Value, "\"", "\\\"")
+				newVec.AddPair(p.Key(), escapedValue)
 			}
 		}
-	}
-
-	if deleteElements {
-		tpl = &vmInfos.Template
-	} else {
-		tpl = vm.NewTemplate()
 	}
 
 	if d.HasChange("sched_requirements") {
 		schedRequirements := d.Get("sched_requirements").(string)
 		if len(schedRequirements) > 0 {
-			// Placement already delete the key before adding
 			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+		} else {
+			tpl.Del(string(vmk.SchedRequirements))
 		}
+		update = true
 	}
 
 	if d.HasChange("sched_ds_requirements") {
 		schedDSRequirements := d.Get("sched_ds_requirements").(string)
 		if len(schedDSRequirements) > 0 {
-			// Placement already delete the key before adding
 			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
+		} else {
+			tpl.Del(string(vmk.SchedDSRequirements))
 		}
+		update = true
 	}
 
 	if d.HasChange("description") {
-		tpl.Del(string(vmk.Description))
 
 		description := d.Get("description").(string)
 
 		if len(description) > 0 {
 			tpl.Add(vmk.Description, description)
+		} else {
+			tpl.Del(string(vmk.Description))
 		}
-	}
-
-	if update {
-
-		updateType := parameters.Merge
-		if deleteElements == true {
-			updateType = parameters.Replace
-		}
-
-		err = vmc.Update(tpl.String(), updateType)
-		if err != nil {
-			return err
-		}
+		update = true
 	}
 
 	if d.HasChange("tags") {
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, v := range tagsInterface {
-			vmInfos.UserTemplate.Del(strings.ToUpper(k))
-			vmInfos.UserTemplate.AddPair(strings.ToUpper(k), v.(string))
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
+			tpl.Del(strings.ToUpper(k))
 		}
 
-		err = vmc.Update(vmInfos.UserTemplate.String(), 1)
+		// add/update tags
+		for k, v := range newTags {
+			tpl.Template.Del(strings.ToUpper(k))
+			tpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		update = true
+	}
+
+	if update {
+		err = vmc.Update(tpl.String(), parameters.Replace)
 		if err != nil {
 			return err
-		}
-
-		timeout := d.Get("timeout").(int)
-
-		_, err = waitForVMState(vmc, timeout, "RUNNING")
-		if err != nil {
-			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
 		}
 	}
 
