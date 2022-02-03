@@ -413,7 +413,7 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("uname", image.UName)
 	d.Set("gname", image.GName)
 	d.Set("permissions", permissionsUnixString(*image.Permissions))
-	if image.Permissions != nil {
+	if image.Persistent != nil {
 		d.Set("persistent", *image.Persistent)
 	}
 	d.Set("path", image.Path)
