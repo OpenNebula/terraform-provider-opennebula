@@ -4,6 +4,7 @@ BUG FIXES:
 
 * resources/opennebula_service_template: Fix `template` diff method to perform deep equal check over `ServiceTemplate` struct instead of binary file diff.
 * resources/opennebula_virtual_network: check empty ar at read
+* resources/opennebula_template: check `user_inputs` at read
 
 ## 0.4.0 (January 20th, 2022)
 
