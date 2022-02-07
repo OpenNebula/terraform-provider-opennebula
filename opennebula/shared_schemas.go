@@ -61,6 +61,12 @@ func commonVMSchemas() map[string]*schema.Schema {
 			},
 			"template_disk": templateDiskVMSchema(),
 			"disk":          diskVMSchema(),
+			"hard_shutdown": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Immediately poweroff/terminate/reboot/undeploy the VM. (default: false)",
+			},
 		},
 	)
 }

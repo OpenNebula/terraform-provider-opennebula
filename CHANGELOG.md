@@ -23,6 +23,7 @@ ENHANCEMENTS:
 * data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
 * resources/opennebula_group: add `sunstone` and `tags` sections
 * resources/opennebula_virtual_network: compatibility added for network states
+* resources/opennebula_virtal_machine: enable VM vcpu, cpu and memory update
 
 FEATURES:
 
