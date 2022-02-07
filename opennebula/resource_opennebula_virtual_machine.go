@@ -1166,6 +1166,65 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 		}
 	}
 
+	if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {
+		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+
+		vmState, _, _ := vmInfos.State()
+		vmRequireShutdown := vmState != vm.Poweroff && vmState != vm.Undeployed
+		if vmRequireShutdown {
+			if d.Get("hard_shutdown").(bool) {
+				err = vmc.PoweroffHard()
+			} else {
+				err = vmc.Poweroff()
+			}
+			if err != nil {
+				return fmt.Errorf(
+					"Poweroff for virtual machine (ID:%d) failed: %s", vmc.ID, err)
+			}
+			_, err = waitForVMState(vmc, timeout, "POWEROFF")
+			if err != nil {
+				return fmt.Errorf(
+					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "POWEROFF", err)
+			}
+		}
+
+		resizeTpl := dyn.NewTemplate()
+		cpu := d.Get("cpu").(float64)
+		if cpu > 0 {
+			resizeTpl.AddPair("CPU", cpu)
+		}
+
+		vcpu := d.Get("vcpu").(int)
+		if vcpu > 0 {
+			resizeTpl.AddPair("VCPU", vcpu)
+		}
+
+		memory := d.Get("memory").(int)
+		if cpu > 0 {
+			resizeTpl.AddPair("MEMORY", memory)
+		}
+
+		err = vmc.Resize(resizeTpl.String(), true)
+		if err != nil {
+			return fmt.Errorf(
+				"resizing for virtual machine (ID:%d) failed: %s", vmc.ID, err)
+		}
+
+		if vmRequireShutdown {
+			err = vmc.Resume()
+			if err != nil {
+				return fmt.Errorf(
+					"resume virtual machine (ID:%d) failed: %s", vmc.ID, err)
+			}
+			_, err = waitForVMState(vmc, timeout, "RUNNING")
+			if err != nil {
+				return fmt.Errorf(
+					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+			}
+		}
+		log.Printf("[INFO] Successfully resized VM %s\n", vmInfos.Name)
+	}
+
 	if updateConf {
 
 		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
@@ -1548,8 +1607,14 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDeleteReadyStates, " "), err)
 	}
 
-	if err = vmc.TerminateHard(); err != nil {
-		return err
+	if d.Get("hard_shutdown").(bool) {
+		err = vmc.TerminateHard()
+	} else {
+		err = vmc.Terminate()
+	}
+	if err != nil {
+		return fmt.Errorf(
+			"Terminate VM (ID:%d) failed: %s", vmc.ID, err)
 	}
 
 	ret, err := waitForVMState(vmc, timeout, "DONE")
@@ -1567,9 +1632,14 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 
 				log.Printf("[INFO] retry terminate VM\n")
 
-				err := vmc.TerminateHard()
+				if d.Get("hard_shutdown").(bool) {
+					err = vmc.TerminateHard()
+				} else {
+					err = vmc.Terminate()
+				}
 				if err != nil {
-					return err
+					return fmt.Errorf(
+						"Terminate VM (ID:%d) failed: %s", vmc.ID, err)
 				}
 
 				_, err = waitForVMState(vmc, timeout, "DONE")
