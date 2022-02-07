@@ -1466,36 +1466,36 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-    if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {
+	if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {
 
-        vmState, _, _ := vmInfos.State()
-        if vmState != vm.Poweroff {
-            err = vmc.Poweroff()
-            if err != nil {
-                return err
-            }
+		vmState, _, _ := vmInfos.State()
+		if vmState != vm.Poweroff {
+			err = vmc.Poweroff()
+			if err != nil {
+				return err
+			}
 
-            timeout := d.Get("timeout").(int)
-            log.Printf("[INFO] Timeout set to VM %s\n", timeout)
-            _, err = waitForVMState(vmc, timeout, "POWEROFF")
-            if err != nil {
-                return fmt.Errorf(
-                    "waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
-            }
-        }
+			timeout := d.Get("timeout").(int)
+			log.Printf("[INFO] Timeout set to VM %s\n", timeout)
+			_, err = waitForVMState(vmc, timeout, "POWEROFF")
+			if err != nil {
+				return fmt.Errorf(
+					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+			}
+		}
 
-        resize_tpl := fmt.Sprintf("CPU = %f\nVCPU = %d\nMEMORY = %d", d.Get("cpu"), d.Get("vcpu"), d.Get("memory"))
-        err = vmc.Resize(resize_tpl, true)
-        if err != nil {
-           return err
-        }
+		resize_tpl := fmt.Sprintf("CPU = %f\nVCPU = %d\nMEMORY = %d", d.Get("cpu"), d.Get("vcpu"), d.Get("memory"))
+		err = vmc.Resize(resize_tpl, true)
+		if err != nil {
+			return err
+		}
 
-        err = vmc.Resume()
-        if err != nil {
-            return err
-        }
-        log.Printf("[INFO] Successfully resized VM %s\n", vmInfos.Name)
-    }
+		err = vmc.Resume()
+		if err != nil {
+			return err
+		}
+		log.Printf("[INFO] Successfully resized VM %s\n", vmInfos.Name)
+	}
 
 	if updateConf {
 
