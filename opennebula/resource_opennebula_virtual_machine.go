@@ -1480,7 +1480,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			_, err = waitForVMState(vmc, timeout, "POWEROFF")
 			if err != nil {
 				return fmt.Errorf(
-					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "POWEROFF", err)
 			}
 		}
 
