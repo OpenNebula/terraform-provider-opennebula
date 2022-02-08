@@ -1476,7 +1476,6 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			}
 
 			timeout := d.Get("timeout").(int)
-			log.Printf("[INFO] Timeout set to VM %s\n", timeout)
 			_, err = waitForVMState(vmc, timeout, "POWEROFF")
 			if err != nil {
 				return fmt.Errorf(
