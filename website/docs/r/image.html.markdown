@@ -123,13 +123,11 @@ The following arguments are supported:
 ## Attribute Reference
 
 The following attributes are exported:
-
 * `id` - ID of the image.
 * `uid` - User ID whom owns the image.
 * `gid` - Group ID which owns the image.
 * `uname` - User Name whom owns the image.
 * `gname` - Group Name which owns the image.
-* `computed_size` - Size of the image in MB.
 
 ## Import
 
