@@ -140,10 +140,6 @@ func resourceOpennebulaImage() *schema.Resource {
 				ConflictsWith: []string{"clone_from_image"},
 				Description:   "Size of the new image in MB",
 			},
-			"computed_size": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"dev_prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -418,7 +414,6 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 		d.Set("persistent", *image.Persistent)
 	}
 	d.Set("path", image.Path)
-	d.Set("computed_size", image.Size)
 
 	if inArray(image.Type, imagetypes) >= 0 {
 		d.Set("type", image.Type)
