@@ -1467,6 +1467,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {
+		timeout := d.Get("timeout").(int)
 
 		vmState, _, _ := vmInfos.State()
 		vmRequireShutdown := vmState != vm.Poweroff && vmState != vm.Undeployed
@@ -1475,8 +1476,6 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			if err != nil {
 				return err
 			}
-
-			timeout := d.Get("timeout").(int)
 			_, err = waitForVMState(vmc, timeout, "POWEROFF")
 			if err != nil {
 				return fmt.Errorf(
@@ -1498,6 +1497,11 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			err = vmc.Resume()
 			if err != nil {
 				return err
+			}
+			_, err = waitForVMState(vmc, timeout, "RUNNING")
+			if err != nil {
+				return fmt.Errorf(
+					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
 			}
 		}
 		log.Printf("[INFO] Successfully resized VM %s\n", vmInfos.Name)
