@@ -6,6 +6,9 @@ BUG FIXES:
 * resources/opennebula_virtual_network: check empty ar at read
 * resources/opennebula_template: check `user_inputs` at read
 * resources/opennebula_virtual_machine: fix update of user_template related attributes
+* resources/opennebula_image: remove `computed_size` attribute
+* resources/opennebula_virtual_network: remove ar ordering code
+* resources/opennebula_group: detailed error messages
 
 ## 0.4.0 (January 20th, 2022)
 
