@@ -1490,13 +1490,15 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 		err = vmc.Resize(resizeTpl.String(), true)
 		if err != nil {
-			return err
+			return fmt.Errorf(
+				"Resizing for virtual machine (ID:%d) failed: %s", vmc.ID, err)
 		}
 
 		if vmRequireShutdown {
 			err = vmc.Resume()
 			if err != nil {
-				return err
+				return fmt.Errorf(
+					"Resume virtual machine (ID:%d) failed: %s", vmc.ID, err)
 			}
 			_, err = waitForVMState(vmc, timeout, "RUNNING")
 			if err != nil {
