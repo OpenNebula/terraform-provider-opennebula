@@ -1483,13 +1483,12 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 			}
 		}
 
-		resize_tpl := fmt.Sprintf("CPU = %f\nVCPU = %d\nMEMORY = %d", d.Get("cpu"), d.Get("vcpu"), d.Get("memory"))
-		err = vmc.Resize(resize_tpl, true)
-		if err != nil {
-			return err
-		}
+		resizeTpl := dyn.NewTemplate()
+		resizeTpl.AddPair("CPU", d.Get("cpu").(float64))
+		resizeTpl.AddPair("VCPU", d.Get("vcpu").(int))
+		resizeTpl.AddPair("MEMORY", d.Get("memory").(int))
 
-		err = vmc.Resume()
+		err = vmc.Resize(resizeTpl.String(), true)
 		if err != nil {
 			return err
 		}
