@@ -700,5 +700,25 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		}
 	}
 
+	memory, _ := vmTemplate.GetMemory()
+	err = d.Set("memory", memory)
+	if err != nil {
+		return err
+	}
+
+	cpu, _ := vmTemplate.GetCPU()
+	err = d.Set("cpu", cpu)
+	if err != nil {
+		return err
+	}
+
+	vcpu, _ := vmTemplate.GetVCPU()
+	if vcpu > 0 {
+		err = d.Set("vcpu", vcpu)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
