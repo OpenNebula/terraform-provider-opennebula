@@ -534,6 +534,13 @@ func TestAccVirtualMachineResize(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "256"),
 				),
 			},
+			{
+				Config: testAccVirtualMachineResizePoweroffHard,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+				),
+			},
 		},
 	})
 }
@@ -1923,6 +1930,46 @@ resource "opennebula_virtual_machine" "test" {
   memory = 256
   cpu = 0.3
   vcpu  = 2
+  description = "VM created for provider acceptance tests"
+  context = {
+	TESTVAR = "TEST"
+	NETWORK  = "YES"
+	SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  disk {}
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "prod"
+    customer = "test"
+  }
+
+  sched_requirements = "FREE_CPU > 50"
+
+  timeout = 5
+}
+`
+
+var testAccVirtualMachineResizePoweroffHard = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 256
+  cpu = 0.3
+  vcpu  = 2
+  poweroff_hard_on_resize = true
   description = "VM created for provider acceptance tests"
 
   context = {

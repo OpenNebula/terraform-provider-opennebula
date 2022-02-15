@@ -127,9 +127,15 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Computed:    true,
 				Description: "Current LCM state of the VM",
 			},
-			"cpu":           cpuSchema(),
-			"vcpu":          vcpuSchema(),
-			"memory":        memorySchema(),
+			"cpu":    cpuSchema(),
+			"vcpu":   vcpuSchema(),
+			"memory": memorySchema(),
+			"poweroff_hard_on_resize": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Use 'Poweroff hard' instead of 'Poweroff' on VM resize.",
+			},
 			"context":       contextSchema(),
 			"cpumodel":      cpumodelSchema(),
 			"disk":          diskVMSchema(),
@@ -1472,9 +1478,14 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		vmState, _, _ := vmInfos.State()
 		vmRequireShutdown := vmState != vm.Poweroff && vmState != vm.Undeployed
 		if vmRequireShutdown {
-			err = vmc.Poweroff()
+			if d.HasChange("poweroff_hard_on_resize") {
+				err = vmc.PoweroffHard()
+			} else {
+				err = vmc.Poweroff()
+			}
 			if err != nil {
-				return err
+				return fmt.Errorf(
+					"Poweroff for virtual machine (ID:%d) failed: %s", vmc.ID, err)
 			}
 			_, err = waitForVMState(vmc, timeout, "POWEROFF")
 			if err != nil {
