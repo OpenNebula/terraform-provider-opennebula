@@ -1478,7 +1478,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		vmState, _, _ := vmInfos.State()
 		vmRequireShutdown := vmState != vm.Poweroff && vmState != vm.Undeployed
 		if vmRequireShutdown {
-			if d.HasChange("poweroff_hard_on_resize") {
+			if d.Get("poweroff_hard_on_resize").(bool) {
 				err = vmc.PoweroffHard()
 			} else {
 				err = vmc.Poweroff()
