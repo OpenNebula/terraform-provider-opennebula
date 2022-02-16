@@ -16,6 +16,14 @@ import (
 	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
 )
 
+type Template string
+
+const (
+	ReservationSize           Template = "SIZE"
+	ReservationFirstIP        Template = "IP"
+	ReservationAddressRangeID Template = "AR_ID"
+)
+
 func resourceOpennebulaVirtualNetwork() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceOpennebulaVirtualNetworkCreate,
@@ -89,21 +97,21 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Name of the bridge interface to which the vnet should be associated",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"physical_device": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Name of the physical device to which the vnet should be associated",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"type": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Default:       "bridge",
 				Description:   "Type of the Virtual Network: dummy, bridge, fw, ebtables, 802.1Q, vxlan, ovswitch. Default is 'bridge'",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					validtypes := []string{"dummy", "bridge", "fw", "ebtables", "802.1Q", "vxlan", "ovswitch"}
 					value := v.(string)
@@ -120,7 +128,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
@@ -130,56 +138,56 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "VLAN ID. Only if 'Type' is : 802.1Q, vxlan or ovswich and if 'automatic_vlan_id' is not set",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size", "automatic_vlan_id"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip", "automatic_vlan_id"},
 			},
 			"automatic_vlan_id": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Computed:      true,
 				Description:   "If set, let OpenNebula to attribute VLAN ID",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size", "vlan_id"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip", "vlan_id"},
 			},
 			"mtu": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Description:   "MTU of the vnet (defaut: 1500)",
 				Default:       1500,
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"guest_mtu": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Description:   "MTU of the Guest interface. Must be lower or equal to 'mtu' (defaut: 1500)",
 				Default:       1500,
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"gateway": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Gateway IP if necessary",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"network_mask": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Network Mask",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"dns": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "DNS IP if necessary",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"ar": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				MinItems:      1,
 				Description:   "List of Address Ranges to be part of the Virtual Network",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Resource{
 					Schema: ARFields(),
 				},
@@ -188,7 +196,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Description:   "List of IPs to be held the VNET",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -198,7 +206,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Carve a network reservation of this size from the reservation starting from `ip_hold`",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Deprecated:    "use 'hold_ips' instead",
 			},
 			"ip_hold": {
@@ -206,7 +214,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Start IP of the range to be held",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Deprecated:    "use 'hold_ips' instead",
 			},
 			"reservation_vnet": {
@@ -221,6 +229,20 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+			},
+			"reservation_first_ip": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				Description:   "First IP of the reservation",
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+			},
+			"reservation_ar_id": {
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Computed:      true,
+				Description:   "Address Range ID to be used for the reservation",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"security_groups": {
@@ -384,29 +406,39 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 	controller := meta.(*goca.Controller)
 	var vnc *goca.VirtualNetworkController
 
-	// VNET reservation
-	if rvnet, ok := d.GetOk("reservation_vnet"); ok {
-		reservation_vnet := rvnet.(int)
-		reservation_name := d.Get("name").(string)
-		reservation_size := d.Get("reservation_size").(int)
+	reservation_vnet := d.Get("reservation_vnet").(int)
 
-		if reservation_vnet < 0 {
-			return fmt.Errorf("Reservation VNET ID must be greater than 0!")
-		} else if reservation_size <= 0 {
-			return fmt.Errorf("Reservation size must be strictly greater than 0!")
+	// VNET reservation
+	if reservation_vnet > -1 {
+		reservation_template := dyn.NewTemplate()
+
+		if reservation_name, ok := d.GetOk("name"); ok {
+			reservation_template.AddPair("NAME", reservation_name.(string))
+		}
+		if reservation_first_ip, ok := d.GetOk("reservation_first_ip"); ok {
+			reservation_template.AddPair("IP", reservation_first_ip.(string))
+		}
+		if reservation_ar_id, ok := d.GetOk("reservation_ar_id"); ok {
+			reservation_template.AddPair("AR_ID", reservation_ar_id.(int))
+		}
+		reservation_size, ok := d.GetOk("reservation_size")
+		if ok {
+			reservation_template.AddPair("SIZE", reservation_size.(int))
 		}
 
-		//The API only takes ATTRIBUTE=VALUE for VNET reservations...
-		reservation_string := "SIZE=%d\nNAME=\"%s\""
+		if reservation_size.(int) <= 0 {
+			return fmt.Errorf("Reservation size must be strictly greater than 0!")
+		}
 
 		// Get VNet Controller to reserve from
 		vnc = controller.VirtualNetwork(reservation_vnet)
 		// Call .Info to check if the Network exists
+
 		if _, err := vnc.Info(false); err != nil {
 			return err
 		}
 
-		rID, err := vnc.Reserve(fmt.Sprintf(reservation_string, reservation_size, reservation_name))
+		rID, err := vnc.Reserve(reservation_template.String())
 		if err != nil {
 			return err
 		}
@@ -416,6 +448,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		// TODO: fix it after 5.10 release
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		vnet, err := vnc.Info(false)
+
 		if err != nil {
 			return err
 		}
@@ -743,6 +776,15 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	// // "reservation_vnet": {
+	// // "reservation_size": {
+	// // "reservation_first_ip": {
+	// // "reservation_ar_id": {
+
+	// xml, err := xml.MarshalIndent(vn, "", "  ")
+
+	// log.Printf("[INFO] Virtual Network info: %s", xml)
+
 	d.SetId(strconv.Itoa(vn.ID))
 	d.Set("name", vn.Name)
 	d.Set("uid", vn.UID)
@@ -751,6 +793,8 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	d.Set("gname", vn.GName)
 	d.Set("bridge", vn.Bridge)
 	d.Set("physical_device", vn.PhyDev)
+	d.Set("reservation_vnet", vn)
+
 	if vn.VlanID != "" {
 		d.Set("vlan_id", vn.VlanID)
 	}
@@ -758,14 +802,6 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		d.Set("automatic_vlan_id", true)
 	}
 	d.Set("type", vn.VNMad)
-
-	if len(vn.ParentNetworkID) > 0 {
-		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
-		if err != nil {
-			return fmt.Errorf("Can't parse parent network ID: %s", err)
-		}
-		d.Set("reservation_vnet", parentNetworkID)
-	}
 
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
@@ -782,6 +818,19 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if len(vn.ParentNetworkID) > 0 {
+		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
+		if err != nil {
+			return fmt.Errorf("Can't parse parent network ID: %s", err)
+		}
+		d.Set("reservation_vnet", parentNetworkID)
+		if len(vn.ARs) > 0 {
+			d.Set("reservation_ar_id", vn.ARs[0].ID)
+			d.Set("reservation_size", vn.ARs[0].Size)
+			d.Set("reservation_first_ip", vn.ARs[0].IP)
+		}
+	}
+
 	if vn.Lock != nil {
 		d.Set("lock", LockLevelToString(vn.Lock.Locked))
 	}
@@ -793,7 +842,8 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 
 	ARSet := make([]map[string]interface{}, 0, len(vn.ARs))
 	ARConfigs := d.Get("ar").(*schema.Set).List()
-
+	log.Printf("[INFO] ARs: %+v", vn.ARs)
+	log.Printf("[INFO] ARConfigs: %+v", ARConfigs)
 	for _, AR := range vn.ARs {
 
 		match := false
@@ -981,6 +1031,17 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		changes = true
 	}
 
+	// if d.HasChange("reservation_first_ip") {
+	// 	d.Set("ar.ip4", d.Get("reservation_first_ip").(string))
+	// 	changes = true
+	// }
+
+	// if d.HasChange("reservation_size") {
+	// 	log.Printf("[DEBUG] Reservation size changed")
+	// 	d.Set("ar.size", d.Get("reservation_size").(int))
+	// 	changes = true
+	// }
+
 	if d.HasChange("security_groups") {
 		securitygroups := d.Get("security_groups")
 		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
@@ -1057,7 +1118,7 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	if d.HasChange("ar") {
-
+		log.Println("[DEBUG] AR changed")
 		old, new := d.GetChange("ar")
 		existingARsCfg := old.(*schema.Set).List()
 		newARsCfg := new.(*schema.Set).List()

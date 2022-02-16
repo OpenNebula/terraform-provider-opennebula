@@ -21,6 +21,7 @@ FEATURES:
 * resources/opennebula_virtual_machine: Optionally preserve NIC ordering
 * resources/opennebula_virtual_machine: Enable locking
 * resources/opennebula_virtual_network: Enable locking
+* resources/opennebula_virtual_network: Set first IP and address range ID for address reservations
 * resources/opennebula_template: Enable locking
 
 BUG FIXES:

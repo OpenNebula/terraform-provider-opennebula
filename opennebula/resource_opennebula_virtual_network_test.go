@@ -113,7 +113,9 @@ func TestAccVirtualNetwork(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "name", "terravnetres"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_size", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_size", "5"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_first_ip", "172.16.100.115"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_ar_id", "6"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "permissions", "660"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "gid"),
@@ -335,7 +337,9 @@ resource "opennebula_virtual_network" "reservation" {
     name = "terravnetres"
     description = "my terraform vnet"
     reservation_vnet = "${opennebula_virtual_network.test.id}"
-    reservation_size = 1
+    reservation_size = 5
+	reservation_ar_id = 6
+	reservation_first_ip = "172.16.100.115"
     security_groups = [0]
     permissions = 660
 }
