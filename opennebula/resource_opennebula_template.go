@@ -614,6 +614,41 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 		update = true
 	}
 
+	if d.HasChange("cpumodel") {
+		newTpl.Del("CPU_MODEL")
+		cpumodel := d.Get("cpumodel").([]interface{})
+
+		for i := 0; i < len(cpumodel); i++ {
+			cpumodelconfig := cpumodel[i].(map[string]interface{})
+			newTpl.CPUModel(cpumodelconfig["model"].(string))
+		}
+
+	}
+
+	if d.HasChange("cpu") {
+		cpu := d.Get("cpu").(float64)
+		if cpu > 0 {
+			update = true
+			newTpl.CPU(cpu)
+		}
+	}
+
+	if d.HasChange("vcpu") {
+		vcpu := d.Get("vcpu").(int)
+		if vcpu > 0 {
+			update = true
+			newTpl.VCPU(vcpu)
+		}
+	}
+
+	if d.HasChange("memory") {
+		memory := d.Get("memory").(int)
+		if memory > 0 {
+			update = true
+			newTpl.Memory(memory)
+		}
+	}
+
 	if d.HasChange("user_inputs") {
 		newTpl.Del("USER_INPUTS")
 
