@@ -22,6 +22,14 @@ import (
 
 var defaultVNetTimeout = time.Duration(5) * time.Minute
 
+type Template string
+
+const (
+	ReservationSize           Template = "SIZE"
+	ReservationFirstIP        Template = "IP"
+	ReservationAddressRangeID Template = "AR_ID"
+)
+
 func resourceOpennebulaVirtualNetwork() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaVirtualNetworkCreate,
@@ -98,21 +106,21 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Name of the bridge interface to which the vnet should be associated",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"physical_device": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Name of the physical device to which the vnet should be associated",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"type": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Default:       "bridge",
 				Description:   "Type of the Virtual Network: dummy, bridge, fw, ebtables, 802.1Q, vxlan, ovswitch. Default is 'bridge'",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					validtypes := []string{"dummy", "bridge", "fw", "ebtables", "802.1Q", "vxlan", "ovswitch"}
 					value := v.(string)
@@ -129,7 +137,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
@@ -139,42 +147,42 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "VLAN ID. Only if 'Type' is : 802.1Q, vxlan or ovswich and if 'automatic_vlan_id' is not set",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size", "automatic_vlan_id"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip", "automatic_vlan_id"},
 			},
 			"automatic_vlan_id": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Computed:      true,
 				Description:   "If set, let OpenNebula to attribute VLAN ID",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size", "vlan_id"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip", "vlan_id"},
 			},
 			"mtu": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Description:   "MTU of the vnet (defaut: 1500)",
 				Default:       1500,
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"guest_mtu": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Description:   "MTU of the Guest interface. Must be lower or equal to 'mtu' (defaut: 1500)",
 				Default:       1500,
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"gateway": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Gateway IP if necessary",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"network_mask": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Network Mask",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"network_address": {
 				Type:          schema.TypeString,
@@ -195,14 +203,14 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "DNS IP if necessary",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"ar": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				MinItems:      1,
 				Description:   "List of Address Ranges to be part of the Virtual Network",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Resource{
 					Schema: ARFields(),
 				},
@@ -212,7 +220,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Type:          schema.TypeList,
 				Optional:      true,
 				Description:   "List of IPs to be held the VNET",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -221,16 +229,28 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"reservation_vnet": {
 				Type:          schema.TypeInt,
 				Optional:      true,
-				Computed:      true,
 				Description:   "Create a reservation from this VNET ID",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask", "network_address", "search_domain"},
+				Default:       -1,
 			},
 			"reservation_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
-				Computed:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask", "network_address", "search_domain"},
+			},
+			"reservation_first_ip": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "First IP of the reservation",
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+			},
+			"reservation_ar_id": {
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Default:       -1,
+				Description:   "Address Range ID to be used for the reservation",
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"security_groups": {
 				Type:        schema.TypeList,
@@ -397,52 +417,55 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 	var vnc *goca.VirtualNetworkController
 	var diags diag.Diagnostics
 
-	// VNET reservation
-	if rvnet, ok := d.GetOk("reservation_vnet"); ok {
-		reservation_vnet := rvnet.(int)
-		reservation_name := d.Get("name").(string)
-		reservation_size := d.Get("reservation_size").(int)
+	reservationVNet := d.Get("reservation_vnet").(int)
 
-		if reservation_vnet < 0 {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Wrong ID for reservation VNET",
-				Detail:   "Reservation VNET ID must be greater than 0",
-			})
-		} else if reservation_size <= 0 {
+	// VNET reservation
+	if reservationVNet > -1 {
+		reservationTemplate := dyn.NewTemplate()
+
+		if reservationName, ok := d.GetOk("name"); ok {
+			reservationTemplate.AddPair("NAME", reservationName.(string))
+		}
+		if reservationFirstIP, ok := d.GetOk("reservation_first_ip"); ok {
+			reservationTemplate.AddPair("IP", reservationFirstIP.(string))
+		}
+		if reservationARID, ok := d.GetOk("reservation_ar_id"); ok && reservationARID != -1 {
+			reservationTemplate.AddPair("AR_ID", reservationARID.(int))
+		}
+		reservationSize, ok := d.GetOk("reservation_size")
+		if ok {
+			reservationTemplate.AddPair("SIZE", reservationSize.(int))
+		}
+
+		if reservationSize.(int) <= 0 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Wrong size value",
 				Detail:   "Reservation size must be strictly greater than 0",
 			})
-		}
-
-		if len(diags) > 0 {
 			return diags
 		}
 
-		//The API only takes ATTRIBUTE=VALUE for VNET reservations...
-		reservation_string := "SIZE=%d\nNAME=\"%s\""
-
 		// Get VNet Controller to reserve from
-		vnc = controller.VirtualNetwork(reservation_vnet)
+		vnc = controller.VirtualNetwork(reservationVNet)
+
 		// Call .Info to check if the Network exists
 		_, err := vnc.Info(false)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   fmt.Sprintf("Virtual network (ID: %d) reservation: %s", reservation_vnet, err),
+				Detail:   fmt.Sprintf("Virtual network (ID: %d) reservation: %s", reservationVNet, err),
 			})
 			return diags
 		}
 
-		rID, err := vnc.Reserve(fmt.Sprintf(reservation_string, reservation_size, reservation_name))
+		rID, err := vnc.Reserve(reservationTemplate.String())
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to reserve network addresses",
-				Detail:   fmt.Sprintf("Virtual network (ID: %d) reservation: %s", reservation_vnet, err),
+				Detail:   fmt.Sprintf("Virtual network (ID: %d) reservation: %s", reservationVNet, err),
 			})
 			return diags
 		}
@@ -452,6 +475,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		// TODO: fix it after 5.10 release
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		vnet, err := vnc.Info(false)
+
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -872,6 +896,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	d.Set("gname", vn.GName)
 	d.Set("bridge", vn.Bridge)
 	d.Set("physical_device", vn.PhyDev)
+
 	if vn.VlanID != "" {
 		d.Set("vlan_id", vn.VlanID)
 	}
@@ -879,20 +904,6 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		d.Set("automatic_vlan_id", true)
 	}
 	d.Set("type", vn.VNMad)
-
-	if len(vn.ParentNetworkID) > 0 {
-		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to parse parent network ID",
-				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-		d.Set("reservation_vnet", parentNetworkID)
-	}
-
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
 	err = flattenVnetTemplate(d, &vn.Template)
@@ -918,6 +929,33 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		}
 	}
 
+	if len(vn.ParentNetworkID) > 0 {
+		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to parse parent network ID",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		d.Set("reservation_vnet", parentNetworkID)
+		if len(vn.ARs) > 0 {
+			arID, err := strconv.ParseInt(vn.ARs[0].ID, 10, 0)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to parse address range ID",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+			d.Set("reservation_ar_id", arID)
+			d.Set("reservation_size", vn.ARs[0].Size)
+			d.Set("reservation_first_ip", vn.ARs[0].IP)
+		}
+	}
+
 	if vn.Lock != nil {
 		d.Set("lock", LockLevelToString(vn.Lock.Locked))
 	}
@@ -929,7 +967,8 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 
 	ARSet := make([]map[string]interface{}, 0, len(vn.ARs))
 	ARConfigs := d.Get("ar").(*schema.Set).List()
-
+	log.Printf("[INFO] ARs: %+v", vn.ARs)
+	log.Printf("[INFO] ARConfigs: %+v", ARConfigs)
 	for _, AR := range vn.ARs {
 
 		match := false
@@ -1261,7 +1300,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 	}
 
 	if d.HasChange("ar") {
-
+		log.Println("[DEBUG] AR changed")
 		old, new := d.GetChange("ar")
 		existingARsCfg := old.(*schema.Set).List()
 		newARsCfg := new.(*schema.Set).List()

@@ -3,6 +3,7 @@
 FEATURES:
 
 * **New Resource**: `opennebula_virtual_network_address_range` (#279)
+* resources/opennebula_virtual_network: add attributes `reservation_first_ip` and `reservation_ar_id` (#274)
 
 ENHANCEMENTS:
 
