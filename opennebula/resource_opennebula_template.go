@@ -460,7 +460,7 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	update := false
 	deleteElements := false
 
-	attributeKeys := []string{"raw", "sched_requirements", "sched_ds_requirements", "description", "user_inputs"}
+	attributeKeys := []string{"raw", "sched_requirements", "sched_ds_requirements", "description", "user_inputs", "cpu", "vcpu", "memory", "cpumodel"}
 	for _, key := range attributeKeys {
 		if d.HasChange(key) {
 			update = true
@@ -520,6 +520,37 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
+	if d.HasChange("cpumodel") {
+		newTpl.Del("CPU_MODEL")
+		cpumodel := d.Get("cpumodel").([]interface{})
+		if len(cpumodel) > 0 {
+			for i := 0; i < len(cpumodel); i++ {
+				cpumodelconfig := cpumodel[i].(map[string]interface{})
+				newTpl.CPUModel(cpumodelconfig["model"].(string))
+			}
+		}
+	}
+	if d.HasChange("cpu") {
+		cpu := d.Get("cpu").(float64)
+		if cpu > 0 {
+			update = true
+			newTpl.CPU(cpu)
+		}
+	}
+	if d.HasChange("vcpu") {
+		vcpu := d.Get("vcpu").(int)
+		if vcpu > 0 {
+			update = true
+			newTpl.VCPU(vcpu)
+		}
+	}
+	if d.HasChange("memory") {
+		memory := d.Get("memory").(int)
+		if memory > 0 {
+			update = true
+			newTpl.Memory(memory)
+		}
+	}
 	if d.HasChange("user_inputs") {
 		newTpl.Del("USER_INPUTS")
 

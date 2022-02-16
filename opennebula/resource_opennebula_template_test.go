@@ -100,6 +100,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.version", "2"),
+					resource.TestCheckNoResourceAttr("opennebula_template.template", "cpumodel.#"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
