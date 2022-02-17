@@ -676,27 +676,36 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		}
 	}
 
-	schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
-	if len(schedReq) > 0 {
-		err = d.Set("sched_requirements", schedReq)
-		if err != nil {
-			return err
+	_, ok := d.GetOk("sched_requirements")
+	if ok {
+		schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+		if len(schedReq) > 0 {
+			err = d.Set("sched_requirements", schedReq)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	schedDSReq, _ := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
-	if len(schedDSReq) > 0 {
-		err = d.Set("sched_ds_requirements", schedDSReq)
-		if err != nil {
-			return err
+	_, ok = d.GetOk("sched_ds_requirements")
+	if ok {
+		schedDSReq, _ := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+		if len(schedDSReq) > 0 {
+			err = d.Set("sched_ds_requirements", schedDSReq)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	desc, _ := vmTemplate.GetStr("DESCRIPTION")
-	if len(desc) > 0 {
-		err = d.Set("description", desc)
-		if err != nil {
-			return err
+	_, ok = d.GetOk("description")
+	if ok {
+		desc, _ := vmTemplate.GetStr("DESCRIPTION")
+		if len(desc) > 0 {
+			err = d.Set("description", desc)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
