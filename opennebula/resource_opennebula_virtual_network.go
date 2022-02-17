@@ -222,6 +222,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Create a reservation from this VNET ID",
+				Default:       -1,
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"reservation_size": {
