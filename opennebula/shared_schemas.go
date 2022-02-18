@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
+	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -573,7 +574,7 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	}
 }
 
-func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bool) error {
+func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
 	var err error
 
@@ -656,23 +657,28 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		}
 	}
 
-	if tplTags {
-		tags := make(map[string]interface{})
-		// Get only tags from userTemplate
-		if tagsInterface, ok := d.GetOk("tags"); ok {
-			for k, _ := range tagsInterface.(map[string]interface{}) {
-				tags[k], err = vmTemplate.GetStr(strings.ToUpper(k))
-				if err != nil {
-					return err
-				}
-			}
-		}
+	return nil
+}
 
-		if len(tags) > 0 {
-			err := d.Set("tags", tags)
+func flattenUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template) error {
+
+	var err error
+
+	tags := make(map[string]interface{})
+	// Get only tags from userTemplate
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tags[k], err = vmTemplate.GetStr(strings.ToUpper(k))
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
 		}
 	}
 
