@@ -1050,13 +1050,14 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("description") {
 
+		tpl.Del(string(vmk.Description))
+
 		description := d.Get("description").(string)
 
 		if len(description) > 0 {
 			tpl.Add(vmk.Description, description)
-		} else {
-			tpl.Del(string(vmk.Description))
 		}
+
 		update = true
 	}
 
