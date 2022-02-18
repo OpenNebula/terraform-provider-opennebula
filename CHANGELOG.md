@@ -1,4 +1,10 @@
-## 0.4.1 (Unreleased)
+## 0.4.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_machine: fix description duplication
+
+## 0.4.1 (February 15th, 2022)
 
 BUG FIXES:
 
