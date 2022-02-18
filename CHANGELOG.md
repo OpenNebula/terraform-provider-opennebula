@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * resources/opennebula_virtual_machine: fix description duplication
+* resources/opennebula_template: check fields at read
 
 ## 0.4.1 (February 15th, 2022)
 
