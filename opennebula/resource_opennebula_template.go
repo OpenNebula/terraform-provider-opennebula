@@ -500,8 +500,10 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 
 	if d.HasChange("sched_requirements") {
 		schedRequirements := d.Get("sched_requirements").(string)
+
 		if len(schedRequirements) > 0 {
-			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
+			escapedValue := strings.ReplaceAll(schedRequirements, "\"", "\\\"")
+			newTpl.Placement(vmk.SchedRequirements, escapedValue)
 		} else {
 			newTpl.Del(string(vmk.SchedRequirements))
 		}
@@ -509,11 +511,13 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("sched_ds_requirements") {
-		schedRequirements := d.Get("sched_ds_requirements").(string)
-		if len(schedRequirements) > 0 {
-			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
+		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+
+		if len(schedDSRequirements) > 0 {
+			escapedValue := strings.ReplaceAll(schedDSRequirements, "\"", "\\\"")
+			newTpl.Placement(vmk.SchedDSRequirements, escapedValue)
 		} else {
-			newTpl.Del(string(vmk.SchedRequirements))
+			newTpl.Del(string(vmk.SchedDSRequirements))
 		}
 		update = true
 	}
