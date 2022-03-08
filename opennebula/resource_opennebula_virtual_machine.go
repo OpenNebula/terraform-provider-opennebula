@@ -1035,8 +1035,10 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("sched_requirements") {
 		schedRequirements := d.Get("sched_requirements").(string)
+
 		if len(schedRequirements) > 0 {
-			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+			escapedValue := strings.ReplaceAll(schedRequirements, "\"", "\\\"")
+			tpl.Placement(vmk.SchedRequirements, escapedValue)
 		} else {
 			tpl.Del(string(vmk.SchedRequirements))
 		}
@@ -1045,8 +1047,10 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("sched_ds_requirements") {
 		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+
 		if len(schedDSRequirements) > 0 {
-			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
+			escapedValue := strings.ReplaceAll(schedDSRequirements, "\"", "\\\"")
+			tpl.Placement(vmk.SchedDSRequirements, escapedValue)
 		} else {
 			tpl.Del(string(vmk.SchedDSRequirements))
 		}
