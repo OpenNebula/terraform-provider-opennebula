@@ -38,7 +38,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "FREE_CPU > 50"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "user_inputs.%", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "user_inputs.BLOG_TITLE", "M|text|Blog Title"),
-					resource.TestCheckResourceAttr("opennebula_template.template", "description", "VM created for provider acceptance tests"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "description", "Template created for provider acceptance tests"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -70,6 +70,8 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "FREE_CPU > 50"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "description", "Template created for provider acceptance tests"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -100,6 +102,38 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "description", "Template created for provider acceptance tests - updated"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_template.template", "gname"),
+					testAccCheckTemplatePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						OtherM: 1,
+					}),
+				),
+			},
+			{
+				Config: testAccTemplateConfigDelete,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckNoResourceAttr("opennebula_template.template", "tags.version"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -180,7 +214,7 @@ resource "opennebula_template" "template" {
   cpu = "0.5"
   vcpu = "1"
   memory = "512"
-  description = "VM created for provider acceptance tests"
+  description = "Template created for provider acceptance tests"
 
   context = {
     dns_hostname = "yes"
@@ -220,6 +254,7 @@ resource "opennebula_template" "template" {
   cpu = "0.5"
   vcpu = "1"
   memory = "512"
+  description = "Template created for provider acceptance tests"
 
   context = {
     dns_hostname = "yes"
@@ -245,10 +280,51 @@ resource "opennebula_template" "template" {
     env = "prod"
     customer = "test"
   }
+
+  sched_requirements = "FREE_CPU > 50"
+
 }
 `
 
 var testAccTemplateConfigUpdate = `
+resource "opennebula_template" "template" {
+  name = "terratplupdate"
+  permissions = "642"
+  group = "oneadmin"
+  description = "Template created for provider acceptance tests - updated"
+
+  cpu = "1"
+  vcpu = "1"
+  memory = "768"
+
+  context = {
+	dns_hostname = "yes"
+	network = "YES"
+  }
+
+  graphics {
+	keymap = "en-us"
+	listen = "0.0.0.0"
+	type = "VNC"
+  }
+
+  os {
+	arch = "x86_64"
+	boot = ""
+  }
+
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
+  }
+
+  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+
+}
+`
+
+var testAccTemplateConfigDelete = `
 resource "opennebula_template" "template" {
   name = "terratplupdate"
   permissions = "642"
@@ -277,7 +353,6 @@ resource "opennebula_template" "template" {
   tags = {
     env = "dev"
     customer = "test"
-    version = "2"
   }
 }
 `
