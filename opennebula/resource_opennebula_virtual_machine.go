@@ -922,22 +922,9 @@ NICLoop:
 
 func flattenTags(d *schema.ResourceData, vmUserTpl *vm.UserTemplate) error {
 
-	tags := make(map[string]interface{})
-	for i, _ := range vmUserTpl.Elements {
-		pair, ok := vmUserTpl.Elements[i].(*dyn.Pair)
-		if !ok {
-			continue
-		}
+	tagsInterface := d.Get("tags").(map[string]interface{})
 
-		// Get only tags from userTemplate
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, _ := range tagsInterface {
-			if strings.ToUpper(k) == pair.Key() {
-				tags[k] = pair.Value
-			}
-		}
-	}
-
+	tags := pairsToMapFilter(vmUserTpl.Template, tagsInterface)
 	if len(tags) > 0 {
 		err := d.Set("tags", tags)
 		if err != nil {

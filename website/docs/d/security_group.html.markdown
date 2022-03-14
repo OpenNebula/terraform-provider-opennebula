@@ -20,8 +20,11 @@ data "opennebula_security_group" "ExistingSecurityGroup" {
 
 ## Argument Reference
 
- * `name` - (Required) The OpenNebula security group to retrieve information for.
+* `name` - (Optional) The OpenNebula security group to retrieve information for.
+* `tags` - (Optional) Security group tags.
 
 ## Attribute Reference
 
-* `tags` - Security group tags.
+* `id` - ID of the security group.
+* `name` - Name of the security group
+* `tags` - Tags of the security group (Key = Value).

@@ -20,13 +20,15 @@ data "opennebula_group" "ExistingGroup" {
 
 ## Argument Reference
 
- * `name` - (Required) The OpenNebula group to retrieve information for.
+* `name` - (Optional) The OpenNebula group to retrieve information for.
+* `tags` - (Optional) Tags associated to the Image.
+* `quotas` - (Deprecated) Quotas configured for the group.
 
 ## Attribute Reference
 
 The following attribute is exported:
-* `id` - ID of the group.
-* `users` - (Deprecated): List of User IDs part of the group. Use group membership management through user resource instead.
-* `admins` - List of Administrator user IDs part of the group.
-* `quotas` - Quotas configured for the group.
 
+* `id` - ID of the group.
+* `name` - Name of the group.
+* `admins` - List of Administrator user IDs part of the group.
+* `tags` - Tags of the group (Key = Value).
