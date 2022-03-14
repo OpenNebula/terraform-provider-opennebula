@@ -575,8 +575,7 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	}
 }
 
-func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
-
+func flattenTemplateVMGroup(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	var err error
 
 	// VM Group
@@ -584,22 +583,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	vmgIdStr, _ := vmTemplate.GetStrFromVec("VMGROUP", "VMGROUP_ID")
 	vmgid, _ := strconv.ParseInt(vmgIdStr, 10, 32)
 	vmgRole, _ := vmTemplate.GetStrFromVec("VMGROUP", "ROLE")
-
-	// OS
-	osMap := make([]map[string]interface{}, 0, 1)
-	arch, _ := vmTemplate.GetOS(vmk.Arch)
-	boot, _ := vmTemplate.GetOS(vmk.Boot)
-
-	// CPU Model
-	cpumodelMap := make([]map[string]interface{}, 0, 1)
-	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
-
-	// Graphics
-	graphMap := make([]map[string]interface{}, 0, 1)
-	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
-	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
-	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
-	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
 
 	// Set VM Group to resource
 	if vmgIdStr != "" {
@@ -613,6 +596,45 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	var err error
+
+	// OS
+	osMap := make([]map[string]interface{}, 0, 1)
+	arch, _ := vmTemplate.GetOS(vmk.Arch)
+	boot, _ := vmTemplate.GetOS(vmk.Boot)
+	// CPU Model
+	cpumodelMap := make([]map[string]interface{}, 0, 1)
+	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
+	// Graphics
+	graphMap := make([]map[string]interface{}, 0, 1)
+	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
+	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
+	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
+	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
+
+	// Set CPU Model to resource
+	if cpumodel != "" {
+		cpumodelMap = append(cpumodelMap, map[string]interface{}{
+			"model": cpumodel,
+		})
+		if _, ok := d.GetOk("cpumodel"); ok {
+			err = d.Set("cpumodel", cpumodelMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = flattenTemplateVMGroup(d, vmTemplate)
+	if err != nil {
+		return err
 	}
 
 	// Set OS to resource
@@ -629,20 +651,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		}
 	}
 
-	// Set CPU Model to resource
-	if cpumodel != "" {
-		cpumodelMap = append(cpumodelMap, map[string]interface{}{
-			"model": cpumodel,
-		})
-		if _, ok := d.GetOk("cpumodel"); ok {
-			err = d.Set("cpumodel", cpumodelMap)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// Set Graphics to resource
+	// Set graphics to resource
 	if port != "" {
 		graphMap = append(graphMap, map[string]interface{}{
 			"listen": listen,
@@ -657,7 +666,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			}
 		}
 	}
-
 	return nil
 }
 

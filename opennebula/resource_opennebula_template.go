@@ -297,36 +297,14 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// Nics
-	nics := tpl.Template.GetNICs()
-	nicList := make([]interface{}, 0, len(nics))
-
-	// Set Nics to resource
-	for _, nic := range nics {
-		nicList = append(nicList, flattenNIC(nic))
+	err = flattenTemplateDisks(d, &tpl.Template)
+	if err != nil {
+		return err
 	}
 
-	if len(nicList) > 0 {
-		err = d.Set("nic", nicList)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Set Disks to resource
-	disks := tpl.Template.GetDisks()
-	diskList := make([]interface{}, 0, len(disks))
-
-	// Set Disks to resource
-	for _, disk := range disks {
-		diskList = append(diskList, flattenDisk(disk))
-	}
-
-	if len(diskList) > 0 {
-		err = d.Set("disk", diskList)
-		if err != nil {
-			return err
-		}
+	err = flattenTemplateNICs(d, &tpl.Template)
+	if err != nil {
+		return err
 	}
 
 	_, ok := d.GetOk("user_inputs")
@@ -379,6 +357,44 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 
 	if tpl.LockInfos != nil {
 		d.Set("lock", LockLevelToString(tpl.LockInfos.Locked))
+	}
+
+	return nil
+}
+
+func flattenTemplateNICs(d *schema.ResourceData, tpl *vm.Template) error {
+
+	nics := tpl.GetNICs()
+	nicList := make([]interface{}, 0, len(nics))
+
+	for _, nic := range nics {
+		nicList = append(nicList, flattenNIC(nic))
+	}
+
+	if len(nicList) > 0 {
+		err := d.Set("nic", nicList)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func flattenTemplateDisks(d *schema.ResourceData, tpl *vm.Template) error {
+
+	disks := tpl.GetDisks()
+	diskList := make([]interface{}, 0, len(disks))
+
+	for _, disk := range disks {
+		diskList = append(diskList, flattenDisk(disk))
+	}
+
+	if len(diskList) > 0 {
+		err := d.Set("disk", diskList)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

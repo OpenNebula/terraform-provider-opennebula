@@ -20,5 +20,11 @@ data "opennebula_virtual_data_center" "ExistingVdc" {
 
 ## Argument Reference
 
- * `name` - (Required) The OpenNebula virtual data center to retrieve information for.
+* `name` - (Optional) The OpenNebula virtual data center to retrieve information for.
+* `tags` - (Optional) Virtual data center tags (Key = Value).
 
+## Attribute Reference
+
+* `id` - ID of the virtual data center.
+* `name` - Name of the virtual data center.
+* `tags` - Tags of the virtual data center (Key = Value).

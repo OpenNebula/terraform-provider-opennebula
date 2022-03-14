@@ -20,6 +20,11 @@ data "opennebula_virtual_machine_group" "ExistingVMGroup" {
 
 ## Argument Reference
 
- * `name` - (Required) The OpenNebula virtual machine group to retrieve information for.
- * `tags` - (Optional) Virtual Machine group tags.
+* `name` - (Optional) The OpenNebula virtual machine group to retrieve information for.
+* `tags` - (Optional) Virtual Machine group tags (Key = Value).
 
+## Attribute Reference
+
+* `id` - ID of the virtual machine group.
+* `name` - Name of the virtual machine group.
+* `tags` - Tags of the virtual machine group (Key = Value).

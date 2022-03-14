@@ -241,6 +241,7 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 	}
 
 	d.SetId(fmt.Sprintf("%v", securitygroup.ID))
+	d.Set("name", securitygroup.Name)
 	d.Set("uid", securitygroup.UID)
 	d.Set("gid", securitygroup.GID)
 	d.Set("uname", securitygroup.UName)

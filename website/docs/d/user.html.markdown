@@ -20,14 +20,18 @@ data "opennebula_user" "user" {
 
 ## Argument Reference
 
- * `name` - (Required) The OpenNebula user to retrieve information for.
+* `name` - (Optional) The OpenNebula user to retrieve information for.
+* `auth_driver` - (Deprecated) Authentication Driver for user management
+* `primary_group` - (Optional) Primary group ID of the user.
+* `groups` - (Optional) List of secondary groups ID of the user.
+* `quotas` - (Deprecated) User's quotas
 
 ## Attribute Reference
 
-The following attribute is exported:
+The following attribute are exported:
+
 * `id` - ID of the user.
-* `name` - The name of the user.
-* `auth_driver` - Authentication Driver for User management
-* `primary_group` - Primary group ID of the User.
+* `name` - Name of the user.
+* `primary_group` - Primary group ID of the user.
 * `groups` - List of secondary groups ID of the user.
-* `quotas` - User's quotas
+* `tags` - Tags of the user (Key = Value).
