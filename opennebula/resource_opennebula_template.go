@@ -307,20 +307,17 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	_, ok := d.GetOk("user_inputs")
-	if ok {
-		uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
-		if uInputs != nil && len(uInputs.Pairs) > 0 {
-			uInputsMap := make(map[string]interface{}, 0)
+	uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
+	if uInputs != nil && len(uInputs.Pairs) > 0 {
+		uInputsMap := make(map[string]interface{}, 0)
 
-			for _, ui := range uInputs.Pairs {
-				uInputsMap[ui.Key()] = ui.Value
-			}
+		for _, ui := range uInputs.Pairs {
+			uInputsMap[ui.Key()] = ui.Value
+		}
 
-			err = d.Set("user_inputs", uInputsMap)
-			if err != nil {
-				return err
-			}
+		err = d.Set("user_inputs", uInputsMap)
+		if err != nil {
+			return err
 		}
 	}
 
