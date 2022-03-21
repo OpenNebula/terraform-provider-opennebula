@@ -1,4 +1,30 @@
-## 0.4.4 (Unreleased)
+## 0.5.0 (Unreleased)
+
+NOTES:
+
+* All datasources schemas have been reworked and an independant read method has been added for each.
+
+ENHANCEMENTS:
+
+* data/opennebula_group: make `name` optional and add `tags` filtering
+* data/opennebula_image: make `name` optional and enable `tags` filtering
+* data/opennebula_security_group: make `name` optional and enable `tags` filtering
+* data/opennebula_template: make `name` optional and enable `tags` filtering
+* data/opennebula_template_vm_group: make `name` optional and enable `tags` filtering
+* data/opennebula_user: make `name` optional and enable `tags` filtering
+* data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
+* data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
+
+DEPRECATION:
+
+* data/opennebula_group: deprecate `quotas` and remove `users`
+* data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template`
+* data/opennebula_user: deprecate `quotas` and `auth_driver`
+* data/opennebula_virtual_network: deprecate `description`. Make `mtu` computed
+
+BUG FIXES:
+
+* resources/opennebula_security_group: read `name`
 
 ## 0.4.3 (March 23th, 2022)
 
