@@ -15,9 +15,6 @@ It needs to be configured with proper credentials before it can be used.
 
 Use the navigation to the left to read about the available resources.
 
-Current Stable release: 0.3.0
-Beta Realease: 0.4.0
-
 ## Example Usage
 
 **terraform.tfvars:**

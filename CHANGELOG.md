@@ -1,4 +1,11 @@
-## 0.4.2 (Unreleased)
+## 0.4.4 (Unreleased)
+
+## 0.4.3 (March 23th, 2022)
+
+* Support for `darwin/arm64` and `windows/arm64` platforms.
+* Documentation update.
+
+## 0.4.2 (March 10th, 2022)
 
 BUG FIXES:
 
