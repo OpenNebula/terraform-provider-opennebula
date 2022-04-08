@@ -734,6 +734,27 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	// not using vmk here because key not defined yet:
 	iothreads, _ := vmTemplate.GetFeature("IOTHREADS")
 
+	// VM size
+	cpu, _ := vmTemplate.GetCPU()
+	vcpu, _ := vmTemplate.GetVCPU()
+	memory, _ := vmTemplate.GetMemory()
+
+	// Set VM size
+	err = d.Set("cpu", cpu)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set("vcpu", vcpu)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set("memory", memory)
+	if err != nil {
+		return err
+	}
+
 	// Set CPU Model to resource
 	if cpumodel != "" {
 		cpumodelMap = append(cpumodelMap, map[string]interface{}{
