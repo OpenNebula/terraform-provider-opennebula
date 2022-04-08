@@ -4,6 +4,10 @@ NOTES:
 
 * All datasources schemas have been reworked and an independant read method has been added for each.
 
+FEATURES:
+
+* **New Data Source**: `opennebula_cluster`: allow filtering based on `name` and `tags`
+
 ENHANCEMENTS:
 
 * data/opennebula_group: make `name` optional and add `tags` filtering
