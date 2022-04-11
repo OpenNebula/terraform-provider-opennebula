@@ -43,13 +43,11 @@ resource "opennebula_virtual_network" "vnet" {
     dns             = "172.16.100.1"
     gateway         = "172.16.100.1"
     security_groups = [ 0 ]
+    clusters        = [ 0 ]
     ar {
          ar_type = "IP4"
          size    = 16
          ip4     = "172.16.100.101"
-    }
-    clusters {
-        id = 0
     }
     tags = {
       environment = "dev"
