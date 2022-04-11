@@ -618,6 +618,18 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
 	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
+	// Features
+	featuresMap := make([]map[string]interface{}, 0, 1)
+	pae, _ := vmTemplate.GetFeature(vmk.PAE)
+	acpi, _ := vmTemplate.GetFeature(vmk.ACPI)
+	apic, _ := vmTemplate.GetFeature(vmk.APIC)
+	localtime, _ := vmTemplate.GetFeature(vmk.LocalTime)
+	// not using vmk here because key not defined yet:
+	hyperv, _ := vmTemplate.GetFeature("HYPERV")
+	guest_agent, _ := vmTemplate.GetFeature(vmk.GuestAgent)
+	virtio_scsi_queues, _ := vmTemplate.GetFeature(vmk.VirtIOScsiQueues)
+	// not using vmk here because key not defined yet:
+	iothreads, _ := vmTemplate.GetFeature("IOTHREADS")
 
 	// Set CPU Model to resource
 	if cpumodel != "" {
@@ -666,6 +678,27 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			}
 		}
 	}
+
+	// Set features to resource
+	if pae != "" || acpi != "" || apic != "" || localtime != "" || hyperv != "" || guest_agent != "" || virtio_scsi_queues != "" || iothreads != "" {
+		featuresMap = append(featuresMap, map[string]interface{}{
+			"pae":                pae,
+			"acpi":               acpi,
+			"apic":               apic,
+			"localtime":          localtime,
+			"hyperv":             hyperv,
+			"guest_agent":        guest_agent,
+			"virtio_scsi_queues": virtio_scsi_queues,
+			"iothreads":          iothreads,
+		})
+		if _, ok := d.GetOk("features"); ok {
+			err = d.Set("features", featuresMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

@@ -25,6 +25,7 @@ FEATURES:
 
 * resources/opennebula_virtual_machine: Add 'on_disk_change' property to opennebula_virtual_machine
 * **New Resource**: opennebula_group_admins
+* resources/opennebula_template: add `features` section
 
 DEPRECATION:
 

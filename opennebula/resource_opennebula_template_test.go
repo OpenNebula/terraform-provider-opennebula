@@ -35,6 +35,10 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_template.template", "features.*", map[string]string{
+						"virtio_scsi_queues": "1",
+						"acpi":               "YES",
+					}),
 					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "FREE_CPU > 50"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "user_inputs.%", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "user_inputs.BLOG_TITLE", "M|text|Blog Title"),
@@ -102,6 +106,10 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.version", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_template.template", "features.*", map[string]string{
+						"virtio_scsi_queues": "1",
+						"acpi":               "YES",
+					}),
 					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
 					resource.TestCheckResourceAttr("opennebula_template.template", "description", "Template created for provider acceptance tests - updated"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
@@ -216,6 +224,11 @@ resource "opennebula_template" "template" {
   memory = "512"
   description = "Template created for provider acceptance tests"
 
+  features {
+    virtio_scsi_queues = 1
+    acpi = "YES"
+  }
+
   context = {
     dns_hostname = "yes"
     network = "YES"
@@ -296,6 +309,11 @@ resource "opennebula_template" "template" {
   cpu = "1"
   vcpu = "1"
   memory = "768"
+
+  features {
+    virtio_scsi_queues = 1
+    acpi = "YES"
+  }
 
   context = {
 	dns_hostname = "yes"
