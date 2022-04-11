@@ -40,9 +40,18 @@ func resourceOpennebulaTemplate() *schema.Resource {
 				Description: "Description of the template, in OpenNebula's XML or String format",
 				Deprecated:  "use other schema sections instead.",
 			},
-			"cpu":      cpuSchema(),
-			"vcpu":     vcpuSchema(),
-			"memory":   memorySchema(),
+			"cpu":    cpuSchema(),
+			"vcpu":   vcpuSchema(),
+			"memory": memorySchema(),
+			"features": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MinItems:    1,
+				Description: "List of Features",
+				Elem: &schema.Resource{
+					Schema: FeaturesFields(),
+				},
+			},
 			"context":  contextSchema(),
 			"cpumodel": cpumodelSchema(),
 			"disk":     diskSchema(),
@@ -146,6 +155,101 @@ func resourceOpennebulaTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Provides the template creator with the possibility to dynamically ask the user instantiating the template for dynamic values that must be defined.",
 			},
+		},
+	}
+}
+
+func FeaturesFields() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"pae": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Physical address extension mode allows 32-bit guests to address more than 4 GB of memory.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"YES", "NO"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("PAE must be one of: %s", strings.Join(validtypes, ", ")))
+				}
+
+				return
+			},
+		},
+		"acpi": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Useful for power management, for example, with KVM guests it is required for graceful shutdown to work.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"YES", "NO"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("ACPI must be one of: %s", strings.Join(validtypes, ", ")))
+				}
+
+				return
+			},
+		},
+		"apic": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Enables the advanced programmable IRQ management. Useful for SMP machines.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"YES", "NO"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("APIC must be one of: %s", strings.Join(validtypes, ", ")))
+				}
+
+				return
+			},
+		},
+		"localtime": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The guest clock will be synchronized to the host’s configured timezone when booted. Useful for Windows VMs.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"YES", "NO"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("LOCALTIME must be one of: %s", strings.Join(validtypes, ", ")))
+				}
+
+				return
+			},
+		},
+		"hyperv": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Add hyperv extensions to the VM. The options can be configured in the driver configuration, HYPERV_OPTIONS.",
+		},
+		"guest_agent": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Enables the QEMU Guest Agent communication. This only creates the socket inside the VM, the Guest Agent itself must be installed and started in the VM.",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				validtypes := []string{"YES", "NO"}
+				value := v.(string)
+
+				if inArray(value, validtypes) < 0 {
+					errors = append(errors, fmt.Errorf("GUEST_AGENT must be one of: %s", strings.Join(validtypes, ", ")))
+				}
+
+				return
+			},
+		},
+		"virtio_scsi_queues": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Numer of vCPU queues for the virtio-scsi controller.",
+		},
+		"iothreads": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Number of iothreads for virtio disks. By default threads will be assign to disk by round robin algorithm. Disk thread id can be forced by disk IOTHREAD attribute.",
 		},
 	}
 }
@@ -497,6 +601,26 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
+	if d.HasChange("features") {
+		newTpl.Del("FEATURES")
+
+		features := d.Get("features").(*schema.Set).List()
+
+		for _, featuresInterface := range features {
+			featuresMap := featuresInterface.(map[string]interface{})
+			log.Printf("Number of FEATURES vars: %d", len(featuresMap))
+			log.Printf("FEATURES Map: %s", featuresMap)
+			for key, value := range featuresMap {
+				if value != "" {
+					keyUp := strings.ToUpper(key)
+					newTpl.AddFeature(vmk.Feature(keyUp), fmt.Sprint(value))
+				}
+			}
+		}
+
+		update = true
+	}
+
 	if d.HasChange("raw") {
 		newTpl.Del("RAW")
 
@@ -635,6 +759,21 @@ func generateTemplate(d *schema.ResourceData) (string, error) {
 	tpl := vm.NewTemplate()
 
 	tpl.Add(vmk.Name, name)
+
+	//Generate FEATURES definition
+	features := d.Get("features").(*schema.Set).List()
+
+	for _, featuresInterface := range features {
+		featuresMap := featuresInterface.(map[string]interface{})
+		log.Printf("Number of FEATURES vars: %d", len(featuresMap))
+		log.Printf("FEATURES Map: %s", featuresMap)
+		for key, value := range featuresMap {
+			if value != "" {
+				keyUp := strings.ToUpper(key)
+				tpl.AddFeature(vmk.Feature(keyUp), fmt.Sprint(value))
+			}
+		}
+	}
 
 	//Generate CONTEXT definition
 	context := d.Get("context").(map[string]interface{})

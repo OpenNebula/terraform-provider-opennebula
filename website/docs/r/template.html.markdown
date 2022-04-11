@@ -83,6 +83,7 @@ The following arguments are supported:
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if `template_****id` is not set**.
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if `template_****id` is not set**.
+* `features` - (Optional) See [Features parameters](#features-parameters) below for details.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
@@ -112,6 +113,19 @@ The following arguments are supported:
 
 * `arch` - (Required) Hardware architecture of the Virtual machine. Must fit the host architecture.
 * `boot` - (Optional) `OS` disk to use to boot on.
+
+### Features parameters
+
+`features` supports the following arguments
+
+* `pea` - (Optional) Physical address extension mode allows 32-bit guests to address more than 4 GB of memory. (Can be `YES` or `NO`)
+* `acpi` - (Optional) Useful for power management, for example, with KVM guests it is required for graceful shutdown to work. (Can be `YES` or `NO`)
+* `apic` - (Optional) Enables the advanced programmable IRQ management. Useful for SMP machines. (Can be `YES` or `NO`)
+* `localtime` - (Optional) The guest clock will be synchronized to the host’s configured timezone when booted. Useful for Windows VMs. (Can be `YES` or `NO`)
+* `hyperv` - (Optional) Add hyperv extensions to the VM. The options can be configured in the driver configuration, HYPERV_OPTIONS.
+* `guest_agent` - (Optional) Enables the QEMU Guest Agent communication. This only creates the socket inside the VM, the Guest Agent itself must be installed and started in the VM. (Can be `YES` or `NO`)
+* `virtio_scsi_queues` - (Optional) Numer of vCPU queues for the virtio-scsi controller.
+* `iothreads` - (Optional) umber of iothreads for virtio disks. By default threads will be assign to disk by round robin algorithm. Disk thread id can be forced by disk IOTHREAD attribute.
 
 ### Disk parameters
 
