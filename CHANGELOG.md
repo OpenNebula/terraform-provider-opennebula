@@ -14,6 +14,7 @@ ENHANCEMENTS:
 * data/opennebula_user: make `name` optional and enable `tags` filtering
 * data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
 * data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
+* resources/opennebula_virtual_machine: add `raw` as default value for `volatile_format`
 
 FEATURES:
 
