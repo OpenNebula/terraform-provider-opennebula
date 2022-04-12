@@ -107,7 +107,7 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 			Type:        schema.TypeString,
 			Optional:    true,
 			Default:     "raw",
-			Description: "Format of the volatile disk: raw or qcow2.",
+			Description: "Format of the volatile disk: raw (default) or qcow2.",
 			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 				validtypes := []string{"raw", "qcow2"}
 				value := v.(string)
