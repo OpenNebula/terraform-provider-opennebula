@@ -123,7 +123,7 @@ The following arguments are supported:
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `driver` - (Optional) OpenNebula image driver.
 * `volatile_type` - (Optional) Type of the disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id`.
-* `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id`.
+* `volatile_format` - (Optional) Format of the Image: `raw` (default) or `qcow2`. Conflicts with `image_id`.
 
 Minimum 1 item. Maximum 8 items.
 
