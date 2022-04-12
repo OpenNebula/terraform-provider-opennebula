@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	vmDiskOnChangeValues    = []string{"RECREATE", "SWAP"}
 	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
 	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
@@ -126,6 +127,18 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Current LCM state of the VM",
+			},
+			"on_disk_change": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "swap", //"recreate" or "swap",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := strings.ToUpper(v.(string))
+					if inArray(value, vmDiskOnChangeValues) == -1 {
+						errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
+					}
+					return
+				},
 			},
 			"cpu":           cpuSchema(),
 			"vcpu":          vcpuSchema(),
@@ -1471,7 +1484,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+				"waiting for virtual machine (ID:%d) to be in state RUNNING: %s", vmc.ID, err)
 		}
 
 		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
@@ -1484,7 +1497,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+				"waiting for virtual machine (ID:%d) to be in state RUNNING: %s", vmc.ID, err)
 		}
 	}
 
@@ -1714,6 +1727,31 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) 
 }
 
 func resourceVMCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {
+
+	onChange := diff.Get("on_disk_change").(string)
+
+	if strings.ToUpper(onChange) == "RECREATE" {
+
+		oldDisk, newDisk := diff.GetChange("disk")
+		oldDiskList := oldDisk.([]interface{})
+		newDiskList := newDisk.([]interface{})
+		toDetach, _ := diffListConfig(newDiskList, oldDiskList,
+			&schema.Resource{
+				Schema: diskFields(),
+			},
+			"image_id",
+			"target",
+			"driver")
+
+		if len(toDetach) > 0 {
+			for i := range oldDiskList {
+				diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
+				diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
+				diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
+			}
+		}
+	}
+
 	// If the VM is in error state, force the VM to be recreated
 	if diff.Get("lcmstate") == 36 {
 		log.Printf("[INFO] VM is in error state, forcing recreate.")
