@@ -15,6 +15,10 @@ ENHANCEMENTS:
 * data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
 * data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
 
+FEATURES:
+
+* resources/opennebula_virtual_machine: Add 'on_disk_change' property to opennebula_virtual_machine
+
 DEPRECATION:
 
 * data/opennebula_group: deprecate `quotas` and remove `users`
