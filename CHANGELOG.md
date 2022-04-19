@@ -20,6 +20,10 @@ BUG FIXES:
 * data/opennebula_virtual_network: MTU is optional (#284)
 * resources/opennebula_virtual_machine: fix multiline regression (#309)
 
+ENHANCEMENTS:
+
+* resources/opennebula_virtual_machine: add `dev_prefix`, `cache`, `discard` and `io` to `disk` (#291)
+
 ## 0.5.1 (July 4th, 2022)
 
 ENHANCEMENTS:

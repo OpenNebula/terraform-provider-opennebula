@@ -135,6 +135,10 @@ The following arguments are supported:
 * `size` - (Optional) Size (in MB) of the image attached to the virtual machine. Not possible to change a cloned image size.
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `driver` - (Optional) OpenNebula image driver.
+* `dev_prefix` - (Optional) Prefix for the emulated device this image will be mounted at. For instance, attribute of the Image will be used.
+* `cache` - (Optional) Selects the cache mechanism for the disk. Values are default, none, writethrough, writeback, directsync and unsafe.
+* `discard` - (Optional) Controls what’s done with with trim commands to the disk, the values can be ignore or discard.
+* `io` - (Optional) Set IO policy. Values are threads, native.
 * `volatile_type` - (Optional) Type of the volatile disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id`.
 * `volatile_format` - (Optional) Format of the volatile disk: `raw` or `qcow2`. Conflicts with `image_id`.
 

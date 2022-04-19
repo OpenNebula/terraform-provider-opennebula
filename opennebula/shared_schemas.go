@@ -209,6 +209,22 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"dev_prefix": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"cache": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"discard": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"io": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"driver": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -462,6 +478,14 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 			disk.Add(shared.Driver, v.(string))
 		case "size":
 			disk.Add(shared.Size, strconv.Itoa(v.(int)))
+		case "dev_prefix":
+			disk.Add("DEV_PREFIX", v.(string))
+		case "cache":
+			disk.Add("CACHE", v.(string))
+		case "discard":
+			disk.Add("DISCARD", v.(string))
+		case "io":
+			disk.Add("IO", v.(string))
 		case "volatile_type":
 			disk.Add("TYPE", v.(string))
 		case "volatile_format":
@@ -671,6 +695,10 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	}
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
+	dev_prefix, _ := disk.Get("DEV_PREFIX")
+	cache, _ := disk.Get("CACHE")
+	discard, _ := disk.Get("DISCARD")
+	io, _ := disk.Get("IO")
 	imageID, _ := disk.GetI(shared.ImageID)
 	volatileType, _ := disk.Get("TYPE")
 	volatileFormat, _ := disk.Get("FORMAT")
@@ -679,6 +707,10 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 		"image_id":        imageID,
 		"size":            size,
 		"target":          target,
+		"dev_prefix":      dev_prefix,
+		"cache":           cache,
+		"discard":         discard,
+		"io":              io,
 		"driver":          driver,
 		"volatile_type":   volatileType,
 		"volatile_format": volatileFormat,
