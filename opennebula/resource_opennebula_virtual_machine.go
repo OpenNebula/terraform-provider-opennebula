@@ -41,139 +41,78 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
-			},
-			"instance": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Final name of the VM instance",
-				Deprecated:  "use 'name' instead",
-			},
-			"template_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     -1,
-				ForceNew:    true,
-				Description: "Id of the VM template to use. Defaults to -1: no template used.",
-			},
-			"pending": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Pending state of the VM during its creation, by default it is set to false",
-			},
-			"timeout": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     3,
-				Description: "Timeout (in minutes) within resource should be available. Default: 3 minutes",
-			},
-			"permissions": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Permissions for the template (in Unix format, owner-group-other, use-manage-admin)",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-
-					if len(value) != 3 {
-						errors = append(errors, fmt.Errorf("%q has specify 3 permission sets: owner-group-other", k))
-					}
-
-					all := true
-					for _, c := range strings.Split(value, "") {
-						if c < "0" || c > "7" {
-							all = false
+		Schema: mergeSchemas(
+			commonInstanceSchema(),
+			map[string]*schema.Schema{
+				"name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Computed:    true,
+					Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
+				},
+				"instance": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Final name of the VM instance",
+					Deprecated:  "use 'name' instead",
+				},
+				"template_id": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     -1,
+					ForceNew:    true,
+					Description: "Id of the VM template to use. Defaults to -1: no template used.",
+				},
+				"pending": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+					Description: "Pending state of the VM during its creation, by default it is set to false",
+				},
+				"timeout": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     3,
+					Description: "Timeout (in minutes) within resource should be available. Default: 3 minutes",
+				},
+				"state": {
+					Type:        schema.TypeInt,
+					Computed:    true,
+					Description: "Current state of the VM",
+				},
+				"lcmstate": {
+					Type:        schema.TypeInt,
+					Computed:    true,
+					Description: "Current LCM state of the VM",
+				},
+				"on_disk_change": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "swap", //"recreate" or "swap",
+					ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+						value := strings.ToUpper(v.(string))
+						if inArray(value, vmDiskOnChangeValues) == -1 {
+							errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
 						}
-					}
-					if !all {
-						errors = append(errors, fmt.Errorf("Each character in %q should specify a Unix-like permission set with a number from 0 to 7", k))
-					}
-
-					return
+						return
+					},
+				},
+				"disk":          diskVMSchema(),
+				"template_disk": templateDiskVMSchema(),
+				"nic":           nicVMSchema(),
+				"keep_nic_order": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Force the provider to keep nics order at update.",
+				},
+				"template_nic": templateNICVMSchema(),
+				"ip": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Primary IP address assigned by OpenNebula",
 				},
 			},
-
-			"uid": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "ID of the user that will own the VM",
-			},
-			"gid": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "ID of the group that will own the VM",
-			},
-			"uname": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Name of the user that will own the VM",
-			},
-			"gname": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Name of the group that will own the VM",
-			},
-			"state": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Current state of the VM",
-			},
-			"lcmstate": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Current LCM state of the VM",
-			},
-			"on_disk_change": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "swap", //"recreate" or "swap",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := strings.ToUpper(v.(string))
-					if inArray(value, vmDiskOnChangeValues) == -1 {
-						errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
-					}
-					return
-				},
-			},
-			"cpu":           cpuSchema(),
-			"vcpu":          vcpuSchema(),
-			"memory":        memorySchema(),
-			"context":       contextSchema(),
-			"cpumodel":      cpumodelSchema(),
-			"disk":          diskVMSchema(),
-			"template_disk": templateDiskVMSchema(),
-			"graphics":      graphicsSchema(),
-			"nic":           nicVMSchema(),
-			"keep_nic_order": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Force the provider to keep nics order at update.",
-			},
-			"template_nic": templateNICVMSchema(),
-			"os":           osSchema(),
-			"vmgroup":      vmGroupSchema(),
-			"tags":         tagsSchema(),
-			"ip": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Primary IP address assigned by OpenNebula",
-			},
-			"group": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the Group that onws the VM, If empty, it uses caller group",
-			},
-			"lock":                  lockSchema(),
-			"sched_requirements":    schedReqSchema(),
-			"sched_ds_requirements": schedDSReqSchema(),
-			"description":           descriptionSchema(),
-		},
+		),
 	}
 }
 
