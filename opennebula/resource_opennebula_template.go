@@ -38,13 +38,6 @@ func templateSchema() map[string]*schema.Schema {
 				Required:    true,
 				Description: "Name of the template",
 			},
-			"template": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Description of the template, in OpenNebula's XML or String format",
-				Deprecated:  "use other schema sections instead.",
-			},
 			"features": {
 				Type:        schema.TypeSet,
 				Optional:    true,
@@ -261,15 +254,6 @@ func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) 
 
 	tc := controller.Template(tplID)
 
-	// add template information into Template
-	template := d.Get("template").(string)
-	if len(template) > 0 {
-		err = tc.Update(template, 1)
-		if err != nil {
-			return err
-		}
-	}
-
 	d.SetId(fmt.Sprintf("%v", tplID))
 
 	// Change Permissions only if Permissions are set
@@ -333,14 +317,6 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("gname", tpl.GName)
 	d.Set("reg_time", tpl.RegTime)
 	d.Set("permissions", permissionsUnixString(*tpl.Permissions))
-
-	// Get Human readable tpl information
-	tplstr := tpl.Template.String()
-
-	err = d.Set("template", tplstr)
-	if err != nil {
-		return err
-	}
 
 	err = flattenTemplateDisks(d, &tpl.Template)
 	if err != nil {
@@ -489,17 +465,6 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 			return err
 		}
 		log.Printf("[INFO] Successfully updated name for tpl %s\n", tpl.Name)
-	}
-
-	if d.HasChange("template") && d.Get("tpl") != "" {
-		// replace the whole template instead of merging it with the existing one
-		err = tc.Update(d.Get("template").(string), 1)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("[INFO] Successfully updated template template %s\n", tpl.Name)
-
 	}
 
 	if d.HasChange("permissions") {

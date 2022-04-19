@@ -15,7 +15,6 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
-
 func commonInstanceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"cpu":      cpuSchema(),
