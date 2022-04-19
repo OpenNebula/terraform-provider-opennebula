@@ -1,3 +1,10 @@
+## 1.0.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* resources/opennebula_virtual_machine: add `dev_prefix`, `cache`, `discard` and `io` to `disk` (#291)
+* resources/opennebula_virtual_network: add `network_address` and `search_domain` attributes (#292)
+
 ## 0.5.2 (August 10th, 2022)
 
 BUG FIXES:
@@ -19,10 +26,6 @@ BUG FIXES:
 * resources/opennebula_virtual_router: read tags even if emtpy (#304)
 * data/opennebula_virtual_network: MTU is optional (#284)
 * resources/opennebula_virtual_machine: fix multiline regression (#309)
-
-ENHANCEMENTS:
-
-* resources/opennebula_virtual_network: add `network_address` and `search_domain` attributes (#292)
 
 ## 0.5.1 (July 4th, 2022)
 
