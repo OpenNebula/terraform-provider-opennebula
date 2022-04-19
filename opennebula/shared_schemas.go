@@ -15,6 +15,75 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
+
+func commonInstanceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"cpu":      cpuSchema(),
+		"vcpu":     vcpuSchema(),
+		"memory":   memorySchema(),
+		"context":  contextSchema(),
+		"cpumodel": cpumodelSchema(),
+		"graphics": graphicsSchema(),
+		"os":       osSchema(),
+		"vmgroup":  vmGroupSchema(),
+		"tags":     tagsSchema(),
+		"permissions": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "Permissions for the resource (in Unix format, owner-group-other, use-manage-admin)",
+			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+				value := v.(string)
+
+				if len(value) != 3 {
+					errors = append(errors, fmt.Errorf("%q has specify 3 permission sets: owner-group-other", k))
+				}
+
+				all := true
+				for _, c := range strings.Split(value, "") {
+					if c < "0" || c > "7" {
+						all = false
+					}
+				}
+				if !all {
+					errors = append(errors, fmt.Errorf("Each character in %q should specify a Unix-like permission set with a number from 0 to 7", k))
+				}
+
+				return
+			},
+		},
+		"uid": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "ID of the user that will own the resource",
+		},
+		"gid": {
+			Type:        schema.TypeInt,
+			Computed:    true,
+			Description: "ID of the group that will own the resource",
+		},
+		"uname": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Name of the user that will own the resource",
+		},
+		"gname": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Name of the group that will own the resource",
+		},
+		"group": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Name of the Group that onws the resource, If empty, it uses caller group",
+		},
+		"lock":                  lockSchema(),
+		"sched_requirements":    schedReqSchema(),
+		"sched_ds_requirements": schedDSReqSchema(),
+		"description":           descriptionSchema(),
+	}
+}
+
 func nicFields() map[string]*schema.Schema {
 
 	return map[string]*schema.Schema{
