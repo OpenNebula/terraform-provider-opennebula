@@ -54,6 +54,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				Deprecated: "use opennebula_group_admins resource instead.",
 			},
 			"quotas": quotasSchema(),
 		},
