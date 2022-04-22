@@ -59,6 +59,13 @@ func TestAccGroup(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccGroupWithGroupAdmin,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("opennebula_group_admins.admins", "group_id"),
+					resource.TestCheckResourceAttr("opennebula_group_admins.admins", "users_ids.#", "1"),
+				),
+			},
+			{
 				Config: testAccGroupLigh,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
@@ -149,6 +156,15 @@ resource "opennebula_group" "group" {
 `
 
 var testAccGroupWithUser = testAccGroupConfigUpdate + testAccGroupUser
+
+var testAccGroupWithGroupAdmin = testAccGroupWithUser + `
+resource "opennebula_group_admins" "admins" {
+	group_id = opennebula_group.group.id
+	users_ids = [
+	  opennebula_user.user.id
+	]
+  }
+`
 
 var testAccGroupLigh = `
 resource "opennebula_group" "group" {
