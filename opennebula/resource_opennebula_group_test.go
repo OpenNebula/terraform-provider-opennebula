@@ -32,6 +32,13 @@ func TestAccGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.4169128061.vm_quotas.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.4169128061.vm_quotas.2832483756.cpu", "4"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.4169128061.vm_quotas.2832483756.memory", "8192"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.4128055932.default_view", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.4128055932.group_admin_default_view", "groupadmin"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.4128055932.group_admin_views", "groupadmin"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.4128055932.views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey1", "testvalue1"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
 				),
 			},
 			{
@@ -49,6 +56,13 @@ func TestAccGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.261273647.vm_quotas.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.261273647.vm_quotas.2832483756.cpu", "4"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.261273647.vm_quotas.2832483756.memory", "8192"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.default_view", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.group_admin_default_view", "groupadmin"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.group_admin_views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey3", "testvalue3"),
 				),
 			},
 			{
@@ -56,6 +70,13 @@ func TestAccGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser"),
 					resource.TestCheckResourceAttrSet("opennebula_user.user", "primary_group"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.default_view", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.group_admin_default_view", "groupadmin"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.group_admin_views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.1904779058.views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey3", "testvalue3"),
 				),
 			},
 			{
@@ -70,6 +91,11 @@ func TestAccGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
 					resource.TestCheckResourceAttr("opennebula_group.group2", "delete_on_destruction", "true"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "sunstone.1904779058.default_view", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "sunstone.1904779058.group_admin_default_view", "groupadmin"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "sunstone.1904779058.group_admin_views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "sunstone.1904779058.views", "cloud"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "tags.%", "0"),
 				),
 			},
 		},
@@ -105,15 +131,13 @@ resource "opennebula_user" "user" {
 
 var testAccGroupConfigBasic = `
 resource "opennebula_group" "group" {
-  name = "iamgroup"
-  template = <<EOF
-    SUNSTONE = [
-      DEFAULT_VIEW = "cloud",
-      GROUP_ADMIN_DEFAULT_VIEW = "groupadmin",
-      GROUP_ADMIN_VIEWS = "groupadmin",
-      VIEWS = "cloud"
-    ]
-    EOF
+    name = "iamgroup"
+    sunstone {
+      default_view = "cloud"
+      group_admin_default_view = "groupadmin"
+      group_admin_views = "groupadmin"
+      views = "cloud"
+	}
     delete_on_destruction = false
     quotas {
         datastore_quotas {
@@ -126,20 +150,22 @@ resource "opennebula_group" "group" {
             memory = 8192
         }
     }
+	tags = {
+		testkey1 = "testvalue1"
+		testkey2 = "testvalue2"
+	}
 }
 `
 
 var testAccGroupConfigUpdate = `
 resource "opennebula_group" "group" {
-  name = "iamgroup"
-  template = <<EOF
-    SUNSTONE = [
-      DEFAULT_VIEW = "cloud",
-      GROUP_ADMIN_DEFAULT_VIEW = "groupadmin",
-      GROUP_ADMIN_VIEWS = "cloud",
-      VIEWS = "cloud"
-    ]
-    EOF
+    name = "iamgroup"
+	sunstone {
+		default_view = "cloud"
+		group_admin_default_view = "groupadmin"
+		group_admin_views = "cloud"
+		views = "cloud"
+	}
     delete_on_destruction = true
     quotas {
         datastore_quotas {
@@ -152,6 +178,10 @@ resource "opennebula_group" "group" {
             memory = 8192
         }
     }
+	tags = {
+		testkey2 = "testvalue2"
+		testkey3 = "testvalue3"
+	}
 }
 `
 
@@ -168,15 +198,13 @@ resource "opennebula_group_admins" "admins" {
 
 var testAccGroupLigh = `
 resource "opennebula_group" "group" {
-  name = "iamgroup"
-  template = <<EOF
-    SUNSTONE = [
-      DEFAULT_VIEW = "cloud",
-      GROUP_ADMIN_DEFAULT_VIEW = "groupadmin",
-      GROUP_ADMIN_VIEWS = "cloud",
-      VIEWS = "cloud"
-    ]
-    EOF
+    name = "iamgroup"
+	sunstone {
+		default_view = "cloud"
+		group_admin_default_view = "groupadmin"
+		group_admin_views = "cloud"
+		views = "cloud"
+	}
     delete_on_destruction = true
     quotas {
         datastore_quotas {
@@ -192,15 +220,13 @@ resource "opennebula_group" "group" {
 }
 
 resource "opennebula_group" "group2" {
-  name = "noquotas"
-  template = <<EOF
-    SUNSTONE = [
-      DEFAULT_VIEW = "cloud",
-      GROUP_ADMIN_DEFAULT_VIEW = "groupadmin",
-      GROUP_ADMIN_VIEWS = "cloud",
-      VIEWS = "cloud"
-    ]
-    EOF
+    name = "noquotas"
+	sunstone {
+		default_view = "cloud"
+		group_admin_default_view = "groupadmin"
+		group_admin_views = "cloud"
+		views = "cloud"
+	}
     delete_on_destruction = true
 }
 `
