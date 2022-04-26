@@ -24,6 +24,7 @@ FEATURES:
 DEPRECATION:
 
 * data/opennebula_group: deprecate `quotas` and remove `users`
+* data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true`
 * data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template`
 * data/opennebula_user: deprecate `quotas` and `auth_driver`
 * data/opennebula_virtual_network: deprecate `description`. Make `mtu` computed

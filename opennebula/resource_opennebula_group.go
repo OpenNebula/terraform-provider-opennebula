@@ -34,8 +34,9 @@ func resourceOpennebulaGroup() *schema.Resource {
 			"delete_on_destruction": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Flag to delete group on destruction, by default it is set to false",
+				Default:     true,
+				Deprecated:  "use Terraform lifcycle Meta-Argument instead.",
+				Description: "Flag to delete group on destruction, by default it is set to true",
 			},
 			"users": {
 				Type:        schema.TypeList,

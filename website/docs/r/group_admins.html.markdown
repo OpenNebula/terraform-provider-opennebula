@@ -23,7 +23,6 @@ data "template_file" "tpl" {
 resource "opennebula_group" "group" {
   name                  = "test_group"
   template              = data.template_file.tpl.rendered
-  delete_on_destruction = true
 }
 
 resource "opennebula_user" "user" {
