@@ -15,6 +15,7 @@ ENHANCEMENTS:
 * data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
 * data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
 * resources/opennebula_virtual_machine: add `raw` as default value for `volatile_format`
+* resources/opennebula_group: add `sunstone` and `tags` sections
 
 FEATURES:
 
@@ -23,7 +24,7 @@ FEATURES:
 
 DEPRECATION:
 
-* data/opennebula_group: deprecate `quotas` and remove `users`
+* data/opennebula_group: deprecate `quotas`, `template`, remove `users`
 * data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true`
 * data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template`
 * data/opennebula_user: deprecate `quotas` and `auth_driver`
