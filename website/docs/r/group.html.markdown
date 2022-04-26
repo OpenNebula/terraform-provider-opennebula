@@ -23,7 +23,6 @@ data "template_file" "grptpl" {
 resource "opennebula_group" "group" {
     name                  = "terraform"
     template              = data.template_file.grptpl.rendered
-    delete_on_destruction = true
     quotas {
         datastore_quotas {
             id     = 1
@@ -73,7 +72,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the group.
 * `template` - (Required) Group template content in OpenNebula XML or String format. Used to provide SUSNTONE arguments.
-* `delete_on_destruction` - (Optional) Flag to delete the group on destruction. Defaults to `false`.
+* `delete_on_destruction` - (Deprecated) Flag to delete the group on destruction. Defaults to `true`. Use [Terraform lifecycle `prevent_destroy`](https://www.terraform.io/language/meta-arguments/lifecycle#prevent_destroy) instead.
 * `admins` - (Optional) List of Administrator user IDs part of the group.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
 
