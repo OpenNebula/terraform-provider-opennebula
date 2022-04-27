@@ -53,6 +53,7 @@ func dataOpennebulaTemplate() *schema.Resource {
 				s := vmGroupSchema()
 				s.Computed = true
 				s.Optional = false
+				s.MaxItems = 0
 				s.Description = "Virtual Machine Group to associate with during VM creation only."
 				return s
 			}(),
