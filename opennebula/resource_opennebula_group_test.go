@@ -154,6 +154,12 @@ resource "opennebula_group" "group" {
 		testkey1 = "testvalue1"
 		testkey2 = "testvalue2"
 	}
+
+	lifecycle {
+		ignore_changes = [
+			template,
+		]
+	}
 }
 `
 
@@ -181,6 +187,12 @@ resource "opennebula_group" "group" {
 	tags = {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
+	}
+
+	lifecycle {
+		ignore_changes = [
+			template,
+		]
 	}
 }
 `
@@ -217,6 +229,12 @@ resource "opennebula_group" "group" {
             memory = 8192
         }
     }
+
+	lifecycle {
+		ignore_changes = [
+			template,
+		]
+	}
 }
 
 resource "opennebula_group" "group2" {
@@ -228,5 +246,11 @@ resource "opennebula_group" "group2" {
 		views = "cloud"
 	}
     delete_on_destruction = true
+
+	lifecycle {
+		ignore_changes = [
+			template,
+		]
+	}
 }
 `
