@@ -3,6 +3,7 @@
 NOTES:
 
 * All datasources schemas have been reworked and an independant read method has been added for each.
+* The provider has been migrated to use the SDK v2.
 
 FEATURES:
 
