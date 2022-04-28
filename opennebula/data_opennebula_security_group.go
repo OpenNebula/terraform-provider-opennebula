@@ -30,7 +30,8 @@ func securityGroupFilter(d *schema.ResourceData, meta interface{}) (*secgroup.Se
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	securityGroups, err := controller.SecurityGroups().Info()
+	// search for any security groups this user can see
+	securityGroups, err := controller.SecurityGroups().Info(-2, -1, -1)
 	if err != nil {
 		return nil, err
 	}

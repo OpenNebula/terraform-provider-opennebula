@@ -30,7 +30,8 @@ func vmGroupFilter(d *schema.ResourceData, meta interface{}) (*vmGroupSc.VMGroup
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	vmGroups, err := controller.VMGroups().Info()
+	// search for any vmgroups this user can see
+	vmGroups, err := controller.VMGroups().Info(-2, -1, -1)
 	if err != nil {
 		return nil, err
 	}

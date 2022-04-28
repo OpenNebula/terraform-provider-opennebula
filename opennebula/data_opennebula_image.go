@@ -30,7 +30,8 @@ func imageFilter(d *schema.ResourceData, meta interface{}) (*imageSc.Image, erro
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	images, err := controller.Images().Info()
+	// search for any images this user can see
+	images, err := controller.Images().Info(-2, -1, -1)
 	if err != nil {
 		return nil, err
 	}

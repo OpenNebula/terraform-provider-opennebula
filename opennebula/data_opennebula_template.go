@@ -108,7 +108,8 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	templates, err := controller.Templates().Info()
+	// search for any templates this user can see
+	templates, err := controller.Templates().Info(-2, -1, -1)
 	if err != nil {
 		return nil, err
 	}

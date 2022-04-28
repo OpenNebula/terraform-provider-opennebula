@@ -42,7 +42,8 @@ func vnetFilter(d *schema.ResourceData, meta interface{}) (*vnetSc.VirtualNetwor
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	vnets, err := controller.VirtualNetworks().Info()
+	// search for any virtual networks this user can see
+	vnets, err := controller.VirtualNetworks().Info(-2, -1, -1)
 	if err != nil {
 		return nil, err
 	}
