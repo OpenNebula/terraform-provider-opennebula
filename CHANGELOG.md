@@ -20,7 +20,7 @@ ENHANCEMENTS:
 * data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
 * resources/opennebula_virtual_machine: add `raw` as default value for `volatile_format`
 * resources/opennebula_group: add `sunstone` and `tags` sections
-* rosources/opennebula_virtal_machine: changes in vcpu, cpu and memory changes will now be applied  
+* resources/opennebula_virtal_machine: changes in vcpu, cpu and memory changes will now be applied  
 
 FEATURES:
 
