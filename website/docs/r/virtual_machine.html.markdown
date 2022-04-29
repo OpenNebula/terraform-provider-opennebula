@@ -100,6 +100,7 @@ The following arguments are supported:
 * `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
+* `poweroff_hard_on_resize` - (Optional) Use "Power Off hard" on vm resize instead of "Power Off". Defaults to false.
 
 ### Graphics parameters
 
