@@ -6,7 +6,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	vmGroupSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaVMGroup() *schema.Resource {

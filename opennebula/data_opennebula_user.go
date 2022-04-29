@@ -8,7 +8,7 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	userSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/user"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaUser() *schema.Resource {

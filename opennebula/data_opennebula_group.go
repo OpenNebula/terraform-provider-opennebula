@@ -7,7 +7,7 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	groupSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/group"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaGroup() *schema.Resource {
