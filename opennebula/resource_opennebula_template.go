@@ -497,6 +497,31 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
+	if d.HasChange("cpu") {
+		newTpl.Del("CPU")
+		cpu := d.Get("cpu").(float64)
+
+		if cpu > 0 {
+			newTpl.AddPair("CPU", cpu)
+		}
+	}
+
+	if d.HasChange("vcpu") {
+		newTpl.Del("VCPU")
+		vcpu := d.Get("vcpu").(int)
+		if vcpu > 0 {
+			newTpl.AddPair("VCPU", vcpu)
+		}
+	}
+
+	if d.HasChange("memory") {
+		newTpl.Del("MEMORY")
+		memory := d.Get("memory").(int)
+		if memory > 0 {
+			newTpl.AddPair("MEMORY", memory)
+		}
+	}
+
 	if d.HasChange("raw") {
 		newTpl.Del("RAW")
 

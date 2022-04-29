@@ -1506,9 +1506,20 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		}
 
 		resizeTpl := dyn.NewTemplate()
-		resizeTpl.AddPair("CPU", d.Get("cpu").(float64))
-		resizeTpl.AddPair("VCPU", d.Get("vcpu").(int))
-		resizeTpl.AddPair("MEMORY", d.Get("memory").(int))
+		cpu := d.Get("cpu").(float64)
+		if cpu > 0 {
+			resizeTpl.AddPair("CPU", cpu)
+		}
+
+		vcpu := d.Get("vcpu").(int)
+		if vcpu > 0 {
+			resizeTpl.AddPair("VCPU", vcpu)
+		}
+
+		memory := d.Get("memory").(int)
+		if cpu > 0 {
+			resizeTpl.AddPair("MEMORY", memory)
+		}
 
 		err = vmc.Resize(resizeTpl.String(), true)
 		if err != nil {

@@ -716,19 +716,22 @@ func flattenUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template) e
 		}
 	}
 
-	memory, _ := vmTemplate.GetMemory()
-	err = d.Set("memory", memory)
-	if err != nil {
-		return err
+	memory, _ := vmTemplate.GetInt("MEMORY")
+	if memory > 0 {
+		err = d.Set("memory", memory)
+		if err != nil {
+			return err
+		}
 	}
 
-	cpu, _ := vmTemplate.GetCPU()
-	err = d.Set("cpu", cpu)
-	if err != nil {
-		return err
+	cpu, _ := vmTemplate.GetFloat("CPU")
+	if cpu > 0 {
+		err = d.Set("cpu", cpu)
+		if err != nil {
+			return err
+		}
 	}
-
-	vcpu, _ := vmTemplate.GetVCPU()
+	vcpu, _ := vmTemplate.GetInt("VCPU")
 	if vcpu > 0 {
 		err = d.Set("vcpu", vcpu)
 		if err != nil {
