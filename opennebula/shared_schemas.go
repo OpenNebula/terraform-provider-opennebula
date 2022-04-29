@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
+	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -105,7 +106,8 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 		"volatile_format": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Format of the volatile disk: raw or qcow2.",
+			Default:     "raw",
+			Description: "Format of the volatile disk: raw (default) or qcow2.",
 			ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 				validtypes := []string{"raw", "qcow2"}
 				value := v.(string)
@@ -498,14 +500,15 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 
 	schedReq, ok := d.GetOk("sched_requirements")
 	if ok {
-		schedReqStr := strings.Replace(schedReq.(string), "\"", "\\\"", 3)
+		schedReqStr := strings.ReplaceAll(schedReq.(string), "\"", "\\\"")
+
 		tpl.AddPair("SCHED_REQUIREMENTS", schedReqStr)
 
 	}
 
 	schedDSReq, ok := d.GetOk("sched_ds_requirements")
 	if ok {
-		schedDSReqStr := strings.Replace(schedDSReq.(string), "\"", "\\\"", 3)
+		schedDSReqStr := strings.ReplaceAll(schedDSReq.(string), "\"", "\\\"")
 		tpl.AddPair("SCHED_DS_REQUIREMENTS", schedDSReqStr)
 
 	}
@@ -573,8 +576,7 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	}
 }
 
-func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bool) error {
-
+func flattenTemplateVMGroup(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	var err error
 
 	// VM Group
@@ -582,22 +584,6 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 	vmgIdStr, _ := vmTemplate.GetStrFromVec("VMGROUP", "VMGROUP_ID")
 	vmgid, _ := strconv.ParseInt(vmgIdStr, 10, 32)
 	vmgRole, _ := vmTemplate.GetStrFromVec("VMGROUP", "ROLE")
-
-	// OS
-	osMap := make([]map[string]interface{}, 0, 1)
-	arch, _ := vmTemplate.GetOS(vmk.Arch)
-	boot, _ := vmTemplate.GetOS(vmk.Boot)
-
-	// CPU Model
-	cpumodelMap := make([]map[string]interface{}, 0, 1)
-	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
-
-	// Graphics
-	graphMap := make([]map[string]interface{}, 0, 1)
-	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
-	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
-	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
-	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
 
 	// Set VM Group to resource
 	if vmgIdStr != "" {
@@ -611,6 +597,45 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	var err error
+
+	// OS
+	osMap := make([]map[string]interface{}, 0, 1)
+	arch, _ := vmTemplate.GetOS(vmk.Arch)
+	boot, _ := vmTemplate.GetOS(vmk.Boot)
+	// CPU Model
+	cpumodelMap := make([]map[string]interface{}, 0, 1)
+	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
+	// Graphics
+	graphMap := make([]map[string]interface{}, 0, 1)
+	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
+	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
+	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
+	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
+
+	// Set CPU Model to resource
+	if cpumodel != "" {
+		cpumodelMap = append(cpumodelMap, map[string]interface{}{
+			"model": cpumodel,
+		})
+		if _, ok := d.GetOk("cpumodel"); ok {
+			err = d.Set("cpumodel", cpumodelMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = flattenTemplateVMGroup(d, vmTemplate)
+	if err != nil {
+		return err
 	}
 
 	// Set OS to resource
@@ -627,20 +652,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 		}
 	}
 
-	// Set CPU Model to resource
-	if cpumodel != "" {
-		cpumodelMap = append(cpumodelMap, map[string]interface{}{
-			"model": cpumodel,
-		})
-		if _, ok := d.GetOk("cpumodel"); ok {
-			err = d.Set("cpumodel", cpumodelMap)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// Set Graphics to resource
+	// Set graphics to resource
 	if port != "" {
 		graphMap = append(graphMap, map[string]interface{}{
 			"listen": listen,
@@ -655,24 +667,28 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template, tplTags bo
 			}
 		}
 	}
+	return nil
+}
 
-	if tplTags {
-		tags := make(map[string]interface{})
-		// Get only tags from userTemplate
-		if tagsInterface, ok := d.GetOk("tags"); ok {
-			for k, _ := range tagsInterface.(map[string]interface{}) {
-				tags[k], err = vmTemplate.GetStr(strings.ToUpper(k))
-				if err != nil {
-					return err
-				}
-			}
-		}
+func flattenUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template) error {
 
-		if len(tags) > 0 {
-			err := d.Set("tags", tags)
+	var err error
+
+	tags := make(map[string]interface{})
+	// Get only tags from userTemplate
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tags[k], err = vmTemplate.GetStr(strings.ToUpper(k))
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
+		if err != nil {
+			return err
 		}
 	}
 

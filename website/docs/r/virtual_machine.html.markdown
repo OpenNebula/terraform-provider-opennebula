@@ -51,6 +51,8 @@ resource "opennebula_virtual_machine" "demo" {
     driver   = "qcow2"
   }
 
+  on_disk_change = "RECREATE"
+
   nic {
     model           = "virtio"
     network_id      = var.vnetid
@@ -97,6 +99,7 @@ The following arguments are supported:
 * `tags` - (Optional) Virtual Machine tags (Key = Value).
 * `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
+* `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
 
 ### Graphics parameters
 
@@ -123,7 +126,7 @@ The following arguments are supported:
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `driver` - (Optional) OpenNebula image driver.
 * `volatile_type` - (Optional) Type of the disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id`.
-* `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id`.
+* `volatile_format` - (Optional) Format of the Image: `raw` (default) or `qcow2`. Conflicts with `image_id`.
 
 Minimum 1 item. Maximum 8 items.
 

@@ -140,10 +140,6 @@ func resourceOpennebulaImage() *schema.Resource {
 				ConflictsWith: []string{"clone_from_image"},
 				Description:   "Size of the new image in MB",
 			},
-			"computed_size": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"dev_prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -225,15 +221,16 @@ func changeImageGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("group") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
+		group := d.Get("group").(string)
+		gid, err = controller.Groups().ByName(group)
 		if err != nil {
-			return err
+			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 		}
 	}
 
 	err = ic.Chown(-1, gid)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
 	}
 
 	return nil
@@ -417,7 +414,6 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 		d.Set("persistent", *image.Persistent)
 	}
 	d.Set("path", image.Path)
-	d.Set("computed_size", image.Size)
 
 	if inArray(image.Type, imagetypes) >= 0 {
 		d.Set("type", image.Type)

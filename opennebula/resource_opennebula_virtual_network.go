@@ -358,9 +358,10 @@ func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("group") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
+		group := d.Get("group").(string)
+		gid, err = controller.Groups().ByName(group)
 		if err != nil {
-			return err
+			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 		}
 	} else {
 		gid = d.Get("gid").(int)
@@ -368,7 +369,7 @@ func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
 
 	err = vnc.Chown(-1, gid)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
 	}
 
 	return nil
@@ -1074,23 +1075,6 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 			"prefix_length",
 		)
 
-		// reorder arToAdd list according to new list order
-		newARToAdd := make([]interface{}, len(ARToAdd))
-
-		i := 0
-		for _, newARIf := range newARsCfg {
-			newAR := newARIf.(map[string]interface{})
-
-			for _, ARToAddIf := range ARToAdd {
-				AR := ARToAddIf.(map[string]interface{})
-
-				if (AR["ip4"] == newAR["ip4"] || AR["ip6"] == newAR["ip6"]) && AR["size"] == newAR["size"] {
-					newARToAdd[i] = AR
-					i++
-				}
-			}
-		}
-
 		// remove ARs
 		for _, ARIf := range ARToRem {
 			ARConfig := ARIf.(map[string]interface{})
@@ -1107,7 +1091,7 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		}
 
 		// Add new ARs
-		for _, ARIf := range newARToAdd {
+		for _, ARIf := range ARToAdd {
 			ARConfig := ARIf.(map[string]interface{})
 
 			ARTemplateStr := generateAR(ARConfig).String()

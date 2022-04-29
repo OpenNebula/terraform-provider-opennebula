@@ -16,14 +16,8 @@ a new group is created. When destroyed, it is removed.
 ## Example Usage
 
 ```hcl
-data "template_file" "grptpl" {
-  template = file("group_template.txt")
-}
-
 resource "opennebula_group" "group" {
     name                  = "terraform"
-    template              = data.template_file.grptpl.rendered
-    delete_on_destruction = true
     quotas {
         datastore_quotas {
             id     = 1
@@ -56,26 +50,17 @@ resource "opennebula_group" "group" {
 }
 ```
 
-with `group_template.txt` file with Sunstone information:
-
-```php
-SUNSTONE = [
-  DEFAULT_VIEW = "cloud",
-  GROUP_ADMIN_DEFAULT_VIEW = "groupadmin",
-  GROUP_ADMIN_VIEWS = "cloud,groupadmin",
-  VIEWS = "cloud"
-]
-```
-
 ## Argument Reference
 
 The following arguments are supported:
 
 * `name` - (Required) The name of the group.
-* `template` - (Required) Group template content in OpenNebula XML or String format. Used to provide SUSNTONE arguments.
-* `delete_on_destruction` - (Optional) Flag to delete the group on destruction. Defaults to `false`.
+* `template` - (Deprecated) Group template content in OpenNebula XML or String format. Used to provide SUSNTONE arguments.
+* `delete_on_destruction` - (Deprecated) Flag to delete the group on destruction. Defaults to `true`. Use [Terraform lifecycle `prevent_destroy`](https://www.terraform.io/language/meta-arguments/lifecycle#prevent_destroy) instead.
 * `admins` - (Optional) List of Administrator user IDs part of the group.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
+* `sunstone` - (Optional) Allow users and group admins to access specific views. See [Sunstone parameters](#sunstone-parameters) below for details
+* `tags` - (Optional) Group tags (Key = value)
 
 ### Quotas parameters
 
@@ -120,9 +105,17 @@ The following arguments are supported:
 * `running_vms` - (Optional) Number of Virtual Machines allowed in `RUNNING` state. Defaults to `default quota`.
 * `system_disk_size` - (Optional) Maximum disk global size (in MB) allowed on a `SYSTEM` datastore. Defaults to `default quota`.
 
+#### Sunstone parameters
+
+* `default_view` - (Optional) Default Sunstone view for regular users
+* `views` - (Optional) List of available views for regular users
+* `group_admin_default_view` - (Optional) Default Sunstone view for group admin users
+* `group_admin_views` - (Optional) List of available views for the group admins
+
 ## Attribute Reference
 
 The following attribute is exported:
+
 * `id` - ID of the group.
 
 ## Import

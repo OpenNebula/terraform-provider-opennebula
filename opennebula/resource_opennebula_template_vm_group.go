@@ -172,9 +172,10 @@ func changeVMGroupGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("group") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
+		group := d.Get("group").(string)
+		gid, err = controller.Groups().ByName(group)
 		if err != nil {
-			return err
+			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 		}
 	}
 
@@ -249,12 +250,9 @@ func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("permissions", permissionsUnixString(*vmg.Permissions))
 
 	// Get Human readable vmg information
-	_, ok := d.GetOk("roles")
-	if ok {
-		err = flattenVMGroupRoles(d, vmg.Roles)
-		if err != nil {
-			return err
-		}
+	err = flattenVMGroupRoles(d, vmg.Roles)
+	if err != nil {
+		return err
 	}
 
 	err = flattenVMGroupTags(d, &vmg.Template)

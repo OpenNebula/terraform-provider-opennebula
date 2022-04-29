@@ -3,13 +3,13 @@ package opennebula
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
@@ -185,9 +185,10 @@ func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("group") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
+		group := d.Get("group").(string)
+		gid, err = controller.Groups().ByName(group)
 		if err != nil {
-			return err
+			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 		}
 	}
 
@@ -296,56 +297,36 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// Nics
-	nics := tpl.Template.GetNICs()
-	nicList := make([]interface{}, 0, len(nics))
-
-	// Set Nics to resource
-	for _, nic := range nics {
-		nicList = append(nicList, flattenNIC(nic))
+	err = flattenTemplateDisks(d, &tpl.Template)
+	if err != nil {
+		return err
 	}
 
-	if len(nicList) > 0 {
-		err = d.Set("nic", nicList)
+	err = flattenTemplateNICs(d, &tpl.Template)
+	if err != nil {
+		return err
+	}
+
+	uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
+	if uInputs != nil && len(uInputs.Pairs) > 0 {
+		uInputsMap := make(map[string]interface{}, 0)
+
+		for _, ui := range uInputs.Pairs {
+			uInputsMap[ui.Key()] = ui.Value
+		}
+
+		err = d.Set("user_inputs", uInputsMap)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Set Disks to resource
-	disks := tpl.Template.GetDisks()
-	diskList := make([]interface{}, 0, len(disks))
-
-	// Set Disks to resource
-	for _, disk := range disks {
-		diskList = append(diskList, flattenDisk(disk))
+	err = flattenTemplate(d, &tpl.Template)
+	if err != nil {
+		return err
 	}
 
-	if len(diskList) > 0 {
-		err = d.Set("disk", diskList)
-		if err != nil {
-			return err
-		}
-	}
-
-	_, ok := d.GetOk("user_inputs")
-	if ok {
-		uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
-		if uInputs != nil && len(uInputs.Pairs) > 0 {
-			uInputsMap := make(map[string]interface{}, 0)
-
-			for _, ui := range uInputs.Pairs {
-				uInputsMap[ui.Key()] = ui.Value
-			}
-
-			err = d.Set("user_inputs", uInputsMap)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	err = flattenTemplate(d, &tpl.Template, true)
+	err = flattenUserTemplate(d, &tpl.Template.Template)
 	if err != nil {
 		return err
 	}
@@ -373,6 +354,44 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 
 	if tpl.LockInfos != nil {
 		d.Set("lock", LockLevelToString(tpl.LockInfos.Locked))
+	}
+
+	return nil
+}
+
+func flattenTemplateNICs(d *schema.ResourceData, tpl *vm.Template) error {
+
+	nics := tpl.GetNICs()
+	nicList := make([]interface{}, 0, len(nics))
+
+	for _, nic := range nics {
+		nicList = append(nicList, flattenNIC(nic))
+	}
+
+	if len(nicList) > 0 {
+		err := d.Set("nic", nicList)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func flattenTemplateDisks(d *schema.ResourceData, tpl *vm.Template) error {
+
+	disks := tpl.GetDisks()
+	diskList := make([]interface{}, 0, len(disks))
+
+	for _, disk := range disks {
+		diskList = append(diskList, flattenDisk(disk))
+	}
+
+	if len(diskList) > 0 {
+		err := d.Set("disk", diskList)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -456,24 +475,26 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
 	}
 
-	var newTpl *vm.Template
 	update := false
-	deleteElements := false
+	newTpl := vm.NewTemplate()
 
-	attributeKeys := []string{"raw", "sched_requirements", "sched_ds_requirements", "description", "user_inputs"}
-	for _, key := range attributeKeys {
-		if d.HasChange(key) {
-			update = true
-			if isEmptyValue(reflect.ValueOf(d.Get(key))) {
-				deleteElements = true
+	// copy existing template and re-escape chars if needed
+	for _, e := range tpl.Template.Elements {
+		pair, ok := e.(*dyn.Pair)
+		if ok {
+			// copy a pair
+			escapedValue := strings.ReplaceAll(pair.Value, "\"", "\\\"")
+			newTpl.AddPair(e.Key(), escapedValue)
+		} else {
+			// copy a vector
+			vector, _ := e.(*dyn.Vector)
+
+			newVec := newTpl.AddVector(e.Key())
+			for _, p := range vector.Pairs {
+				escapedValue := strings.ReplaceAll(p.Value, "\"", "\\\"")
+				newVec.AddPair(p.Key(), escapedValue)
 			}
 		}
-	}
-
-	if deleteElements {
-		newTpl = &tpl.Template
-	} else {
-		newTpl = vm.NewTemplate()
 	}
 
 	if d.HasChange("raw") {
@@ -491,23 +512,27 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("sched_requirements") {
-		newTpl.Del(string(vmk.SchedRequirements))
-
 		schedRequirements := d.Get("sched_requirements").(string)
+
 		if len(schedRequirements) > 0 {
-			// Placement already delete the key before adding
-			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
+			escapedValue := strings.ReplaceAll(schedRequirements, "\"", "\\\"")
+			newTpl.Placement(vmk.SchedRequirements, escapedValue)
+		} else {
+			newTpl.Del(string(vmk.SchedRequirements))
 		}
+		update = true
 	}
 
 	if d.HasChange("sched_ds_requirements") {
-		newTpl.Del(string(vmk.SchedDSRequirements))
-
 		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+
 		if len(schedDSRequirements) > 0 {
-			// Placement already delete the key before adding
-			newTpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
+			escapedValue := strings.ReplaceAll(schedDSRequirements, "\"", "\\\"")
+			newTpl.Placement(vmk.SchedDSRequirements, escapedValue)
+		} else {
+			newTpl.Del(string(vmk.SchedDSRequirements))
 		}
+		update = true
 	}
 
 	if d.HasChange("description") {
@@ -518,6 +543,8 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		if len(description) > 0 {
 			newTpl.Add(vmk.Description, description)
 		}
+
+		update = true
 	}
 
 	if d.HasChange("user_inputs") {
@@ -533,29 +560,36 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 				}
 			}
 		}
-	}
 
-	if update {
-
-		updateType := parameters.Merge
-		if deleteElements == true {
-			updateType = parameters.Replace
-		}
-
-		err = tc.Update(newTpl.String(), updateType)
-		if err != nil {
-			return err
-		}
+		update = true
 	}
 
 	if d.HasChange("tags") {
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, v := range tagsInterface {
-			tpl.Template.Del(strings.ToUpper(k))
-			tpl.Template.AddPair(strings.ToUpper(k), v.(string))
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
+			newTpl.Del(strings.ToUpper(k))
 		}
 
-		err = tc.Update(tpl.Template.String(), 1)
+		// add/update tags
+		for k, v := range newTags {
+			newTpl.Del(strings.ToUpper(k))
+			newTpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		update = true
+	}
+
+	if update {
+		err = tc.Update(newTpl.String(), parameters.Replace)
 		if err != nil {
 			return err
 		}

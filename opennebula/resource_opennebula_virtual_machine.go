@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	vmDiskOnChangeValues    = []string{"RECREATE", "SWAP"}
 	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
 	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
@@ -127,15 +128,27 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 				Computed:    true,
 				Description: "Current LCM state of the VM",
 			},
-			"cpu":    cpuSchema(),
-			"vcpu":   vcpuSchema(),
-			"memory": memorySchema(),
 			"poweroff_hard_on_resize": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: "Use 'Poweroff hard' instead of 'Poweroff' on VM resize.",
 			},
+			"on_disk_change": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "swap", //"recreate" or "swap",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := strings.ToUpper(v.(string))
+					if inArray(value, vmDiskOnChangeValues) == -1 {
+						errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
+					}
+					return
+				},
+			},
+			"cpu":           cpuSchema(),
+			"vcpu":          vcpuSchema(),
+			"memory":        memorySchema(),
 			"context":       contextSchema(),
 			"cpumodel":      cpumodelSchema(),
 			"disk":          diskVMSchema(),
@@ -333,9 +346,10 @@ func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("group") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
+		group := d.Get("group").(string)
+		gid, err = controller.Groups().ByName(group)
 		if err != nil {
-			return err
+			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 		}
 	} else {
 		gid = d.Get("gid").(int)
@@ -343,7 +357,7 @@ func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
 
 	err = vmc.Chown(-1, gid)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
 	}
 
 	return nil
@@ -523,7 +537,12 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 		return err
 	}
 
-	err = flattenTemplate(d, &vm.Template, false)
+	err = flattenTemplate(d, &vm.Template)
+	if err != nil {
+		return err
+	}
+
+	err = flattenUserTemplate(d, &vm.UserTemplate.Template)
 	if err != nil {
 		return err
 	}
@@ -922,22 +941,9 @@ NICLoop:
 
 func flattenTags(d *schema.ResourceData, vmUserTpl *vm.UserTemplate) error {
 
-	tags := make(map[string]interface{})
-	for i, _ := range vmUserTpl.Elements {
-		pair, ok := vmUserTpl.Elements[i].(*dyn.Pair)
-		if !ok {
-			continue
-		}
+	tagsInterface := d.Get("tags").(map[string]interface{})
 
-		// Get only tags from userTemplate
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, _ := range tagsInterface {
-			if strings.ToUpper(k) == pair.Key() {
-				tags[k] = pair.Value
-			}
-		}
-	}
-
+	tags := pairsToMapFilter(vmUserTpl.Template, tagsInterface)
 	if len(tags) > 0 {
 		err := d.Set("tags", tags)
 		if err != nil {
@@ -1035,8 +1041,10 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("sched_requirements") {
 		schedRequirements := d.Get("sched_requirements").(string)
+
 		if len(schedRequirements) > 0 {
-			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+			escapedValue := strings.ReplaceAll(schedRequirements, "\"", "\\\"")
+			tpl.Placement(vmk.SchedRequirements, escapedValue)
 		} else {
 			tpl.Del(string(vmk.SchedRequirements))
 		}
@@ -1045,8 +1053,10 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("sched_ds_requirements") {
 		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+
 		if len(schedDSRequirements) > 0 {
-			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
+			escapedValue := strings.ReplaceAll(schedDSRequirements, "\"", "\\\"")
+			tpl.Placement(vmk.SchedDSRequirements, escapedValue)
 		} else {
 			tpl.Del(string(vmk.SchedDSRequirements))
 		}
@@ -1055,13 +1065,14 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if d.HasChange("description") {
 
+		tpl.Del(string(vmk.Description))
+
 		description := d.Get("description").(string)
 
 		if len(description) > 0 {
 			tpl.Add(vmk.Description, description)
-		} else {
-			tpl.Del(string(vmk.Description))
 		}
+
 		update = true
 	}
 
@@ -1527,7 +1538,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+				"waiting for virtual machine (ID:%d) to be in state RUNNING: %s", vmc.ID, err)
 		}
 
 		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
@@ -1540,7 +1551,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
 			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+				"waiting for virtual machine (ID:%d) to be in state RUNNING: %s", vmc.ID, err)
 		}
 	}
 
@@ -1770,6 +1781,31 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) 
 }
 
 func resourceVMCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {
+
+	onChange := diff.Get("on_disk_change").(string)
+
+	if strings.ToUpper(onChange) == "RECREATE" {
+
+		oldDisk, newDisk := diff.GetChange("disk")
+		oldDiskList := oldDisk.([]interface{})
+		newDiskList := newDisk.([]interface{})
+		toDetach, _ := diffListConfig(newDiskList, oldDiskList,
+			&schema.Resource{
+				Schema: diskFields(),
+			},
+			"image_id",
+			"target",
+			"driver")
+
+		if len(toDetach) > 0 {
+			for i := range oldDiskList {
+				diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
+				diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
+				diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
+			}
+		}
+	}
+
 	// If the VM is in error state, force the VM to be recreated
 	if diff.Get("lcmstate") == 36 {
 		log.Printf("[INFO] VM is in error state, forcing recreate.")

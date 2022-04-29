@@ -1,4 +1,57 @@
-## 0.4.1 (Unreleased)
+## 0.5.0 (Unreleased)
+
+NOTES:
+
+* All datasources schemas have been reworked and an independant read method has been added for each.
+
+FEATURES:
+
+* **New Data Source**: `opennebula_cluster`: allow filtering based on `name` and `tags`
+
+ENHANCEMENTS:
+
+* data/opennebula_group: make `name` optional and add `tags` filtering
+* data/opennebula_image: make `name` optional and enable `tags` filtering
+* data/opennebula_security_group: make `name` optional and enable `tags` filtering
+* data/opennebula_template: make `name` optional and enable `tags` filtering
+* data/opennebula_template_vm_group: make `name` optional and enable `tags` filtering
+* data/opennebula_user: make `name` optional and enable `tags` filtering
+* data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
+* data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
+* resources/opennebula_virtual_machine: add `raw` as default value for `volatile_format`
+* resources/opennebula_group: add `sunstone` and `tags` sections
+
+FEATURES:
+
+* resources/opennebula_virtual_machine: Add 'on_disk_change' property to opennebula_virtual_machine
+* **New Resource**: opennebula_group_admins
+
+DEPRECATION:
+
+* data/opennebula_group: deprecate `quotas`, `template`, remove `users`
+* data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true`
+* data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template`
+* data/opennebula_user: deprecate `quotas` and `auth_driver`
+* data/opennebula_virtual_network: deprecate `description`. Make `mtu` computed
+
+BUG FIXES:
+
+* resources/opennebula_security_group: read `name`
+
+## 0.4.3 (March 23th, 2022)
+
+* Support for `darwin/arm64` and `windows/arm64` platforms.
+* Documentation update.
+
+## 0.4.2 (March 10th, 2022)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_machine: fix description duplication
+* resources/opennebula_template: check fields at read
+* resources/opennebula_template: fix template update
+
+## 0.4.1 (February 15th, 2022)
 
 BUG FIXES:
 
@@ -6,6 +59,9 @@ BUG FIXES:
 * resources/opennebula_virtual_network: check empty ar at read
 * resources/opennebula_template: check `user_inputs` at read
 * resources/opennebula_virtual_machine: fix update of user_template related attributes
+* resources/opennebula_image: remove `computed_size` attribute
+* resources/opennebula_virtual_network: remove ar ordering code
+* resources/opennebula_group: detailed error messages
 
 ## 0.4.0 (January 20th, 2022)
 

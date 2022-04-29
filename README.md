@@ -1,31 +1,31 @@
-# terraform-provider-opennebula
+
 
 [![Build Status](https://travis-ci.org/OpenNebula/terraform-provider-opennebula.svg?branch=master)](https://travis-ci.org/OpenNebula/terraform-provider-opennebula)
 
-## Description
+<a href="https://terraform.io">
+    <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/master/public/img/logo-text.svg" alt="Terraform logo" title="Terraform" height="30" />
+</a> &nbsp; <a href="https://opennebula.io/">
+    <img src="https://opennebula.io/wp-content/uploads/2013/12/opennebula_cloud_logo_white_bg.png" alt="OpenNebula logo" title="OKTA" height="30" />
+</a>
 
-[OpenNebula](https://opennebula.io/) provider for [Terraform](https://www.terraform.io/).
+# Terraform Provider for OpenNebula
 
-## Usage
+## Quick Start
 
-The documentation now resides in the [Terraform Registry](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs). There are lots of examples and a complete reference there.
+The documentation is available in the [Terraform Registry](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs). There are lot of examples and a complete reference there.
 
-## Development
+## Contribute
 
-Bug reports and pull requests are welcome on GitHub at
-https://github.com/OpenNebula/terraform-provider-opennebula/issues.
+[Bug Reports](https://github.com/OpenNebula/terraform-provider-opennebula/issues/new?template=bug.md), [Feature Requests](https://github.com/OpenNebula/terraform-provider-opennebula/issues/new?template=feature.md) and [Pull Requests](https://github.com/OpenNebula/terraform-provider-opennebula/compare) are welcome. Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-participate-in-Add_on-Development) rules for any Pull Request.
 
-Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-participate-in-Add_on-Development) rules for any pull request.
+### Team
 
-## Authors
-
-* Leaders:
-
-- Tino Vazquez (https://github.com/tinova)
-- Jean-Philippe Fourès (https://github.com/jaypif)
-- Pierre Lafièvre (https://github.com/treywelsh)
-- Edouard Hur (https://github.com/hekmon)
-- Benjamin Gustin (https://github.com/aloababa)
+- Tino Vazquez ([tinova](https://github.com/tinova))
+- François Rousselet ([frousselet](https://github.com/frousselet))
+- Jean-Philippe Fourès ([jaypif](https://github.com/jaypif))
+- Pierre Lafièvre ([treywelsh](https://github.com/treywelsh))
+- Edouard Hur ([hekmon](https://github.com/hekmon))
+- Benjamin Gustin ([aloababa](https://github.com/aloababa))
 
 ## Compatibility
 
@@ -34,47 +34,7 @@ Please follow [How to Contribute](https://github.com/OpenNebula/one/wiki/How-to-
 
 This provider has been initiated to use official Goca from [OpenNebula](https://github.com/OpenNebula/one)
 
-For Older OpenNebula and Terraform releases, you can use non official provider from [Runtastic](https://github.com/runtastic/terraform-provider-opennebula) and enhanced by [BlackBerry](https://github.com/blackberry/terraform-provider-opennebula).
-
-## Features
-
-### Data sources
-
-Current definition of these data sources are supported:
-* Groups
-* Image
-* Security Groups
-* Template
-* User
-* Virtual Data Center
-* Virtual Network
-
-### Resources
-
-Current definition of these resources are supported:
-* Groups [onegroup](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onegroup)
-* Image [oneimage](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneimage)
-* Security Groups [onesecgroup](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onesecgroup)
-* Template [onetemplate](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onetemplate)
-* User [oneuser](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneuser)
-* Virtual Data Center [onevdc](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevdc)
-* Virtual Machine [onevm](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevm)
-* Virtual Network [onevnet](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevnet)
-* ACL [oneacl](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneacl)
-* Service [oneflow](http://docs.opennebula.io/5.12/integration/system_interfaces/appflow_api.html#service)
-* Service Template [onwflow-template](http://docs.opennebula.io/5.12/integration/system_interfaces/appflow_api.html#service-template)
-
-## Limitations
-
-Following OpenNebula Objects **are not** currently supported:
-* Accounting [oneacct](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#oneacct)
-* Hosts Management [onehost](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onehost)
-* Clusters [onecluster](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onecluster)
-* Datastore [onedatastore](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onedatastore)
-* Market [onemarket](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onemarket)
-* Market App [onemarketapp](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onemarketapp)
-* Virtual Router [onevrouter](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onevrouter)
-* Zone [onezone](https://docs.opennebula.io/5.12/integration/system_interfaces/api.html#onezone)
+For older OpenNebula and Terraform releases, you can use non official provider from [Runtastic](https://github.com/runtastic/terraform-provider-opennebula) and enhanced by [BlackBerry](https://github.com/blackberry/terraform-provider-opennebula).
 
 ## Requirements
 
@@ -85,50 +45,27 @@ Instructions to install terraform are accessible [here](https://learn.hashicorp.
 
 Please note that this version is indended to be used with Terraform version 0.12+
 
-### Golang
+### Golang (for testing)
 
-The only way to use this add-on is to compile it from source code.
-OpenNebula Terraform provider is written in Golang, you must have a Golang environment to compile the provider.
+OpenNebula Terraform provider is written in Golang, you must have a Golang environment to compile it.
 
 A Golang dependency management tool is also required. This README is based on [goland/dep](https://github.com/golang/dep)
 
-## Installation
+## Build from sources
 
-### From Source
-
-#### Compilation
-
-1. Get the code of the OpenNebula provider.
+1. Get the code of the OpenNebula provider
 2. Get provider dependencies (if you use go dep)
-```
-repopath$ dep init
+
+```shell
+$ dep init
 ```
 3. Compile
-```
-repopath$ go build -o terraform-provider-opennebula
+
+```shell
+$ go build -o terraform-provider-opennebula
 ```
 
 **Warning: this provider is a "Third party" provider. It must follow these rules for the binary name.**
-
-#### Integration with Terraform
-
-Create a terraform file to use OpenNebula provider (follow instructions on Wiki page of the project) and run `terraform init`.
-This will initialize terraform to use OpenNebula Provider.
-
-### With Terraform
-
-*Work In Progress*
-
-## Configuration
-
-**Opennebula** provider has the following supports parameters:
-
-| **Parameter** | **Description**                       |
-| --------- | --------------------------------- |
-| **endpoint**  | URL to the OpenNebula XML-RPC API |
-| **username**  | OpenNebula username               |
-| **password**  | OpenNebula password OR token      |
-| **version**   | Version of the provider (optional) |
 
 ## References
 

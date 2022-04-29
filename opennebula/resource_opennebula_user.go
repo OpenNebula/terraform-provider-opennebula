@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/user"
 )
 
 var authTypes = []string{"core", "public", "ssh", "x509", "ldap", "server_cipher", "server_x509", "custom"}
@@ -161,19 +162,33 @@ func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error 
 	d.SetId(strconv.FormatUint(uint64(user.ID), 10))
 	d.Set("name", user.Name)
 
-	passwordIf, ok := d.GetOk("password")
-	if ok {
-		password := passwordIf.(string)
-		sum := sha256.Sum256([]byte(password))
-		if fmt.Sprintf("%x", sum) == user.Password {
-			d.Set("password", password)
-		} else {
-			return fmt.Errorf("password doesn't match")
-		}
+	passwordIf := d.Get("password")
+	password := passwordIf.(string)
+	sum := sha256.Sum256([]byte(password))
+	if fmt.Sprintf("%x", sum) == user.Password {
+		d.Set("password", password)
+	} else {
+		return fmt.Errorf("password doesn't match")
 	}
 
 	d.Set("auth_driver", user.AuthDriver)
 	d.Set("primary_group", user.GID)
+
+	err = flattenUserGroups(d, user)
+	if err != nil {
+		return err
+	}
+
+	err = flattenQuotasMapFromStructs(d, &user.QuotasList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
+
 	userGroups := make([]int, 0)
 	for _, u := range user.Groups.ID {
 		if u == user.GID {
@@ -182,14 +197,10 @@ func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error 
 		userGroups = append(userGroups, u)
 	}
 	if len(userGroups) > 0 {
-		err = d.Set("groups", userGroups)
+		err := d.Set("groups", userGroups)
 		if err != nil {
 			return err
 		}
-	}
-	err = flattenQuotasMapFromStructs(d, &user.QuotasList)
-	if err != nil {
-		return err
 	}
 
 	return nil

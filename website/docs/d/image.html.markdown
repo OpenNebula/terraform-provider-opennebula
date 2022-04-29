@@ -13,15 +13,18 @@ Use this data source to retrieve the image information for a given name.
 ## Example Usage
 
 ```hcl
-data "opennebula_image" "ExistingImagr" {
+data "opennebula_image" "ExistingImage" {
   name = "My_Image"
 }
 ```
 
 ## Argument Reference
 
- * `name` - (Required) The OpenNebula image to retrieve information for.
+* `name` - (Optional) The OpenNebula image to retrieve information for.
+* `tags` - (Optional) Tags associated to the image.
 
 ## Attribute Reference
 
-* `tags` - Tags associated to the Image.
+* `id` - ID of the image.
+* `name` - Name of the image.
+* `tags` - Tags of the image (Key = Value).
