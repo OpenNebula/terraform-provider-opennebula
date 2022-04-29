@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/OpenNebula/terraform-provider-opennebula/opennebula"
-	"github.com/hashicorp/terraform-plugin-sdk/plugin"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func main() {

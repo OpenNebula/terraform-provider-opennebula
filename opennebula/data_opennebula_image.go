@@ -6,7 +6,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	imageSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaImage() *schema.Resource {

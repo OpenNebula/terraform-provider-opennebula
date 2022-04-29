@@ -6,7 +6,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	templateSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaTemplate() *schema.Resource {

@@ -8,7 +8,7 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // vmDiskAttach is an helper that synchronously attach a disk

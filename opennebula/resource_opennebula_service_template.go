@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	srv_tmpl "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/service_template"
