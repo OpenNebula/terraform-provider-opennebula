@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -155,13 +156,27 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
 		vnc := controller.VirtualNetwork(int(vnID))
-		// Get Virtual Network Info
-		// TODO: fix it after 5.10 release
-		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-		vn, _ := vnc.Info(false)
-		if vn != nil {
-			return fmt.Errorf("Expected virtual network %s to have been destroyed", rs.Primary.ID)
+
+		// Wait for Virtual Network deleted
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{"anythingelse"},
+			Target:  []string{""},
+			Refresh: func() (interface{}, string, error) {
+
+				vn, _ := vnc.Info(false)
+				if vn == nil {
+					return vn, "", nil
+				}
+
+				return vn, "EXISTS", nil
+			},
+			Timeout:    1 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
 		}
+
+		_, err := stateConf.WaitForState()
+		return err
 	}
 
 	return nil
