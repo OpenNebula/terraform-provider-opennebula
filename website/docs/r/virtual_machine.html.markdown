@@ -170,7 +170,6 @@ The following attribute are exported:
 * `template_disk` - when `template_id` is used and the template define some disks, this contains the template disks description.
 * `template_nic` - when `template_id` is used and the template define some NICs, this contains the template NICs description.
 
-
 ### Template NIC
 
 * `network_id` - ID of the image attached to the virtual machine.
@@ -182,7 +181,6 @@ The following attribute are exported:
 * `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
-
 
 ### Template disk
 
@@ -209,6 +207,7 @@ The following attribute are exported:
 * `computed_size` - Size (in MB) of the image attached to the virtual machine. Not possible to change a cloned image size.
 * `computed_target` - Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `computed_driver` - OpenNebula image driver.
+* `computed_volatile_format` - Format of the Image: `raw` or `qcow2`.
 
 ## Instantiate from a template
 
@@ -240,4 +239,3 @@ Verify that Terraform does not perform any change:
 ```
 terraform plan
 ```
-
