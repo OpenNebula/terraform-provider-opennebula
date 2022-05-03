@@ -37,6 +37,7 @@ DEPRECATION:
 BUG FIXES:
 
 * resources/opennebula_security_group: read `name`
+* resources/opennebula_virtual_machine: fix volatile disk update adding `computed_volatile_format`
 
 ## 0.4.3 (March 23th, 2022)
 
