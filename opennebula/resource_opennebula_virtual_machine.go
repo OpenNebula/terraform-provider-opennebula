@@ -268,6 +268,10 @@ func diskComputedVMFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
+		"computed_volatile_format": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
 	}
 }
 
@@ -571,6 +575,9 @@ func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) 
 	if len(diskConfig["driver"].(string)) > 0 {
 		diskMap["driver"] = diskMap["computed_driver"]
 	}
+	if len(diskConfig["volatile_format"].(string)) > 0 {
+		diskMap["volatile_format"] = diskMap["computed_volatile_format"]
+	}
 
 	return diskMap
 }
@@ -579,13 +586,15 @@ func flattenDiskComputed(disk shared.Disk) map[string]interface{} {
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
+	volatileFormat, _ := disk.Get("FORMAT")
 	diskID, _ := disk.GetI(shared.DiskID)
 
 	return map[string]interface{}{
-		"disk_id":         diskID,
-		"computed_size":   size,
-		"computed_target": target,
-		"computed_driver": driver,
+		"disk_id":                  diskID,
+		"computed_size":            size,
+		"computed_target":          target,
+		"computed_driver":          driver,
+		"computed_volatile_format": volatileFormat,
 	}
 }
 
@@ -632,10 +641,12 @@ func matchDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) bool
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
+	format, _ := disk.Get("FORMAT")
 
 	return (target == diskConfig["computed_target"].(string)) &&
 		(size == diskConfig["computed_size"].(int)) &&
-		(driver == diskConfig["computed_driver"].(string))
+		(driver == diskConfig["computed_driver"].(string)) &&
+		(format == diskConfig["computed_volatile_format"].(string))
 
 }
 
@@ -686,9 +697,6 @@ diskLoop:
 				volatileType, _ := disk.Get("TYPE")
 				diskMap["volatile_type"] = volatileType
 			}
-
-			volatileFormat, _ := disk.Get("FORMAT")
-			diskMap["volatile_format"] = volatileFormat
 
 			diskList = append(diskList, diskMap)
 
