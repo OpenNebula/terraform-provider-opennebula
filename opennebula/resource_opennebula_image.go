@@ -186,7 +186,8 @@ func resourceOpennebulaImage() *schema.Resource {
 // * args: Viable arguments to manage ImagePool variable arguments
 //   see http://docs.opennebula.org/5.8/integration/system_interfaces/api.html#one-imagepool-info for details
 func getImageController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.ImageController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var ic *goca.ImageController
 
 	// Try to find the Image by ID, if specified
@@ -212,7 +213,8 @@ func getImageController(d *schema.ResourceData, meta interface{}, args ...int) (
 
 // changeImageGroup: function to change Image Group ownership
 func changeImageGroup(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 
 	ic, err := getImageController(d, meta)
@@ -237,7 +239,8 @@ func changeImageGroup(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var imageID int
 	var err error
 
@@ -324,7 +327,8 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceOpennebulaImageClone(d *schema.ResourceData, meta interface{}) (int, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var originalic *goca.ImageController
 
 	//Test if clone_from_image is an integer or not

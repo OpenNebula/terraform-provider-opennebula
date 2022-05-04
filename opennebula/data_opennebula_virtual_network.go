@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	vnetSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -38,7 +37,8 @@ func dataOpennebulaVirtualNetwork() *schema.Resource {
 
 func vnetFilter(d *schema.ResourceData, meta interface{}) (*vnetSc.VirtualNetwork, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	vnets, err := controller.VirtualNetworks().Info()
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	userSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/user"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -62,7 +61,8 @@ func dataOpennebulaUser() *schema.Resource {
 
 func userFilter(d *schema.ResourceData, meta interface{}) (*userSc.User, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	users, err := controller.Users().Info()
 	if err != nil {
@@ -123,7 +123,8 @@ userLoop:
 
 func datasourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	user, err := userFilter(d, meta)
 	if err != nil {

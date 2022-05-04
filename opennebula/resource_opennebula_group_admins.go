@@ -5,8 +5,6 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
 func resourceOpennebulaGroupAdmins() *schema.Resource {
@@ -38,7 +36,8 @@ func resourceOpennebulaGroupAdmins() *schema.Resource {
 }
 
 func resourceOpennebulaGroupAdminsCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	groupID := d.Get("group_id").(int)
 	gc := controller.Group(groupID)
@@ -59,7 +58,8 @@ func resourceOpennebulaGroupAdminsCreate(d *schema.ResourceData, meta interface{
 
 func resourceOpennebulaGroupAdminsRead(d *schema.ResourceData, meta interface{}) error {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	groupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -81,7 +81,8 @@ func resourceOpennebulaGroupAdminsRead(d *schema.ResourceData, meta interface{})
 
 func resourceOpennebulaGroupAdminsUpdate(d *schema.ResourceData, meta interface{}) error {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	groupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -118,7 +119,8 @@ func resourceOpennebulaGroupAdminsUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceOpennebulaGroupAdminsDelete(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	groupID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

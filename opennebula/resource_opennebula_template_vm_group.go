@@ -138,7 +138,8 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 }
 
 func getVMGroupController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VMGroupController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var vmgc *goca.VMGroupController
 
 	// Try to find the vm group by ID, if specified
@@ -163,7 +164,8 @@ func getVMGroupController(d *schema.ResourceData, meta interface{}, args ...int)
 }
 
 func changeVMGroupGroup(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 
 	vmgc, err := getVMGroupController(d, meta)
@@ -188,7 +190,8 @@ func changeVMGroupGroup(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOpennebulaVMGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	vmg, xmlerr := generateVMGroup(d)
 	if xmlerr != nil {

@@ -9,8 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
@@ -25,11 +27,16 @@ func resourceOpennebulaTemplate() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: templateSchema(),
+		Schema: mergeSchemas(
+			commonTemplateSchemas(),
+			map[string]*schema.Schema{
+				"nic": nicSchema(),
+			},
+		),
 	}
 }
 
-func templateSchema() map[string]*schema.Schema {
+func commonTemplateSchemas() map[string]*schema.Schema {
 	return mergeSchemas(
 		commonInstanceSchema(),
 		map[string]*schema.Schema{
@@ -48,7 +55,6 @@ func templateSchema() map[string]*schema.Schema {
 				},
 			},
 			"disk": diskSchema(),
-			"nic":  nicSchema(),
 			"raw": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -189,7 +195,8 @@ func FeaturesFields() map[string]*schema.Schema {
 }
 
 func getTemplateController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.TemplateController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var tc *goca.TemplateController
 
 	// Try to find the template by ID, if specified
@@ -214,7 +221,8 @@ func getTemplateController(d *schema.ResourceData, meta interface{}, args ...int
 }
 
 func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 
 	tc, err := getTemplateController(d, meta)
@@ -239,13 +247,47 @@ func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	err := resourceOpennebulaTemplateCreateCustom(d, meta, func(d *schema.ResourceData, tpl *dyn.Template) error {
 
-	tplDef, err := generateTemplate(d)
+		//Generate NIC definition
+		nics := d.Get("nic").([]interface{})
+		log.Printf("Number of NICs: %d", len(nics))
+
+		for i := 0; i < len(nics); i++ {
+			nicconfig := nics[i].(map[string]interface{})
+
+			nic := makeNICVector(nicconfig)
+			tpl.Elements = append(tpl.Elements, nic)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
 
+	return resourceOpennebulaTemplateRead(d, meta)
+}
+
+func resourceOpennebulaTemplateCreateCustom(d *schema.ResourceData, meta interface{}, customFunc customDynTemplateFunc) error {
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	tpl, err := generateTemplate(d)
+	if err != nil {
+		return err
+	}
+
+	if customFunc != nil {
+		err = customFunc(d, &tpl.Template)
+		if err != nil {
+			return err
+		}
+	}
+
+	tplDef := tpl.Template.String()
+	log.Printf("[INFO] Template definitions: %s", tplDef)
 	tplID, err := controller.Templates().Create(tplDef)
 	if err != nil {
 		log.Printf("[ERROR] Template creation failed, error: %s", err)
@@ -286,10 +328,24 @@ func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return resourceOpennebulaTemplateRead(d, meta)
+	return nil
 }
 
 func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) error {
+	return resourceOpennebulaTemplateReadCustom(d, meta, templateReadCustom)
+}
+
+func templateReadCustom(d *schema.ResourceData, templateInfos *template.Template) error {
+
+	err := flattenTemplateNICs(d, &templateInfos.Template)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface{}, readCustom customTemplateFunc) error {
 	// Get requested template from all templates
 	tc, err := getTemplateController(d, meta, -2, -1, -1)
 	if err != nil {
@@ -323,11 +379,6 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	err = flattenTemplateNICs(d, &tpl.Template)
-	if err != nil {
-		return err
-	}
-
 	uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
 	if uInputs != nil && len(uInputs.Pairs) > 0 {
 		uInputsMap := make(map[string]interface{}, 0)
@@ -337,6 +388,13 @@ func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) er
 		}
 
 		err = d.Set("user_inputs", uInputsMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	if readCustom != nil {
+		err = readCustom(d, tpl)
 		if err != nil {
 			return err
 		}
@@ -427,7 +485,7 @@ func resourceOpennebulaTemplateExists(d *schema.ResourceData, meta interface{}) 
 	return true, nil
 }
 
-func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interface{}) error {
 	//Get Template
 	tc, err := getTemplateController(d, meta)
 	if err != nil {
@@ -619,6 +677,16 @@ func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
+	return nil
+}
+
+func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
+
+	err := resourceOpennebulaTemplateUpdateCustom(d, meta)
+	if err != nil {
+		return nil
+	}
+
 	return resourceOpennebulaTemplateRead(d, meta)
 }
 
@@ -638,7 +706,7 @@ func resourceOpennebulaTemplateDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func generateTemplate(d *schema.ResourceData) (string, error) {
+func generateTemplate(d *schema.ResourceData) (*vm.Template, error) {
 	name := d.Get("name").(string)
 
 	tpl := vm.NewTemplate()
@@ -682,7 +750,7 @@ func generateTemplate(d *schema.ResourceData) (string, error) {
 
 	err := generateVMTemplate(d, tpl)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	//Generate RAW definition
@@ -694,8 +762,5 @@ func generateTemplate(d *schema.ResourceData) (string, error) {
 		rawVec.AddPair("DATA", rawConfig["data"].(string))
 	}
 
-	tplStr := tpl.String()
-	log.Printf("[INFO] Template definitions: %s", tplStr)
-
-	return tplStr, nil
+	return tpl, nil
 }

@@ -48,23 +48,32 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"opennebula_acl":                   resourceOpennebulaACL(),
-			"opennebula_group":                 resourceOpennebulaGroup(),
-			"opennebula_group_admins":          resourceOpennebulaGroupAdmins(),
-			"opennebula_image":                 resourceOpennebulaImage(),
-			"opennebula_security_group":        resourceOpennebulaSecurityGroup(),
-			"opennebula_template":              resourceOpennebulaTemplate(),
-			"opennebula_user":                  resourceOpennebulaUser(),
-			"opennebula_virtual_data_center":   resourceOpennebulaVirtualDataCenter(),
-			"opennebula_virtual_machine":       resourceOpennebulaVirtualMachine(),
-			"opennebula_virtual_network":       resourceOpennebulaVirtualNetwork(),
-			"opennebula_virtual_machine_group": resourceOpennebulaVMGroup(),
-			"opennebula_service":               resourceOpennebulaService(),
-			"opennebula_service_template":      resourceOpennebulaServiceTemplate(),
+			"opennebula_acl":                              resourceOpennebulaACL(),
+			"opennebula_group":                            resourceOpennebulaGroup(),
+			"opennebula_group_admins":                     resourceOpennebulaGroupAdmins(),
+			"opennebula_image":                            resourceOpennebulaImage(),
+			"opennebula_security_group":                   resourceOpennebulaSecurityGroup(),
+			"opennebula_template":                         resourceOpennebulaTemplate(),
+			"opennebula_user":                             resourceOpennebulaUser(),
+			"opennebula_virtual_data_center":              resourceOpennebulaVirtualDataCenter(),
+			"opennebula_virtual_machine":                  resourceOpennebulaVirtualMachine(),
+			"opennebula_virtual_network":                  resourceOpennebulaVirtualNetwork(),
+			"opennebula_virtual_machine_group":            resourceOpennebulaVMGroup(),
+			"opennebula_service":                          resourceOpennebulaService(),
+			"opennebula_service_template":                 resourceOpennebulaServiceTemplate(),
+			"opennebula_virtual_router_instance":          resourceOpennebulaVirtualRouterInstance(),
+			"opennebula_virtual_router_instance_template": resourceOpennebulaVirtualRouterInstanceTemplate(),
+			"opennebula_virtual_router":                   resourceOpennebulaVirtualRouter(),
+			"opennebula_virtual_router_nic":               resourceOpennebulaVirtualRouterNIC(),
 		},
 
 		ConfigureFunc: providerConfigure,
 	}
+}
+
+type Configuration struct {
+	Controller *goca.Controller
+	mutex      MutexKV
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
@@ -78,8 +87,15 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 				d.Get("password").(string),
 				flow_endpoint.(string)))
 
-		return goca.NewGenericController(one_client, flow_client), nil
+		return &Configuration{
+			Controller: goca.NewGenericController(one_client, flow_client),
+			mutex:      *NewMutexKV(),
+		}, nil
+
 	}
 
-	return goca.NewController(one_client), nil
+	return &Configuration{
+		Controller: goca.NewController(one_client),
+		mutex:      *NewMutexKV(),
+	}, nil
 }

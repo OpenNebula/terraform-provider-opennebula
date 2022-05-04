@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/acl"
 )
 
@@ -71,7 +70,8 @@ func resourceOpennebulaACL() *schema.Resource {
 }
 
 func resourceOpennebulaACLCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	userHex, err := acl.ParseUsers(d.Get("user").(string))
 	if err != nil {
@@ -98,7 +98,8 @@ func resourceOpennebulaACLCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceOpennebulaACLRead(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	acls, err := controller.ACLs().Info()
 
 	if err != nil {
@@ -123,7 +124,8 @@ func resourceOpennebulaACLRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOpennebulaACLDelete(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	numericID, err := strconv.Atoi(d.Id())
 	if err != nil {

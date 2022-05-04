@@ -71,7 +71,8 @@ func resourceOpennebulaUser() *schema.Resource {
 }
 
 func getUserController(d *schema.ResourceData, meta interface{}) (*goca.UserController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var uc *goca.UserController
 
 	// Try to find the User by ID, if specified
@@ -96,7 +97,8 @@ func getUserController(d *schema.ResourceData, meta interface{}) (*goca.UserCont
 }
 
 func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	userName := d.Get("name").(string)
 	userAuthDriver := d.Get("auth_driver").(string)
