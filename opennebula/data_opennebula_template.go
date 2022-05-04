@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	templateSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -64,7 +63,8 @@ func dataOpennebulaTemplate() *schema.Resource {
 
 func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Template, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	templates, err := controller.Templates().Info()
 	if err != nil {

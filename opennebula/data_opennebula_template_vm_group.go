@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	vmGroupSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -26,7 +25,8 @@ func dataOpennebulaVMGroup() *schema.Resource {
 
 func vmGroupFilter(d *schema.ResourceData, meta interface{}) (*vmGroupSc.VMGroup, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	vmGroups, err := controller.VMGroups().Info()
 	if err != nil {

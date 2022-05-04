@@ -170,7 +170,8 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 }
 
 func getSecurityGroupController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.SecurityGroupController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var sgc *goca.SecurityGroupController
 
 	// Try to find the Security Group by ID, if specified
@@ -195,7 +196,8 @@ func getSecurityGroupController(d *schema.ResourceData, meta interface{}, args .
 }
 
 func changeSecurityGroupGroup(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 
 	sgc, err := getSecurityGroupController(d, meta)
@@ -311,7 +313,8 @@ func resourceOpennebulaSecurityGroupExists(d *schema.ResourceData, meta interfac
 }
 
 func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	secGroupDef, err := generateSecurityGroup(d)
 	if err != nil {

@@ -330,7 +330,8 @@ func ARFields() map[string]*schema.Schema {
 }
 
 func getVirtualNetworkController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VirtualNetworkController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var vnc *goca.VirtualNetworkController
 
 	// Try to find the VNet by ID, if specified
@@ -355,7 +356,8 @@ func getVirtualNetworkController(d *schema.ResourceData, meta interface{}, args 
 }
 
 func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 
 	vnc, err := getVirtualNetworkController(d, meta)
@@ -387,7 +389,8 @@ func validVlanType(intype string) int {
 }
 
 func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var vnc *goca.VirtualNetworkController
 
 	// VNET reservation
@@ -716,7 +719,8 @@ func getVnetClustersValue(d *schema.ResourceData) []int {
 }
 
 func setVnetClusters(clusters []int, meta interface{}, id int) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	clusterPool, err := controller.Clusters().Info(false)

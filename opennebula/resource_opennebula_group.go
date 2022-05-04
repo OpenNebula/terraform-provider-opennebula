@@ -104,7 +104,8 @@ func resourceOpennebulaGroup() *schema.Resource {
 }
 
 func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gc *goca.GroupController
 
 	// Try to find the Group by ID, if specified
@@ -129,7 +130,8 @@ func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupCo
 }
 
 func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	groupID, err := controller.Groups().Create(d.Get("name").(string))
 	if err != nil {

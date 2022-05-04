@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	secgroup "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/securitygroup"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -26,7 +25,8 @@ func dataOpennebulaSecurityGroup() *schema.Resource {
 
 func securityGroupFilter(d *schema.ResourceData, meta interface{}) (*secgroup.SecurityGroup, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	securityGroups, err := controller.SecurityGroups().Info()
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	groupSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/group"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -40,7 +39,8 @@ func dataOpennebulaGroup() *schema.Resource {
 
 func groupFilter(d *schema.ResourceData, meta interface{}) (*groupSc.GroupShort, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	groups, err := controller.Groups().Info()
 	if err != nil {
@@ -78,7 +78,8 @@ func groupFilter(d *schema.ResourceData, meta interface{}) (*groupSc.GroupShort,
 
 func datasourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	group, err := groupFilter(d, meta)
 	if err != nil {

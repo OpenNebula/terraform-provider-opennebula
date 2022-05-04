@@ -100,7 +100,8 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 }
 
 func getVDCController(d *schema.ResourceData, meta interface{}) (*goca.VDCController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var vdcc *goca.VDCController
 
 	// Try to find the VDC by ID, if specified
@@ -125,7 +126,8 @@ func getVDCController(d *schema.ResourceData, meta interface{}) (*goca.VDCContro
 }
 
 func resourceOpennebulaVirtualDataCenterCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	vdcDef, err := generateVDC(d)
 	if err != nil {

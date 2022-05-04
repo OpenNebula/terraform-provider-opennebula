@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	imageSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -26,7 +25,8 @@ func dataOpennebulaImage() *schema.Resource {
 
 func imageFilter(d *schema.ResourceData, meta interface{}) (*imageSc.Image, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	images, err := controller.Images().Info()
 	if err != nil {

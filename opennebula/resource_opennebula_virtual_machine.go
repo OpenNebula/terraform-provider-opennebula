@@ -27,8 +27,6 @@ var (
 	vmDeleteReadyStates     = []string{"RUNNING", "HOLD", "POWEROFF", "STOPPED", "UNDEPLOYED", "SUSPENDED"}
 )
 
-type flattenVMPart func(d *schema.ResourceData, vmTemplate *vm.Template) error
-
 func resourceOpennebulaVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create:        resourceOpennebulaVirtualMachineCreate,
@@ -42,19 +40,24 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 		},
 
 		Schema: mergeSchemas(
-			commonInstanceSchema(),
+			commonVMSchemas(),
 			map[string]*schema.Schema{
-				"name": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Computed:    true,
-					Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
-				},
 				"instance": {
 					Type:        schema.TypeString,
 					Computed:    true,
 					Description: "Final name of the VM instance",
 					Deprecated:  "use 'name' instead",
+				},
+				"ip": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Primary IP address assigned by OpenNebula",
+				},
+				"nic": nicVMSchema(),
+				"keep_nic_order": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Force the provider to keep nics order at update.",
 				},
 				"template_id": {
 					Type:        schema.TypeInt,
@@ -63,54 +66,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 					ForceNew:    true,
 					Description: "Id of the VM template to use. Defaults to -1: no template used.",
 				},
-				"pending": {
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Default:     false,
-					Description: "Pending state of the VM during its creation, by default it is set to false",
-				},
-				"timeout": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     3,
-					Description: "Timeout (in minutes) within resource should be available. Default: 3 minutes",
-				},
-				"state": {
-					Type:        schema.TypeInt,
-					Computed:    true,
-					Description: "Current state of the VM",
-				},
-				"lcmstate": {
-					Type:        schema.TypeInt,
-					Computed:    true,
-					Description: "Current LCM state of the VM",
-				},
-				"on_disk_change": {
-					Type:     schema.TypeString,
-					Optional: true,
-					Default:  "swap", //"recreate" or "swap",
-					ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-						value := strings.ToUpper(v.(string))
-						if inArray(value, vmDiskOnChangeValues) == -1 {
-							errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
-						}
-						return
-					},
-				},
-				"disk":          diskVMSchema(),
-				"template_disk": templateDiskVMSchema(),
-				"nic":           nicVMSchema(),
-				"keep_nic_order": {
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Description: "Force the provider to keep nics order at update.",
-				},
 				"template_nic": templateNICVMSchema(),
-				"ip": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "Primary IP address assigned by OpenNebula",
-				},
 			},
 		),
 	}
@@ -246,7 +202,8 @@ func diskVMSchema() *schema.Schema {
 }
 
 func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VMController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var vmc *goca.VMController
 
 	if d.Id() != "" {
@@ -275,7 +232,8 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 }
 
 func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 
 	vmc, err := getVirtualMachineController(d, meta)
@@ -302,7 +260,8 @@ func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	//Call one.template.instantiate only if template_id is defined
 	//otherwise use one.vm.allocate
@@ -325,14 +284,14 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		tplContext, _ := tpl.Template.GetVector(vmk.ContextVec)
 
 		// customize template except for memory and cpu.
-		vmDef, err := generateVm(d, tplContext)
+		vmTpl, err := generateVm(d, tplContext)
 		if err != nil {
 			return err
 		}
 
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
-		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmDef, false)
+		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmTpl.String(), false)
 		if err != nil {
 			return err
 		}
@@ -344,13 +303,13 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			return fmt.Errorf("memory is mandatory as template_id is not used")
 		}
 
-		vmDef, err := generateVm(d, nil)
+		vmTpl, err := generateVm(d, nil)
 		if err != nil {
 			return err
 		}
 
 		// Create VM not in pending state
-		vmID, err = controller.VMs().Create(vmDef, d.Get("pending").(bool))
+		vmID, err = controller.VMs().Create(vmTpl.String(), d.Get("pending").(bool))
 		if err != nil {
 			return err
 		}
@@ -365,7 +324,7 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	}
 
 	timeout := d.Get("timeout").(int)
-	_, err = waitForVMState(vmc, timeout, expectedState)
+	_, err = waitForVMState(vmc, time.Duration(timeout)*time.Minute, expectedState)
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for virtual machine (%s) to be in state %s: %s", d.Id(), expectedState, err)
@@ -423,7 +382,20 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			d.Set("template_nic", []interface{}{})
 		}
 
-		return resourceOpennebulaVirtualMachineReadCustom(d, meta, flattenDiskFunc, flattenNICFunc)
+		return resourceOpennebulaVirtualMachineReadCustom(d, meta, func(d *schema.ResourceData, vmInfos *vm.VM) error {
+
+			err := flattenDiskFunc(d, &vmInfos.Template)
+			if err != nil {
+				return err
+			}
+
+			err = flattenNICFunc(d, &vmInfos.Template)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
 
 	}
 
@@ -433,7 +405,7 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	return resourceOpennebulaVirtualMachineRead(d, meta)
 }
 
-func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta interface{}, flattenVMDisk, flattenVMNIC flattenVMPart) error {
+func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta interface{}, customVM customVMFunc) error {
 	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
 	if err != nil {
 		if NoExists(err) {
@@ -465,14 +437,11 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 		return err
 	}
 
-	err = flattenVMDisk(d, &vm.Template)
-	if err != nil {
-		return err
-	}
-
-	err = flattenVMNIC(d, &vm.Template)
-	if err != nil {
-		return err
+	if customVM != nil {
+		err = customVM(d, vm)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = flattenTemplate(d, &vm.Template)
@@ -498,7 +467,20 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 }
 
 func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	return resourceOpennebulaVirtualMachineReadCustom(d, meta, flattenVMDisk, flattenVMNIC)
+	return resourceOpennebulaVirtualMachineReadCustom(d, meta, func(d *schema.ResourceData, vmInfos *vm.VM) error {
+
+		err := flattenVMDisk(d, &vmInfos.Template)
+		if err != nil {
+			return err
+		}
+
+		err = flattenVMNIC(d, &vmInfos.Template)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) map[string]interface{} {
@@ -908,6 +890,30 @@ func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interfa
 
 func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
+	err := resourceOpennebulaVirtualMachineUpdateCustom(d, meta, customVirtualMachineUpdate)
+	if err != nil {
+		return err
+	}
+
+	return resourceOpennebulaVirtualMachineRead(d, meta)
+}
+
+func customVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+
+	var err error
+
+	if d.HasChange("nic") {
+		err = updateNIC(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta interface{}, customFunc customFunc) error {
+
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
 	if err != nil {
@@ -1033,264 +1039,16 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	if d.HasChange("disk") {
-
-		log.Printf("[INFO] Update disk configuration")
-
-		old, new := d.GetChange("disk")
-		attachedDisksCfg := old.([]interface{})
-		newDisksCfg := new.([]interface{})
-
-		timeout := d.Get("timeout").(int)
-
-		// get unique elements of each list of configs
-		// NOTE: diffListConfig relies on Set, so we may loose list ordering of disks here
-		// it's why we reorder the attach list below
-		toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
-			&schema.Resource{
-				Schema: diskFields(),
-			},
-			"image_id",
-			"target",
-			"driver",
-			"volatile_type",
-			"volatile_format")
-
-		// reorder toAttach disk list according to new disks list order
-		newDisktoAttach := make([]interface{}, len(toAttach))
-		i := 0
-		for _, newDiskIf := range newDisksCfg {
-			newDisk := newDiskIf.(map[string]interface{})
-
-			for _, diskToAttachIf := range toAttach {
-				disk := diskToAttachIf.(map[string]interface{})
-
-				// if disk have the same attributes
-				if (disk["target"] == newDisk["target"]) &&
-					disk["size"] == newDisk["size"] &&
-					disk["driver"] == newDisk["driver"] {
-
-					newDisktoAttach[i] = disk
-					i++
-					break
-				}
-			}
-		}
-		toAttach = newDisktoAttach
-
-		// get disks to resize
-		_, toResize := diffListConfig(newDisksCfg, attachedDisksCfg,
-			&schema.Resource{
-				Schema: diskFields(),
-			},
-			"image_id",
-			"size")
-
-		// Detach the disks
-		for _, diskIf := range toDetach {
-			diskConfig := diskIf.(map[string]interface{})
-
-			// ignore disk without image_id and type
-			if diskConfig["image_id"].(int) == -1 &&
-				len(diskConfig["volatile_type"].(string)) == 0 {
-
-				log.Printf("[INFO] ignore disk without image_id and type")
-				continue
-			}
-
-			diskID := diskConfig["disk_id"].(int)
-
-			err := vmDiskDetach(vmc, timeout, diskID)
-			if err != nil {
-				return fmt.Errorf("vm disk detach: %s", err)
-
-			}
-		}
-
-		// Attach the disks
-		for _, diskIf := range toAttach {
-			diskConfig := diskIf.(map[string]interface{})
-
-			// ignore disk without image_id and type
-			if diskConfig["image_id"].(int) == -1 &&
-				len(diskConfig["volatile_type"].(string)) == 0 {
-
-				log.Printf("[INFO] ignore disk without image_id and type")
-				continue
-			}
-
-			diskTpl := makeDiskVector(diskConfig)
-
-			_, err := vmDiskAttach(vmc, timeout, diskTpl)
-			if err != nil {
-				return fmt.Errorf("vm disk attach: %s", err)
-			}
-		}
-
-		// Resize disks
-		for _, diskIf := range toResize {
-			diskConfig := diskIf.(map[string]interface{})
-
-			// ignore disk without image_id and type
-			if diskConfig["image_id"].(int) == -1 &&
-				len(diskConfig["volatile_type"].(string)) == 0 {
-
-				log.Printf("[INFO] ignore disk without image_id and type")
-				continue
-			}
-
-			// retrieve the the disk_id
-			for _, d := range attachedDisksCfg {
-
-				cfg := d.(map[string]interface{})
-				if diskConfig["image_id"].(int) != cfg["image_id"].(int) ||
-					(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != cfg["computed_target"]) ||
-					(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != cfg["computed_driver"]) ||
-					diskConfig["size"].(int) <= cfg["computed_size"].(int) {
-
-					continue
-				}
-
-				diskID := cfg["disk_id"].(int)
-
-				err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
-				if err != nil {
-					return fmt.Errorf("vm disk resize: %s", err)
-				}
-
-			}
+		err = updateDisk(d, meta)
+		if err != nil {
+			return err
 		}
 	}
 
-	if d.HasChange("nic") {
-
-		log.Printf("[INFO] Update NIC configuration")
-
-		old, new := d.GetChange("nic")
-		attachedNicsCfg := old.([]interface{})
-		newNicsCfg := new.([]interface{})
-
-		timeout := d.Get("timeout").(int)
-
-		// get unique elements of each list of configs
-		// NOTE: diffListConfig relies on Set, so we may loose list ordering of NICs here
-		// it's why we reorder the attach list below
-		toDetach, toAttach := diffListConfig(newNicsCfg, attachedNicsCfg,
-			&schema.Resource{
-				Schema: nicFields(),
-			},
-			"network_id",
-			"ip",
-			"mac",
-			"security_groups",
-			"model",
-			"virtio_queues",
-			"physical_device")
-
-		// in case of NICs updated in the middle of the NIC list
-		// they would be reattached at the end of the list (we don't have in place XML-RPC update method).
-		// keep_nic_order prevent this behavior adding more NICs to detach/attach to keep initial ordering
-		if d.Get("keep_nic_order").(bool) && len(toDetach) > 0 {
-
-			// retrieve the minimal nic ID to detach
-			firstNIC := toDetach[0].(map[string]interface{})
-			minID := firstNIC["nic_id"].(int)
-			for _, nicIf := range toDetach[1:] {
-				nicConfig := nicIf.(map[string]interface{})
-
-				nicID := nicConfig["nic_id"].(int)
-				if nicID < minID {
-					minID = nicID
-				}
-			}
-
-			// NICs with greater nic ID should be detached
-		oldNICLoop:
-			for _, nicIf := range attachedNicsCfg {
-				nicConfig := nicIf.(map[string]interface{})
-
-				// collect greater nic IDs
-				nicID := nicConfig["nic_id"].(int)
-				if nicID > minID {
-
-					// add the nic if not already present in toDetach
-					for _, nicDetachIf := range toDetach {
-						nicDetachConfig := nicDetachIf.(map[string]interface{})
-
-						// nic is already present
-						detachNICID := nicDetachConfig["nic_id"].(int)
-						if detachNICID == nicID {
-							continue oldNICLoop
-						}
-					}
-
-					// add the NIC to detach it
-					toDetach = append(toDetach, nicConfig)
-
-					// add the NIC to reattach it
-					toAttach = append(toAttach, nicConfig)
-				}
-			}
-
-		}
-
-		// reorder toAttach NIC list according to new nics list order
-		newNICtoAttach := make([]interface{}, len(toAttach))
-		i := 0
-		for _, newNICIf := range newNicsCfg {
-			newNIC := newNICIf.(map[string]interface{})
-			newNICSecGroup := newNIC["security_groups"].([]interface{})
-
-			for _, NICToAttachIf := range toAttach {
-				NIC := NICToAttachIf.(map[string]interface{})
-
-				// if NIC have the same attributes
-
-				// compare security_groups
-				NICSecGroup := NIC["security_groups"].([]interface{})
-
-				if ArrayToString(NICSecGroup, ",") != ArrayToString(newNICSecGroup, ",") {
-					continue
-				}
-
-				// compare other attributes
-				if (NIC["ip"] == newNIC["ip"] &&
-					NIC["mac"] == newNIC["mac"]) &&
-					NIC["model"] == newNIC["model"] &&
-					NIC["virtio_queues"] == newNIC["virtio_queues"] &&
-					NIC["physical_device"] == newNIC["physical_device"] {
-
-					newNICtoAttach[i] = NIC
-					i++
-					break
-				}
-			}
-		}
-		toAttach = newNICtoAttach
-
-		// Detach the nics
-		for _, nicIf := range toDetach {
-			nicConfig := nicIf.(map[string]interface{})
-
-			nicID := nicConfig["nic_id"].(int)
-
-			err := vmNICDetach(vmc, timeout, nicID)
-			if err != nil {
-				return fmt.Errorf("vm nic detach: %s", err)
-
-			}
-		}
-
-		// Attach the nics
-		for _, nicIf := range toAttach {
-
-			nicConfig := nicIf.(map[string]interface{})
-
-			nicTpl := makeNICVector(nicConfig)
-
-			_, err := vmNICAttach(vmc, timeout, nicTpl)
-			if err != nil {
-				return fmt.Errorf("vm nic attach: %s", err)
-			}
+	if customFunc != nil {
+		err = customFunc(d, meta)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -1410,7 +1168,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 
 	if updateConf {
 
-		timeout := d.Get("timeout").(int)
+		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
 
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
@@ -1448,6 +1206,284 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	return resourceOpennebulaVirtualMachineRead(d, meta)
+}
+
+func updateDisk(d *schema.ResourceData, meta interface{}) error {
+
+	//Get VM
+	vmc, err := getVirtualMachineController(d, meta)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[INFO] Update disk configuration")
+
+	old, new := d.GetChange("disk")
+	attachedDisksCfg := old.([]interface{})
+	newDisksCfg := new.([]interface{})
+
+	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+
+	// get unique elements of each list of configs
+	// NOTE: diffListConfig relies on Set, so we may loose list ordering of disks here
+	// it's why we reorder the attach list below
+	toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
+		&schema.Resource{
+			Schema: diskFields(),
+		},
+		"image_id",
+		"target",
+		"driver",
+		"volatile_type",
+		"volatile_format")
+
+	// reorder toAttach disk list according to new disks list order
+	newDisktoAttach := make([]interface{}, len(toAttach))
+	i := 0
+	for _, newDiskIf := range newDisksCfg {
+		newDisk := newDiskIf.(map[string]interface{})
+
+		for _, diskToAttachIf := range toAttach {
+			disk := diskToAttachIf.(map[string]interface{})
+
+			// if disk have the same attributes
+			if (disk["target"] == newDisk["target"]) &&
+				disk["size"] == newDisk["size"] &&
+				disk["driver"] == newDisk["driver"] {
+
+				newDisktoAttach[i] = disk
+				i++
+				break
+			}
+		}
+	}
+	toAttach = newDisktoAttach
+
+	// get disks to resize
+	_, toResize := diffListConfig(newDisksCfg, attachedDisksCfg,
+		&schema.Resource{
+			Schema: diskFields(),
+		},
+		"image_id",
+		"size")
+
+	// Detach the disks
+	for _, diskIf := range toDetach {
+		diskConfig := diskIf.(map[string]interface{})
+
+		// ignore disk without image_id and type
+		if diskConfig["image_id"].(int) == -1 &&
+			len(diskConfig["volatile_type"].(string)) == 0 {
+
+			log.Printf("[INFO] ignore disk without image_id and type")
+			continue
+		}
+
+		diskID := diskConfig["disk_id"].(int)
+
+		err := vmDiskDetach(vmc, timeout, diskID)
+		if err != nil {
+			return fmt.Errorf("vm disk detach: %s", err)
+
+		}
+	}
+
+	// Attach the disks
+	for _, diskIf := range toAttach {
+		diskConfig := diskIf.(map[string]interface{})
+
+		// ignore disk without image_id and type
+		if diskConfig["image_id"].(int) == -1 &&
+			len(diskConfig["volatile_type"].(string)) == 0 {
+
+			log.Printf("[INFO] ignore disk without image_id and type")
+			continue
+		}
+
+		diskTpl := makeDiskVector(diskConfig)
+
+		_, err := vmDiskAttach(vmc, timeout, diskTpl)
+		if err != nil {
+			return fmt.Errorf("vm disk attach: %s", err)
+		}
+	}
+
+	// Resize disks
+	for _, diskIf := range toResize {
+		diskConfig := diskIf.(map[string]interface{})
+
+		// ignore disk without image_id and type
+		if diskConfig["image_id"].(int) == -1 &&
+			len(diskConfig["volatile_type"].(string)) == 0 {
+
+			log.Printf("[INFO] ignore disk without image_id and type")
+			continue
+		}
+
+		// retrieve the the disk_id
+		for _, d := range attachedDisksCfg {
+
+			cfg := d.(map[string]interface{})
+			if diskConfig["image_id"].(int) != cfg["image_id"].(int) ||
+				(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != cfg["computed_target"]) ||
+				(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != cfg["computed_driver"]) ||
+				diskConfig["size"].(int) <= cfg["computed_size"].(int) {
+
+				continue
+			}
+
+			diskID := cfg["disk_id"].(int)
+
+			err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
+			if err != nil {
+				return fmt.Errorf("vm disk resize: %s", err)
+			}
+
+		}
+	}
+
+	return nil
+}
+
+func updateNIC(d *schema.ResourceData, meta interface{}) error {
+
+	//Get VM
+	vmc, err := getVirtualMachineController(d, meta)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[INFO] Update NIC configuration")
+
+	old, new := d.GetChange("nic")
+	attachedNicsCfg := old.([]interface{})
+	newNicsCfg := new.([]interface{})
+
+	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+
+	// get unique elements of each list of configs
+	// NOTE: diffListConfig relies on Set, so we may loose list ordering of NICs here
+	// it's why we reorder the attach list below
+	toDetach, toAttach := diffListConfig(newNicsCfg, attachedNicsCfg,
+		&schema.Resource{
+			Schema: nicFields(),
+		},
+		"network_id",
+		"ip",
+		"mac",
+		"security_groups",
+		"model",
+		"virtio_queues",
+		"physical_device")
+
+	// in case of NICs updated in the middle of the NIC list
+	// they would be reattached at the end of the list (we don't have in place XML-RPC update method).
+	// keep_nic_order prevent this behavior adding more NICs to detach/attach to keep initial ordering
+	if d.Get("keep_nic_order").(bool) && len(toDetach) > 0 {
+
+		// retrieve the minimal nic ID to detach
+		firstNIC := toDetach[0].(map[string]interface{})
+		minID := firstNIC["nic_id"].(int)
+		for _, nicIf := range toDetach[1:] {
+			nicConfig := nicIf.(map[string]interface{})
+
+			nicID := nicConfig["nic_id"].(int)
+			if nicID < minID {
+				minID = nicID
+			}
+		}
+
+		// NICs with greater nic ID should be detached
+	oldNICLoop:
+		for _, nicIf := range attachedNicsCfg {
+			nicConfig := nicIf.(map[string]interface{})
+
+			// collect greater nic IDs
+			nicID := nicConfig["nic_id"].(int)
+			if nicID > minID {
+
+				// add the nic if not already present in toDetach
+				for _, nicDetachIf := range toDetach {
+					nicDetachConfig := nicDetachIf.(map[string]interface{})
+
+					// nic is already present
+					detachNICID := nicDetachConfig["nic_id"].(int)
+					if detachNICID == nicID {
+						continue oldNICLoop
+					}
+				}
+
+				// add the NIC to detach it
+				toDetach = append(toDetach, nicConfig)
+
+				// add the NIC to reattach it
+				toAttach = append(toAttach, nicConfig)
+			}
+		}
+
+	}
+
+	// reorder toAttach NIC list according to new nics list order
+	newNICtoAttach := make([]interface{}, len(toAttach))
+	i := 0
+	for _, newNICIf := range newNicsCfg {
+		newNIC := newNICIf.(map[string]interface{})
+		newNICSecGroup := newNIC["security_groups"].([]interface{})
+
+		for _, NICToAttachIf := range toAttach {
+			NIC := NICToAttachIf.(map[string]interface{})
+
+			// if NIC have the same attributes
+
+			// compare security_groups
+			NICSecGroup := NIC["security_groups"].([]interface{})
+
+			if ArrayToString(NICSecGroup, ",") != ArrayToString(newNICSecGroup, ",") {
+				continue
+			}
+
+			// compare other attributes
+			if (NIC["ip"] == newNIC["ip"] &&
+				NIC["mac"] == newNIC["mac"]) &&
+				NIC["model"] == newNIC["model"] &&
+				NIC["virtio_queues"] == newNIC["virtio_queues"] &&
+				NIC["physical_device"] == newNIC["physical_device"] {
+
+				newNICtoAttach[i] = NIC
+				i++
+				break
+			}
+		}
+	}
+	toAttach = newNICtoAttach
+
+	// Detach the nics
+	for _, nicIf := range toDetach {
+		nicConfig := nicIf.(map[string]interface{})
+
+		nicID := nicConfig["nic_id"].(int)
+
+		err := vmNICDetach(vmc, timeout, nicID)
+		if err != nil {
+			return fmt.Errorf("vm nic detach: %s", err)
+
+		}
+	}
+
+	// Attach the nics
+	for _, nicIf := range toAttach {
+
+		nicConfig := nicIf.(map[string]interface{})
+
+		nicTpl := makeNICVector(nicConfig)
+
+		_, err := vmNICAttach(vmc, timeout, nicTpl)
+		if err != nil {
+			return fmt.Errorf("vm nic attach: %s", err)
+		}
+	}
+
+	return nil
 }
 
 // updateVMVec update a vector of an existing VM template
@@ -1496,10 +1532,6 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 }
 
 func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
-	err := resourceOpennebulaVirtualMachineRead(d, meta)
-	if err != nil || d.Id() == "" {
-		return err
-	}
 
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
@@ -1508,7 +1540,7 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	}
 
 	// wait state to be ready
-	timeout := d.Get("timeout").(int)
+	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
 
 	_, err = waitForVMState(vmc, timeout, vmDeleteReadyStates...)
 	if err != nil {
@@ -1520,7 +1552,6 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	//timeout := d.Get("timeout").(int)
 	ret, err := waitForVMState(vmc, timeout, "DONE")
 	if err != nil {
 
@@ -1557,7 +1588,7 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func waitForVMState(vmc *goca.VMController, timeout int, states ...string) (interface{}, error) {
+func waitForVMState(vmc *goca.VMController, timeout time.Duration, states ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
@@ -1603,7 +1634,7 @@ func waitForVMState(vmc *goca.VMController, timeout int, states ...string) (inte
 			}
 
 		},
-		Timeout:    time.Duration(timeout) * time.Minute,
+		Timeout:    timeout,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -1611,7 +1642,25 @@ func waitForVMState(vmc *goca.VMController, timeout int, states ...string) (inte
 	return stateConf.WaitForState()
 }
 
-func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) {
+func waitForVMsStates(c *goca.Controller, vmIDs []int, timeout time.Duration, states ...string) ([]interface{}, []error) {
+
+	errors := make([]error, 0)
+	vmsInfos := make([]interface{}, 0)
+
+	for _, id := range vmIDs {
+		vmInfo, err := waitForVMState(c.VM(id), timeout, states...)
+		if vmInfo != nil {
+			vmsInfos = append(vmsInfos, vmInfo)
+		}
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return vmsInfos, errors
+}
+
+func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, error) {
 
 	tpl := vm.NewTemplate()
 
@@ -1648,13 +1697,10 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (string, error) 
 
 	err := generateVMTemplate(d, tpl)
 	if err != nil {
-		return "", err
+		return tpl, err
 	}
 
-	tplStr := tpl.String()
-	log.Printf("[INFO] VM definition: %s", tplStr)
-
-	return tplStr, nil
+	return tpl, nil
 }
 
 func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {

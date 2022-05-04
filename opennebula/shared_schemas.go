@@ -15,6 +15,56 @@ import (
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
+func commonVMSchemas() map[string]*schema.Schema {
+	return mergeSchemas(
+		commonInstanceSchema(),
+		map[string]*schema.Schema{
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Name of the VM. If empty, defaults to 'templatename-<vmid>'",
+			},
+			"pending": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Pending state of the VM during its creation, by default it is set to false",
+			},
+			"timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     3,
+				Description: "Timeout (in minutes) within resource should be available. Default: 3 minutes",
+			},
+			"state": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Current state of the VM",
+			},
+			"lcmstate": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Current LCM state of the VM",
+			},
+			"on_disk_change": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "swap", //"recreate" or "swap",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := strings.ToUpper(v.(string))
+					if inArray(value, vmDiskOnChangeValues) == -1 {
+						errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
+					}
+					return
+				},
+			},
+			"template_disk": templateDiskVMSchema(),
+			"disk":          diskVMSchema(),
+		},
+	)
+}
+
 func commonInstanceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"cpu":      cpuSchema(),
@@ -487,18 +537,6 @@ func addGraphic(tpl *vm.Template, graphics []interface{}) {
 }
 
 func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
-
-	//Generate NIC definition
-	nics := d.Get("nic").([]interface{})
-	log.Printf("Number of NICs: %d", len(nics))
-
-	for i := 0; i < len(nics); i++ {
-		nicconfig := nics[i].(map[string]interface{})
-
-		nic := makeNICVector(nicconfig)
-		tpl.Elements = append(tpl.Elements, nic)
-
-	}
 
 	//Generate DISK definition
 	disks := d.Get("disk").([]interface{})

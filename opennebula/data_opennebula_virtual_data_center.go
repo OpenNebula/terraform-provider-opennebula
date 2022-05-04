@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	vdcSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vdc"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -26,7 +25,8 @@ func dataOpennebulaVirtualDataCenter() *schema.Resource {
 
 func vdcFilter(d *schema.ResourceData, meta interface{}) (*vdcSc.VDC, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	vdcs, err := controller.VDCs().Info()
 	if err != nil {

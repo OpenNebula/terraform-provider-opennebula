@@ -109,7 +109,8 @@ func resourceOpennebulaServiceTemplate() *schema.Resource {
 }
 
 func resourceOpennebulaServiceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	var err error
 
@@ -225,7 +226,8 @@ func resourceOpennebulaServiceTemplateExists(d *schema.ResourceData, meta interf
 }
 
 func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	//Get Service controller
 	stc, err := getServiceTemplateController(d, meta)
@@ -318,7 +320,8 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 // Helpers
 
 func getServiceTemplateController(d *schema.ResourceData, meta interface{}) (*goca.STemplateController, error) {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var stc *goca.STemplateController
 
 	if d.Id() != "" {
@@ -335,7 +338,8 @@ func getServiceTemplateController(d *schema.ResourceData, meta interface{}) (*go
 }
 
 func changeServiceTemplateGroup(d *schema.ResourceData, meta interface{}, stc *goca.STemplateController) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var gid int
 	var err error
 
@@ -357,7 +361,8 @@ func changeServiceTemplateGroup(d *schema.ResourceData, meta interface{}, stc *g
 }
 
 func changeServiceTemplateOwner(d *schema.ResourceData, meta interface{}, stc *goca.STemplateController) error {
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 	var uid int
 	var err error
 

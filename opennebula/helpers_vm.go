@@ -4,15 +4,28 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// generic dynamic template customization
+type customDynTemplateFunc func(d *schema.ResourceData, tpl *dyn.Template) error
+
+// resource customization
+type customTemplateFunc func(d *schema.ResourceData, tpl *template.Template) error
+type customVMFunc func(d *schema.ResourceData, tpl *vm.VM) error
+
+type customFunc func(d *schema.ResourceData, meta interface{}) error
+
 // vmDiskAttach is an helper that synchronously attach a disk
-func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (int, error) {
+func vmDiskAttach(vmc *goca.VMController, timeout time.Duration, diskTpl *shared.Disk) (int, error) {
 
 	log.Printf("[DEBUG] Attach disk to virtual machine (ID:%d)", vmc.ID)
 
@@ -98,7 +111,7 @@ func vmDiskAttach(vmc *goca.VMController, timeout int, diskTpl *shared.Disk) (in
 }
 
 // vmDiskDetach is an helper that synchronously detach a disk
-func vmDiskDetach(vmc *goca.VMController, timeout int, diskID int) error {
+func vmDiskDetach(vmc *goca.VMController, timeout time.Duration, diskID int) error {
 
 	log.Printf("[DEBUG] Detach disk %d", diskID)
 
@@ -142,7 +155,7 @@ func vmDiskDetach(vmc *goca.VMController, timeout int, diskID int) error {
 }
 
 // vmDiskResize is an helper that synchronously resize a disk
-func vmDiskResize(vmc *goca.VMController, timeout, diskID, newsize int) error {
+func vmDiskResize(vmc *goca.VMController, timeout time.Duration, diskID, newsize int) error {
 
 	log.Printf("[DEBUG] Resize disk %d", diskID)
 
@@ -182,7 +195,7 @@ func vmDiskResize(vmc *goca.VMController, timeout, diskID, newsize int) error {
 }
 
 // vmNICAttach is an helper that synchronously attach a nic
-func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) (int, error) {
+func vmNICAttach(vmc *goca.VMController, timeout time.Duration, nicTpl *shared.NIC) (int, error) {
 
 	networkID, err := nicTpl.GetI(shared.NetworkID)
 	if err != nil {
@@ -273,7 +286,7 @@ func vmNICAttach(vmc *goca.VMController, timeout int, nicTpl *shared.NIC) (int, 
 }
 
 // vmNICDetach is an helper that synchronously detach a NIC
-func vmNICDetach(vmc *goca.VMController, timeout int, nicID int) error {
+func vmNICDetach(vmc *goca.VMController, timeout time.Duration, nicID int) error {
 
 	log.Printf("[DEBUG] Detach NIC %d", nicID)
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	clusterSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/cluster"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -26,7 +25,8 @@ func dataOpennebulaCluster() *schema.Resource {
 
 func clusterFilter(d *schema.ResourceData, meta interface{}) (*clusterSc.Cluster, error) {
 
-	controller := meta.(*goca.Controller)
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	clusters, err := controller.Clusters().Info(false)
 	if err != nil {
