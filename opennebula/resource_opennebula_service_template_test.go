@@ -2,13 +2,13 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"reflect"
 	"strconv"
 	"testing"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmkeys "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -62,7 +62,8 @@ func TestAccServiceTemplate(t *testing.T) {
 }
 
 func testAccCheckServiceTemplateDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "opennebula_service_template" {
@@ -82,7 +83,8 @@ func testAccCheckServiceTemplateDestroy(s *terraform.State) error {
 
 func testAccCheckServiceTemplatePermissions(expected *shared.Permissions) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			stID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
@@ -108,7 +110,8 @@ func testAccCheckServiceTemplatePermissions(expected *shared.Permissions) resour
 }
 
 func setUpServiceTemplateTests() (int, error) {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	templateName := "tf-test-template-service"
 
@@ -126,7 +129,8 @@ func setUpServiceTemplateTests() (int, error) {
 }
 
 func tearDownServiceTemplateTests(vm_tmpl int) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	err := controller.Template(vm_tmpl).Delete()
 	if err != nil {

@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
@@ -151,7 +150,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 }
 
 func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
@@ -184,7 +184,8 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 
 func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
@@ -213,7 +214,8 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 
 func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)

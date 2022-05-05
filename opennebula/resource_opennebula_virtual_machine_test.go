@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	ds "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/datastore"
 	dskeys "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/datastore/keys"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
@@ -541,7 +540,8 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 }
 
 func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		switch rs.Type {
@@ -579,7 +579,8 @@ func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
 func testAccSetDSdummy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if v := os.Getenv("TF_ACC_VM"); v == "1" {
-			controller := testAccProvider.Meta().(*goca.Controller)
+			config := testAccProvider.Meta().(*Configuration)
+			controller := config.Controller
 
 			dstpl := ds.NewTemplate()
 			dstpl.Add(dskeys.TMMAD, "dummy")
@@ -593,7 +594,8 @@ func testAccSetDSdummy() resource.TestCheckFunc {
 
 func testAccCheckVirtualMachinePermissions(expected *shared.Permissions) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			switch rs.Type {

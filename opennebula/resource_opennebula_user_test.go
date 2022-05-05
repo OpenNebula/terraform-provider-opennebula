@@ -7,8 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
 func TestAccUser(t *testing.T) {
@@ -62,7 +60,8 @@ func TestAccUser(t *testing.T) {
 }
 
 func testAccCheckUserDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		userID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)

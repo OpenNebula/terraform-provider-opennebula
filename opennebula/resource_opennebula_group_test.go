@@ -7,8 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
 func TestAccGroup(t *testing.T) {
@@ -115,7 +113,8 @@ func TestAccGroup(t *testing.T) {
 }
 
 func testAccCheckGroupDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		groupID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)

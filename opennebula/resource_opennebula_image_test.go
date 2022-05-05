@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
@@ -111,7 +110,8 @@ func TestAccImage(t *testing.T) {
 }
 
 func testAccCheckImageDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
@@ -130,7 +130,8 @@ func testAccCheckImageDestroy(s *terraform.State) error {
 
 func testAccCheckImagePermissions(expected *shared.Permissions, resourcename string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
