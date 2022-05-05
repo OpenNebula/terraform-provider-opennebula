@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
@@ -161,7 +160,8 @@ func TestAccTemplate(t *testing.T) {
 
 func testAccCheckTemplatePermissions(expected *shared.Permissions) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "opennebula_template" {
@@ -191,7 +191,8 @@ func testAccCheckTemplatePermissions(expected *shared.Permissions) resource.Test
 	}
 }
 func testAccCheckTemplateDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 	var destroy bool
 
 	for _, rs := range s.RootModule().Resources {

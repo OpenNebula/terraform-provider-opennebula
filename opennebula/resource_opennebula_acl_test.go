@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -49,7 +48,8 @@ func TestAccACL(t *testing.T) {
 }
 
 func testAccCheckACLDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 	acls, err := controller.ACLs().Info()
 
 	if err != nil {

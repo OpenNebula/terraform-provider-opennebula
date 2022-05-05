@@ -2,12 +2,11 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"strconv"
 	"testing"
 
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccSecurityGroup(t *testing.T) {
@@ -58,7 +57,8 @@ func TestAccSecurityGroup(t *testing.T) {
 }
 
 func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
@@ -77,7 +77,8 @@ func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
 
 func testAccSecurityGroupRule(ruleidx int, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)

@@ -8,8 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
-	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
 func TestAccVirtualDataCenter(t *testing.T) {
@@ -55,7 +53,8 @@ func TestAccVirtualDataCenter(t *testing.T) {
 }
 
 func testAccCheckVirtualDataCenterDestroy(s *terraform.State) error {
-	controller := testAccProvider.Meta().(*goca.Controller)
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "opennebula_virtual_data_center" {
@@ -75,7 +74,8 @@ func testAccCheckVirtualDataCenterDestroy(s *terraform.State) error {
 
 func testAccCheckVirtualDataCenterGroups(slice []int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "opennebula_virtual_data_center" {
@@ -98,7 +98,8 @@ func testAccCheckVirtualDataCenterGroups(slice []int) resource.TestCheckFunc {
 
 func testAccCheckVirtualDataCenterZones(zoneidx int, expected map[string]interface{}) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		controller := testAccProvider.Meta().(*goca.Controller)
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "opennebula_virtual_data_center" {
