@@ -61,7 +61,7 @@ jobs:
       - run: wget -q -O- https://downloads.opennebula.io/repo/repo.key | sudo apt-key add -
       - run: sudo sh -c 'echo "deb https://downloads.opennebula.io/repo/6.4/Ubuntu/20.04 stable opennebula" > /etc/apt/sources.list.d/opennebula.list'
       - run: sudo apt-get -y update
-      - run: sudo apt-get -y install opennebula opennebula-flow
+      - run: sudo apt-get -y install opennebula opennebula-flow opennebula-node-lxc # opennebula-node-lxc to ensure node dependencies for monitoring are installed
       - run: source ${{ github.workspace }}/.github/scripts/oned.sh
       - run: go install
       - run: go test $(go list ./... | grep -v 'vendor') -v ${TESTARGS} -timeout 120m
