@@ -1,6 +1,4 @@
-
-
-[![Build Status](https://travis-ci.org/OpenNebula/terraform-provider-opennebula.svg?branch=master)](https://travis-ci.org/OpenNebula/terraform-provider-opennebula)
+[![CI](https://github.com/OpenNebula/terraform-provider-opennebula/actions/workflows/ci.yaml/badge.svg)](https://github.com/OpenNebula/terraform-provider-opennebula/actions/workflows/ci.yaml)
 
 <a href="https://terraform.io">
     <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/master/public/img/logo-text.svg" alt="Terraform logo" title="Terraform" height="30" />
