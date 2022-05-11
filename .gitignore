@@ -23,3 +23,5 @@ test.go
 
 
 *.tfstate*
+
+.vscode
