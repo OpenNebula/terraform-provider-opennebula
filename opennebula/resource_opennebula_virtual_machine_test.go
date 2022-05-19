@@ -160,7 +160,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\"123\""),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
@@ -200,7 +200,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.version", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "description", "This is an acceptance test VM"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\"123\""),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
@@ -239,7 +239,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "description", "VM created for provider acceptance tests"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\"123\""),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "timeout", "4"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "gid"),
@@ -859,7 +859,7 @@ resource "opennebula_virtual_machine" "test" {
     env = "dev"
   }
 
-  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+  sched_requirements = "CLUSTER_ID!=\"123\""
 
   timeout = 4
 }
@@ -899,7 +899,7 @@ resource "opennebula_virtual_machine" "test" {
     version = "3"
   }
 
-  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+  sched_requirements = "CLUSTER_ID!=\"123\""
 
   timeout = 4
 }
@@ -938,7 +938,7 @@ resource "opennebula_virtual_machine" "test" {
     customer = "test2"
   }
 
-  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+  sched_requirements = "CLUSTER_ID!=\"123\""
 
   timeout = 4
 }

@@ -1021,33 +1021,17 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	update := false
-	tpl := vm.NewTemplate()
-
-	// copy existing template and re-escape chars if needed
-	for _, e := range vmInfos.UserTemplate.Template.Elements {
-		pair, ok := e.(*dyn.Pair)
-		if ok {
-			// copy a pair
-			escapedValue := strings.ReplaceAll(pair.Value, "\"", "\\\"")
-			tpl.AddPair(e.Key(), escapedValue)
-		} else {
-			// copy a vector
-			vector, _ := e.(*dyn.Vector)
-
-			newVec := tpl.AddVector(e.Key())
-			for _, p := range vector.Pairs {
-				escapedValue := strings.ReplaceAll(p.Value, "\"", "\\\"")
-				newVec.AddPair(p.Key(), escapedValue)
-			}
-		}
+	tpl := &vm.Template{
+		Template: dyn.Template{
+			Elements: vmInfos.UserTemplate.Template.Elements,
+		},
 	}
 
 	if d.HasChange("sched_requirements") {
 		schedRequirements := d.Get("sched_requirements").(string)
 
 		if len(schedRequirements) > 0 {
-			escapedValue := strings.ReplaceAll(schedRequirements, "\"", "\\\"")
-			tpl.Placement(vmk.SchedRequirements, escapedValue)
+			tpl.Placement(vmk.SchedRequirements, schedRequirements)
 		} else {
 			tpl.Del(string(vmk.SchedRequirements))
 		}
@@ -1058,8 +1042,7 @@ func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interfa
 		schedDSRequirements := d.Get("sched_ds_requirements").(string)
 
 		if len(schedDSRequirements) > 0 {
-			escapedValue := strings.ReplaceAll(schedDSRequirements, "\"", "\\\"")
-			tpl.Placement(vmk.SchedDSRequirements, escapedValue)
+			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
 		} else {
 			tpl.Del(string(vmk.SchedDSRequirements))
 		}

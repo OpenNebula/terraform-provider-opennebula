@@ -2,11 +2,12 @@ package opennebula
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
@@ -110,7 +111,7 @@ func TestAccTemplate(t *testing.T) {
 						"virtio_scsi_queues": "1",
 						"acpi":               "YES",
 					}),
-					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "CLUSTER_ID!=\\\"123\\\""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "sched_requirements", "CLUSTER_ID!=\"123\""),
 					resource.TestCheckResourceAttr("opennebula_template.template", "description", "Template created for provider acceptance tests - updated"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
@@ -337,7 +338,7 @@ resource "opennebula_template" "template" {
     version = "2"
   }
 
-  sched_requirements = "CLUSTER_ID!=\\\"123\\\""
+  sched_requirements = "CLUSTER_ID!=\"123\""
 
 }
 `

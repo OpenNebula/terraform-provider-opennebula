@@ -499,16 +499,13 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 
 	schedReq, ok := d.GetOk("sched_requirements")
 	if ok {
-		schedReqStr := strings.ReplaceAll(schedReq.(string), "\"", "\\\"")
-
-		tpl.AddPair("SCHED_REQUIREMENTS", schedReqStr)
+		tpl.AddPair("SCHED_REQUIREMENTS", schedReq.(string))
 
 	}
 
 	schedDSReq, ok := d.GetOk("sched_ds_requirements")
 	if ok {
-		schedDSReqStr := strings.ReplaceAll(schedDSReq.(string), "\"", "\\\"")
-		tpl.AddPair("SCHED_DS_REQUIREMENTS", schedDSReqStr)
+		tpl.AddPair("SCHED_DS_REQUIREMENTS", schedDSReq.(string))
 
 	}
 
