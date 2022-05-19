@@ -459,7 +459,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			timeout := d.Timeout(schema.TimeoutCreate)
 			_, err = waitForVNetworkState(vnc, timeout, "READY")
 			if err != nil {
-				return fmt.Errorf("Error waiting for Image (%s) to be in state READY: %s", d.Id(), err)
+				return fmt.Errorf("Error waiting for virtual network (ID:%s) to be in state READY: %s", d.Id(), err)
 			}
 		}
 
@@ -1223,13 +1223,13 @@ func waitForVNetworkState(vnc *goca.VirtualNetworkController, timeout time.Durat
 				return vNetInfos, "", err
 			}
 
-			log.Printf("Image (ID:%d, name:%s) is currently in state %v", vNetInfos.ID, vNetInfos.Name, state.String())
+			log.Printf("virtual network (ID:%d, name:%s) is currently in state %v", vNetInfos.ID, vNetInfos.Name, state.String())
 
 			switch state {
 			case vn.Ready, vn.LockCreate, vn.LockDelete:
 				return vNetInfos, state.String(), nil
 			case vn.Error:
-				return vNetInfos, state.String(), fmt.Errorf("Image (ID:%d) entered error state.", vNetInfos.ID)
+				return vNetInfos, state.String(), fmt.Errorf("virtual network (ID:%d) entered error state.", vNetInfos.ID)
 			default:
 				return vNetInfos, "anythingelse", nil
 			}
