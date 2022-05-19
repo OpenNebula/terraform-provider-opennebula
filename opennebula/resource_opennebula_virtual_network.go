@@ -6,7 +6,10 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -23,6 +26,9 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 		Exists: resourceOpennebulaVirtualNetworkExists,
 		Update: resourceOpennebulaVirtualNetworkUpdate,
 		Delete: resourceOpennebulaVirtualNetworkDelete,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(3 * time.Minute),
+		},
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -439,6 +445,23 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			return err
 		}
 		vnc = controller.VirtualNetwork(vnetID)
+
+		// virtual network states were introduce with OpenNebula 6.4 release
+		ver, err := controller.SystemVersion()
+		if err != nil {
+			return nil
+		}
+
+		oneVersion, err := version.NewVersion(ver)
+		requiredVersion, err := version.NewVersion("6.4.0")
+
+		if oneVersion.GreaterThan(requiredVersion) {
+			timeout := d.Timeout(schema.TimeoutCreate)
+			_, err = waitForVNetworkState(vnc, timeout, "READY")
+			if err != nil {
+				return fmt.Errorf("Error waiting for Image (%s) to be in state READY: %s", d.Id(), err)
+			}
+		}
 
 		d.SetId(fmt.Sprintf("%v", vnetID))
 
@@ -1176,4 +1199,45 @@ func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interfa
 
 	log.Printf("[INFO] Successfully deleted Vnet\n")
 	return nil
+}
+
+func waitForVNetworkState(vnc *goca.VirtualNetworkController, timeout time.Duration, state ...string) (interface{}, error) {
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"anythingelse"},
+		Target:  state,
+		Refresh: func() (interface{}, string, error) {
+
+			log.Println("Refreshing virtual network state...")
+
+			var vNetInfos *vn.VirtualNetwork
+			vNetInfos, err := vnc.Info(false)
+			if err != nil {
+				if NoExists(err) {
+					return vNetInfos, "notfound", nil
+				}
+				return vNetInfos, "", err
+			}
+			state, err := vNetInfos.State()
+			if err != nil {
+				return vNetInfos, "", err
+			}
+
+			log.Printf("Image (ID:%d, name:%s) is currently in state %v", vNetInfos.ID, vNetInfos.Name, state.String())
+
+			switch state {
+			case vn.Ready, vn.LockCreate, vn.LockDelete:
+				return vNetInfos, state.String(), nil
+			case vn.Error:
+				return vNetInfos, state.String(), fmt.Errorf("Image (ID:%d) entered error state.", vNetInfos.ID)
+			default:
+				return vNetInfos, "anythingelse", nil
+			}
+		},
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	return stateConf.WaitForState()
 }
