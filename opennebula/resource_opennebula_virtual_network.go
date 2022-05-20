@@ -458,7 +458,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		oneVersion, err := version.NewVersion(ver)
 		requiredVersion, err := version.NewVersion("6.4.0")
 
-		if oneVersion.GreaterThan(requiredVersion) {
+		if oneVersion.GreaterThanOrEqual(requiredVersion) {
 			timeout := d.Timeout(schema.TimeoutCreate)
 			_, err = waitForVNetworkState(vnc, timeout, "READY")
 			if err != nil {
