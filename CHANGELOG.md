@@ -4,6 +4,7 @@ NOTES:
 
 * All datasources schemas have been reworked and an independant read method has been added for each.
 * The provider has been migrated to use the SDK v2.
+* OpenNebula binding (goca) dependency has been updated to the 6.4 release.
 
 FEATURES:
 
@@ -20,6 +21,7 @@ ENHANCEMENTS:
 * data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
 * data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
 * resources/opennebula_group: add `sunstone` and `tags` sections
+* resources/opennebula_virtual_network: compatibility added for network states
 
 FEATURES:
 
@@ -39,6 +41,8 @@ BUG FIXES:
 
 * resources/opennebula_security_group: read `name`
 * resources/opennebula_virtual_machine: fix volatile disk update adding `computed_volatile_format`
+* resources/opennebula_virtual_machine: fix template quotes escaping
+* resources/opennebula_template: fix template quotes escaping
 
 ## 0.4.3 (March 23th, 2022)
 
