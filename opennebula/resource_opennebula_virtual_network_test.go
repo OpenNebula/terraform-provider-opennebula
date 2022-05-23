@@ -35,6 +35,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "dns", "172.16.100.1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "gateway", "172.16.100.1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_mask", "255.255.255.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_address", "172.16.100.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "search_domain", "example.com"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
@@ -82,6 +84,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "dns", "172.16.100.254"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "gateway", "172.16.100.254"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_mask", "255.255.0.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_address", "172.16.100.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "search_domain", "example.com"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
@@ -262,6 +266,8 @@ resource "opennebula_virtual_network" "test" {
   gateway         = "172.16.100.1"
   dns             = "172.16.100.1"
   network_mask    = "255.255.255.0"
+  network_address = "172.16.100.0"
+  search_domain   = "example.com"
   ar {
     ar_type = "IP4"
     size    = 16
@@ -298,6 +304,8 @@ resource "opennebula_virtual_network" "test" {
   gateway         = "172.16.100.254"
   dns             = "172.16.100.254"
   network_mask    = "255.255.0.0"
+  network_address = "172.16.100.0"
+  search_domain   = "example.com"
   ar {
     ar_type = "IP4"
     size    = 15

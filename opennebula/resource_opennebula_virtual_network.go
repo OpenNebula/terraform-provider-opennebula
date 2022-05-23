@@ -177,6 +177,20 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Description:   "Network Mask",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
+			"network_address": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				Description:   "Network Address",
+				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+			},
+			"search_domain": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				Description:   "Search Domain",
+				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
+			},
 			"dns": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -224,14 +238,14 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:      true,
 				Computed:      true,
 				Description:   "Create a reservation from this VNET ID",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask", "network_address", "search_domain"},
 			},
 			"reservation_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Computed:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "hold_size", "ip_hold", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask", "network_address", "search_domain"},
 			},
 			"security_groups": {
 				Type:        schema.TypeList,
@@ -750,6 +764,12 @@ func generateVnTemplate(d *schema.ResourceData) (string, error) {
 	if netMask, ok := d.GetOk("network_mask"); ok {
 		tpl.Add(vnk.NetworkMask, netMask.(string))
 	}
+	if netAddr, ok := d.GetOk("network_address"); ok {
+		tpl.Add(vnk.NetworkAddress, netAddr.(string))
+	}
+	if searchDom, ok := d.GetOk("search_domain"); ok {
+		tpl.Add(vnk.SearchDomain, searchDom.(string))
+	}
 	if desc, ok := d.GetOk("description"); ok {
 		tpl.Add("DESCRIPTION", desc.(string))
 	}
@@ -1153,6 +1173,16 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 
 	if d.HasChange("network_mask") {
 		tpl.Add(vnk.NetworkMask, d.Get("network_mask").(string))
+		changes = true
+	}
+
+	if d.HasChange("network_address") {
+		tpl.Add(vnk.NetworkAddress, d.Get("network_address").(string))
+		changes = true
+	}
+
+	if d.HasChange("search_domain") {
+		tpl.Add(vnk.SearchDomain, d.Get("search_domain").(string))
 		changes = true
 	}
 
