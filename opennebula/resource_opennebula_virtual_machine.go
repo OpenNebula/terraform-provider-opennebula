@@ -656,8 +656,8 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 	ip, _ := nic.Get(shared.IP)
 	mac, _ := nic.Get(shared.MAC)
 	physicalDevice, _ := nic.GetStr("PHYDEV")
-	ip6_global, _ := nic.GetStr("IP6_GLOBAL")
-	ip6_link, _ := nic.GetStr("IP6_LINK")
+	ip6Global, _ := nic.GetStr("IP6_GLOBAL")
+	ip6Link, _ := nic.GetStr("IP6_LINK")
 	network, _ := nic.Get(shared.Network)
 
 	model, _ := nic.Get(shared.Model)
@@ -674,8 +674,8 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 		"nic_id":                   nicID,
 		"network":                  network,
 		"computed_ip":              ip,
-		"computed_ip6_global":      ip6_global,
-		"computed_ip6_link":        ip6_link,
+		"computed_ip6_global":      ip6Global,
+		"computed_ip6_link":        ip6Link,
 		"computed_mac":             mac,
 		"computed_physical_device": physicalDevice,
 		"computed_model":           model,
@@ -1447,6 +1447,8 @@ func updateNIC(d *schema.ResourceData, meta interface{}) error {
 		},
 		"network_id",
 		"ip",
+		"ip6_global",
+		"ip6_link",
 		"mac",
 		"security_groups",
 		"model",

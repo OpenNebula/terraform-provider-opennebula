@@ -1465,6 +1465,8 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::1"
 	}
 
 	timeout = 5
@@ -1504,10 +1506,14 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::1"
 	}
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.132"
+		ip6_global = "2001:db8:0:1::2"
+		ip6_link = "fe80::2"
 	}
 
 	timeout = 5
@@ -1547,10 +1553,14 @@ var testAccVirtualMachineTemplateConfigNICUpdate = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::1"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip = "172.16.100.111"
+		ip6_global = "2001:db8:0:1::3"
+		ip6_link = "fe80::3"
 	  }
 	
 	  timeout = 5
@@ -1590,10 +1600,14 @@ var testAccVirtualMachineTemplateConfigNICIPUpdate = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::1"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip = "172.16.100.112"
+		ip6_global = "2001:db8:0:1::4"
+		ip6_link = "fe80::4"
 	  }
 
 
@@ -1635,18 +1649,26 @@ var testAccVirtualMachineTemplateConfigMultipleNICs = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip         = "172.16.100.112"
+		ip6_global = "2001:db8:0:1::3"
+		ip6_link = "fe80::1"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.132"
+		ip6_global = "2001:db8:0:1::2"
+		ip6_link = "fe80::2"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip         = "172.16.100.113"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::3"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.133"
+		ip6_global = "2001:db8:0:1::4"
+		ip6_link = "fe80::4"
 	  }
 	
 	  timeout = 5
@@ -1687,18 +1709,26 @@ var testAccVirtualMachineTemplateConfigMultipleNICsOrderedUpdate = testNICVNetRe
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip         = "172.16.100.112"
+		ip6_global = "2001:db8:0:1::3"
+		ip6_link = "fe80::1"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.134"
+		ip6_global = "2001:db8:0:1::2"
+		ip6_link = "fe80::2"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip         = "172.16.100.113"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::3"
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.133"
+		ip6_global = "2001:db8:0:1::4"
+		ip6_link = "fe80::4"
 	  }
 	
 	  timeout = 5
@@ -1764,6 +1794,8 @@ resource "opennebula_template" "template" {
     nic {
 	  network_id = opennebula_virtual_network.network1.id
 	  ip = "172.16.100.131"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::1"
 	  model = "virtio"
 	  virtio_queues = "2"
     }
@@ -1797,6 +1829,8 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 	  network_id = opennebula_virtual_network.network2.id
 	  ip = "172.16.100.111"
+		ip6_global = "2001:db8:0:1::1"
+		ip6_link = "fe80::1"
 	  model = "virtio"
 	  virtio_queues = "2"
 	}
