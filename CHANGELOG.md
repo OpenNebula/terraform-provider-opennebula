@@ -44,6 +44,8 @@ BUG FIXES:
 * resources/opennebula_virtual_machine: fix volatile disk update adding `computed_volatile_format`
 * resources/opennebula_virtual_machine: fix template quotes escaping
 * resources/opennebula_template: fix template quotes escaping
+* resources/opennebula_template: fix reading and update of `cpu`, `vcpu`, `memory`
+* resources/opennebula_virtual_machine: fix reading of `cpu`, `vcpu`, `memory`
 
 ## 0.4.3 (March 23th, 2022)
 
