@@ -12,6 +12,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	img "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
 	imk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image/keys"
@@ -556,28 +557,46 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	update := false
-	tpl := img.NewTemplate()
+	tpl := image.Template
 
 	if d.HasChange("description") {
-		update = true
-		tpl.Add("DESCRIPTION", d.Get("description").(string))
-	}
+		tpl.Del("DESCRIPTION")
 
-	if update {
-		err = ic.Update(tpl.String(), 1)
-		if err != nil {
-			return err
+		description := d.Get("description").(string)
+
+		if len(description) > 0 {
+			tpl.Add("DESCRIPTION", description)
 		}
+
+		update = true
 	}
 
 	if d.HasChange("tags") {
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, v := range tagsInterface {
-			image.Template.Del(strings.ToUpper(k))
-			image.Template.AddPair(strings.ToUpper(k), v)
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
+			tpl.Del(strings.ToUpper(k))
 		}
 
-		err = ic.Update(image.Template.String(), 1)
+		// add/update tags
+		for k, v := range newTags {
+			tpl.Del(strings.ToUpper(k))
+			tpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		update = true
+	}
+
+	if update {
+		err = ic.Update(tpl.String(), parameters.Replace)
 		if err != nil {
 			return err
 		}
