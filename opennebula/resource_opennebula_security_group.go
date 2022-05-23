@@ -373,25 +373,41 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	tpl := &securitygroup.Template
-	changes := false
+	update := false
+	rulesUpdate := false
 
 	if d.HasChange("rule") && d.Get("rule") != "" {
 
 		tpl.Del((string(sgk.RuleVec)))
 		generateSecurityGroupRules(d, tpl)
-		changes = true
+		rulesUpdate = true
 	}
 
 	if d.HasChange("tags") {
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, v := range tagsInterface {
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
+			tpl.Del(strings.ToUpper(k))
+		}
+
+		// add/update tags
+		for k, v := range newTags {
 			tpl.Del(strings.ToUpper(k))
 			tpl.AddPair(strings.ToUpper(k), v)
 		}
-		changes = true
+
+		update = true
 	}
 
-	if changes {
+	if update {
 		err = sgc.Update(tpl.String(), 0)
 		if err != nil {
 			return err
@@ -400,7 +416,7 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 		log.Printf("[INFO] Successfully updated Security Group template %s\n", securitygroup.Name)
 
 		//Commit changes to running VMs if desired
-		if d.Get("commit") == true {
+		if rulesUpdate && d.Get("commit") == true {
 			// Only update outdated VMs not all
 			err = sgc.Commit(true)
 			if err != nil {
@@ -409,6 +425,7 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 
 			log.Printf("[INFO] Successfully commited Security Group %s changes to outdated Virtual Machines\n", securitygroup.Name)
 		}
+
 	}
 
 	if d.HasChange("name") {
