@@ -449,7 +449,7 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 		return err
 	}
 
-	err = flattenUserTemplate(d, &vm.UserTemplate.Template)
+	err = flattenVMUserTemplate(d, &vm.UserTemplate.Template)
 	if err != nil {
 		return err
 	}

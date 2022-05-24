@@ -47,6 +47,9 @@ resource "opennebula_group" "group" {
             running_vms = 1
         }
     }
+    tags = {
+        environment = "dev"
+    }
 }
 ```
 
