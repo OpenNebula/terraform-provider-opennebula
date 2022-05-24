@@ -51,6 +51,9 @@ resource "opennebula_user" "user" {
             running_vms = 1
         }
     }
+    tags = {
+        environment = "dev"
+    }
 }
 ```
 
@@ -64,6 +67,7 @@ The following arguments are supported:
 * `primary_group` - (Optional) Primary group ID of the User. Defaults to 0 (oneadmin).
 * `groups` - (Optional) List of secondary groups ID of the user.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
+* `tags` - (Optional) Group tags (Key = value)
 
 ### Quotas parameters
 
@@ -111,6 +115,7 @@ The following arguments are supported:
 ## Attribute Reference
 
 The following attribute is exported:
+
 * `id` - ID of the user.
 
 ## Import

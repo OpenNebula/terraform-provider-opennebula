@@ -832,7 +832,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	return nil
 }
 
-func flattenUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template) error {
+func flattenVMUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template) error {
 
 	var err error
 

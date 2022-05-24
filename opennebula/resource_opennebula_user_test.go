@@ -33,6 +33,8 @@ func TestAccUser(t *testing.T) {
 						"vm_quotas.0.cpu":           "4",
 						"vm_quotas.0.memory":        "8192",
 					}),
+					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey1", "testvalue1"),
+					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey2", "testvalue2"),
 				),
 			},
 			{
@@ -53,6 +55,8 @@ func TestAccUser(t *testing.T) {
 						"vm_quotas.0.cpu":           "4",
 						"vm_quotas.0.memory":        "8192",
 					}),
+					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey2", "testvalue2"),
+					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey3", "testvalue3"),
 				),
 			},
 		},
@@ -94,6 +98,10 @@ resource "opennebula_user" "user" {
           memory = 8192
       }
   }
+  tags = {
+	testkey1 = "testvalue1"
+	testkey2 = "testvalue2"
+  }
 }
 `
 
@@ -112,6 +120,10 @@ resource "opennebula_user" "user" {
           cpu = 4
           memory = 8192
       }
+  }
+  tags = {
+	testkey2 = "testvalue2"
+	testkey3 = "testvalue3"
   }
 }
 `

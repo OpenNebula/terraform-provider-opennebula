@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/user"
 )
 
@@ -66,6 +68,7 @@ func resourceOpennebulaUser() *schema.Resource {
 				},
 			},
 			"quotas": quotasSchema(),
+			"tags":   tagsSchema(),
 		},
 	}
 }
@@ -140,6 +143,20 @@ func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	tpl := dyn.NewTemplate()
+
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	if len(tpl.Elements) > 0 {
+		err = uc.Update(tpl.String(), parameters.Merge)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceOpennebulaUserRead(d, meta)
 }
 
@@ -186,6 +203,11 @@ func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	err = flattenUserTemplate(d, &user.Template)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -200,6 +222,35 @@ func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
 	}
 	if len(userGroups) > 0 {
 		err := d.Set("groups", userGroups)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func flattenUserTemplate(d *schema.ResourceData, userTpl *dyn.Template) error {
+
+	tags := make(map[string]interface{})
+	for i, _ := range userTpl.Elements {
+		pair, ok := userTpl.Elements[i].(*dyn.Pair)
+		if !ok {
+			continue
+		}
+
+		if tagsInterface, ok := d.GetOk("tags"); ok {
+			for k, _ := range tagsInterface.(map[string]interface{}) {
+				if strings.ToUpper(k) == pair.Key() {
+					tags[k] = pair.Value
+				}
+			}
+		}
+
+	}
+
+	if len(tags) > 0 {
+		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
@@ -273,6 +324,45 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	userInfos, err := uc.Info(false)
+	if err != nil {
+		return err
+	}
+
+	update := false
+	newTpl := userInfos.Template
+
+	if d.HasChange("tags") {
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
+			newTpl.Del(strings.ToUpper(k))
+		}
+
+		// add/update tags
+		for k, v := range newTags {
+			newTpl.Del(strings.ToUpper(k))
+			newTpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		update = true
+	}
+
+	if update {
+		err = uc.Update(newTpl.String(), parameters.Replace)
+		if err != nil {
+			return err
 		}
 	}
 
