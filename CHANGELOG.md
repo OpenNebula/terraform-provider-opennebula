@@ -24,6 +24,7 @@ ENHANCEMENTS:
 * resources/opennebula_group: add `sunstone` and `tags` sections
 * resources/opennebula_virtual_network: compatibility added for network states
 * resources/opennebula_virtal_machine: enable VM vcpu, cpu and memory update
+* resources/opennebula_user: add `tags` sections
 
 FEATURES:
 
@@ -47,6 +48,8 @@ BUG FIXES:
 * resources/opennebula_template: fix template quotes escaping
 * resources/opennebula_template: fix reading and update of `cpu`, `vcpu`, `memory`
 * resources/opennebula_virtual_machine: fix reading of `cpu`, `vcpu`, `memory`
+* resources/openenbula_image: fix key deletions in `tags`
+* resources/opennebula_security_group: fix key deletions in `tags`
 
 ## 0.4.3 (March 23th, 2022)
 
