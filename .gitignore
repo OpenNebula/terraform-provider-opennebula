@@ -9,6 +9,7 @@ terraform-provider-opennebula
 # Folders
 _obj
 _test
+vendor
 
 _testmain.go
 
