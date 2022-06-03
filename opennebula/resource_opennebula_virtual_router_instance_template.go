@@ -72,7 +72,7 @@ func customVirtualRouterInstanceTemplateRead(ctx context.Context, d *schema.Reso
 			Summary:  "Misconfigured virtual router instance template",
 			Detail:   fmt.Sprintf("the template (ID:%d) doesn't contains the VROUTER=YES tag", tpl.ID),
 		})
-
+		return diags
 	}
 
 	return nil
