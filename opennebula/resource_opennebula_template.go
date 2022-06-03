@@ -1,11 +1,13 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -19,13 +21,13 @@ import (
 
 func resourceOpennebulaTemplate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaTemplateCreate,
-		Read:   resourceOpennebulaTemplateRead,
-		Exists: resourceOpennebulaTemplateExists,
-		Update: resourceOpennebulaTemplateUpdate,
-		Delete: resourceOpennebulaTemplateDelete,
+		CreateContext: resourceOpennebulaTemplateCreate,
+		ReadContext:   resourceOpennebulaTemplateRead,
+		Exists:        resourceOpennebulaTemplateExists,
+		UpdateContext: resourceOpennebulaTemplateUpdate,
+		DeleteContext: resourceOpennebulaTemplateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: mergeSchemas(
 			commonTemplateSchemas(),
@@ -246,8 +248,8 @@ func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) error {
-	err := resourceOpennebulaTemplateCreateCustom(d, meta, func(d *schema.ResourceData, tpl *dyn.Template) error {
+func resourceOpennebulaTemplateCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	diags := resourceOpennebulaTemplateCreateCustom(ctx, d, meta, func(d *schema.ResourceData, tpl *dyn.Template) diag.Diagnostics {
 
 		//Generate NIC definition
 		nics := d.Get("nic").([]interface{})
@@ -263,26 +265,33 @@ func resourceOpennebulaTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		return nil
 	})
 
-	if err != nil {
-		return err
+	if len(diags) > 0 {
+		return diags
 	}
 
-	return resourceOpennebulaTemplateRead(d, meta)
+	return resourceOpennebulaTemplateRead(ctx, d, meta)
 }
 
-func resourceOpennebulaTemplateCreateCustom(d *schema.ResourceData, meta interface{}, customFunc customDynTemplateFunc) error {
+func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.ResourceData, meta interface{}, customFunc customDynTemplateFunc) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	tpl, err := generateTemplate(d)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to generate description",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if customFunc != nil {
-		err = customFunc(d, &tpl.Template)
-		if err != nil {
-			return err
+		customDiags := customFunc(d, &tpl.Template)
+		if len(customDiags) > 0 {
+			return customDiags
 		}
 	}
 
@@ -290,8 +299,12 @@ func resourceOpennebulaTemplateCreateCustom(d *schema.ResourceData, meta interfa
 	log.Printf("[INFO] Template definitions: %s", tplDef)
 	tplID, err := controller.Templates().Create(tplDef)
 	if err != nil {
-		log.Printf("[ERROR] Template creation failed, error: %s", err)
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tc := controller.Template(tplID)
@@ -302,15 +315,24 @@ func resourceOpennebulaTemplateCreateCustom(d *schema.ResourceData, meta interfa
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = tc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] template permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("group") != "" || d.Get("gid") != "" {
 		err = changeTemplateGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -319,33 +341,53 @@ func resourceOpennebulaTemplateCreateCustom(d *schema.ResourceData, meta interfa
 		var level shared.LockLevel
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = tc.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	return nil
 }
 
-func resourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) error {
-	return resourceOpennebulaTemplateReadCustom(d, meta, templateReadCustom)
+func resourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return resourceOpennebulaTemplateReadCustom(ctx, d, meta, templateReadCustom)
 }
 
-func templateReadCustom(d *schema.ResourceData, templateInfos *template.Template) error {
+func templateReadCustom(ctx context.Context, d *schema.ResourceData, templateInfos *template.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	err := flattenTemplateNICs(d, &templateInfos.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten NICs",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil
 }
 
-func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface{}, readCustom customTemplateFunc) error {
+func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.ResourceData, meta interface{}, readCustom customTemplateFunc) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	// Get requested template from all templates
 	tc, err := getTemplateController(d, meta, -2, -1, -1)
 	if err != nil {
@@ -354,7 +396,12 @@ func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface
 			d.SetId("")
 			return nil
 		}
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: fix it after 5.10 release availability
@@ -362,7 +409,12 @@ func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	tpl, err := tc.Info(false, false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", tpl.ID))
@@ -376,7 +428,12 @@ func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface
 
 	err = flattenTemplateDisks(d, &tpl.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template disks",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
@@ -389,25 +446,40 @@ func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface
 
 		err = d.Set("user_inputs", uInputsMap)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if readCustom != nil {
-		err = readCustom(d, tpl)
-		if err != nil {
-			return err
+		customDiags := readCustom(ctx, d, tpl)
+		if len(customDiags) > 0 {
+			return customDiags
 		}
 	}
 
 	err = flattenTemplate(d, &tpl.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenVMUserTemplate(d, &tpl.Template.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	rawVec, _ := tpl.Template.GetVector("RAW")
@@ -426,7 +498,12 @@ func resourceOpennebulaTemplateReadCustom(d *schema.ResourceData, meta interface
 		if _, ok := d.GetOk("raw"); ok {
 			err = d.Set("raw", rawMap)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to set attribute",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -477,26 +554,49 @@ func flattenTemplateDisks(d *schema.ResourceData, tpl *vm.Template) error {
 }
 
 func resourceOpennebulaTemplateExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaTemplateRead(d, meta)
-	if err != nil || d.Id() == "" {
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	serviceTemplateID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.Template(int(serviceTemplateID)).Info(false, false)
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	//Get Template
 	tc, err := getTemplateController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
+
 	// TODO: fix it after 5.10 release availability
 	// Force the "extended" bool to false to keep ONE 5.8 behavior
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	tpl, err := tc.Info(false, false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	lock, lockOk := d.GetOk("lock")
@@ -504,15 +604,24 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 
 		err = tc.Unlock()
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to unlock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
-
 	}
 
 	if d.HasChange("name") {
 		err := tc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		// Update Name in internal struct
 		// TODO: fix it after 5.10 release availability
@@ -520,7 +629,12 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		tpl, err = tc.Info(false, false)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for tpl %s\n", tpl.Name)
 	}
@@ -529,7 +643,12 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = tc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Template %s\n", tpl.Name)
@@ -538,7 +657,12 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 	if d.HasChange("group") {
 		err = changeTemplateGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
 	}
@@ -693,7 +817,12 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 	if update {
 		err = tc.Update(newTpl.String(), parameters.Replace)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -703,37 +832,60 @@ func resourceOpennebulaTemplateUpdateCustom(d *schema.ResourceData, meta interfa
 
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = tc.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	return nil
 }
 
-func resourceOpennebulaTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	err := resourceOpennebulaTemplateUpdateCustom(d, meta)
+	err := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
 	if err != nil {
 		return nil
 	}
 
-	return resourceOpennebulaTemplateRead(d, meta)
+	return resourceOpennebulaTemplateRead(ctx, d, meta)
 }
 
-func resourceOpennebulaTemplateDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaTemplateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	tc, err := getTemplateController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = tc.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	log.Printf("[INFO] Successfully deleted Template ID %s\n", d.Id())

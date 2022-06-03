@@ -1,17 +1,19 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	vnetSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaVirtualNetwork() *schema.Resource {
 	return &schema.Resource{
-		Read: resourceOpennebulaVirtualNetworkRead,
+		ReadContext: datasourceOpennebulaVirtualNetworkRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -74,11 +76,18 @@ func vnetFilter(d *schema.ResourceData, meta interface{}) (*vnetSc.VirtualNetwor
 	return match[0], nil
 }
 
-func datasourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	vnet, err := vnetFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "virtual networks filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(vnet.Template.Template)
@@ -88,14 +97,24 @@ func datasourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interfa
 
 	mtu, err := vnet.Template.GetI("MTU")
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to get MTU attribute",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.Set("mtu", mtu)
 
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

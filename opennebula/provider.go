@@ -1,9 +1,10 @@
 package opennebula
 
 import (
-	"fmt"
+	"context"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -70,7 +71,7 @@ func Provider() *schema.Provider {
 			"opennebula_virtual_router_nic":               resourceOpennebulaVirtualRouterNIC(),
 		},
 
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
@@ -80,21 +81,35 @@ type Configuration struct {
 	mutex      MutexKV
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+
+	var diags diag.Diagnostics
 
 	username, ok := d.GetOk("username")
 	if !ok {
-		return nil, fmt.Errorf("username should be defined")
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "username should be defined",
+		})
+		return nil, diags
 	}
 
 	password, ok := d.GetOk("password")
 	if !ok {
-		return nil, fmt.Errorf("password should be defined")
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "password should be defined",
+		})
+		return nil, diags
 	}
 
 	endpoint, ok := d.GetOk("endpoint")
 	if !ok {
-		return nil, fmt.Errorf("endpoint should be defined")
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "endpoint should be defined",
+		})
+		return nil, diags
 	}
 
 	oneClient := goca.NewDefaultClient(goca.NewConfig(username.(string),
@@ -103,7 +118,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	version, err := goca.NewController(oneClient).SystemVersion()
 	if err != nil {
-		return nil, err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create OpenNebula controller",
+		})
+		return nil, diags
 	}
 
 	log.Printf("[INFO] OpenNebula version: %s", version)

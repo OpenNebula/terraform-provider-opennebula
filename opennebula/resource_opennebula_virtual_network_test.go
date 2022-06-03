@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestAccVirtualNetwork(t *testing.T) {
-	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network \\[25\\]")
+	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -175,7 +176,8 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 			MinTimeout: 3 * time.Second,
 		}
 
-		_, err := stateConf.WaitForState()
+		_, err := stateConf.WaitForStateContext(context.Background())
+
 		return err
 	}
 

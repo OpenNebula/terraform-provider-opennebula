@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -31,11 +32,11 @@ var (
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {
 	return &schema.Resource{
-		Create:        resourceOpennebulaVirtualMachineCreate,
-		Read:          resourceOpennebulaVirtualMachineRead,
+		CreateContext: resourceOpennebulaVirtualMachineCreate,
+		ReadContext:   resourceOpennebulaVirtualMachineRead,
 		Exists:        resourceOpennebulaVirtualMachineExists,
-		Update:        resourceOpennebulaVirtualMachineUpdate,
-		Delete:        resourceOpennebulaVirtualMachineDelete,
+		UpdateContext: resourceOpennebulaVirtualMachineUpdate,
+		DeleteContext: resourceOpennebulaVirtualMachineDelete,
 		CustomizeDiff: resourceVMCustomizeDiff,
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(defaultVMTimeout),
@@ -43,7 +44,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 			Delete: schema.DefaultTimeout(defaultVMTimeout),
 		},
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: mergeSchemas(
@@ -266,9 +267,11 @@ func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
+
+	var diags diag.Diagnostics
 
 	//Call one.template.instantiate only if template_id is defined
 	//otherwise use one.vm.allocate
@@ -285,7 +288,12 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		// retrieve the context of the template
 		tpl, err := tc.Info(true, false)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		tplContext, _ := tpl.Template.GetVector(vmk.ContextVec)
@@ -293,32 +301,63 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		// customize template except for memory and cpu.
 		vmTpl, err := generateVm(d, tplContext)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
 		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmTpl.String(), false)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to instantiate the template",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	} else {
 		if _, ok := d.GetOk("cpu"); !ok {
-			return fmt.Errorf("cpu is mandatory as template_id is not used")
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "cpu is not defined",
+				Detail:   "cpu is mandatory when template_id is not defined",
+			})
 		}
 		if _, ok := d.GetOk("memory"); !ok {
-			return fmt.Errorf("memory is mandatory as template_id is not used")
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "memory is not defined",
+				Detail:   "memory is mandatory when template_id is not defined",
+			})
+		}
+		if len(diags) > 0 {
+			return diags
 		}
 
 		vmTpl, err := generateVm(d, nil)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		// Create VM not in pending state
 		vmID, err = controller.VMs().Create(vmTpl.String(), d.Get("pending").(bool))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -334,26 +373,40 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	if timeout == defaultVMTimeout {
 		timeout = d.Timeout(schema.TimeoutCreate)
 	}
-	_, err = waitForVMState(vmc, time.Duration(timeout)*time.Minute, expectedState)
+	_, err = waitForVMState(ctx, vmc, timeout, expectedState)
 	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for virtual machine (%s) to be in state %s: %s", d.Id(), expectedState, err)
-
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", expectedState),
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = vmc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] template permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+
+				Detail: err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("group") != "" || d.Get("gid") != "" {
 		err = changeVmGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+
+				Detail: err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -362,12 +415,22 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		var level shared.LockLevel
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = vmc.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -392,18 +455,27 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 			d.Set("template_nic", []interface{}{})
 		}
 
-		return resourceOpennebulaVirtualMachineReadCustom(d, meta, func(d *schema.ResourceData, vmInfos *vm.VM) error {
+		return resourceOpennebulaVirtualMachineReadCustom(ctx, d, meta, func(ctx context.Context, d *schema.ResourceData, vmInfos *vm.VM) diag.Diagnostics {
 
 			err := flattenDiskFunc(d, &vmInfos.Template)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to flatten disks",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 
 			err = flattenNICFunc(d, &vmInfos.Template)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to flatten NICs",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
-
 			return nil
 		})
 
@@ -412,10 +484,13 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 	d.Set("template_nic", []interface{}{})
 	d.Set("template_disk", []interface{}{})
 
-	return resourceOpennebulaVirtualMachineRead(d, meta)
+	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
-func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta interface{}, customVM customVMFunc) error {
+func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.ResourceData, meta interface{}, customVM customVMFunc) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
 	if err != nil {
 		if NoExists(err) {
@@ -423,16 +498,26 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 			d.SetId("")
 			return nil
 		}
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
+
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vm, err := vmc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
-
 	d.SetId(fmt.Sprintf("%v", vm.ID))
 	d.Set("name", vm.Name)
 	d.Set("uid", vm.UID)
@@ -444,29 +529,49 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 	//TODO fix this:
 	err = d.Set("permissions", permissionsUnixString(*vm.Permissions))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set attribute",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if customVM != nil {
-		err = customVM(d, vm)
-		if err != nil {
-			return err
+		customDiags := customVM(ctx, d, vm)
+		if len(customDiags) > 0 {
+			return customDiags
 		}
 	}
 
 	err = flattenTemplate(d, &vm.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenVMUserTemplate(d, &vm.UserTemplate.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenTags(d, &vm.UserTemplate)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten tags",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if vm.LockInfos != nil {
@@ -476,17 +581,28 @@ func resourceOpennebulaVirtualMachineReadCustom(d *schema.ResourceData, meta int
 	return nil
 }
 
-func resourceOpennebulaVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	return resourceOpennebulaVirtualMachineReadCustom(d, meta, func(d *schema.ResourceData, vmInfos *vm.VM) error {
+func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return resourceOpennebulaVirtualMachineReadCustom(ctx, d, meta, func(ctx context.Context, d *schema.ResourceData, vmInfos *vm.VM) diag.Diagnostics {
+
+		var diags diag.Diagnostics
 
 		err := flattenVMDisk(d, &vmInfos.Template)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to flatten disks",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
-
 		err = flattenVMNIC(d, &vmInfos.Template)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to flatten NICs",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		return nil
@@ -889,52 +1005,77 @@ func flattenTags(d *schema.ResourceData, vmUserTpl *vm.UserTemplate) error {
 }
 
 func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaVirtualMachineRead(d, meta)
-	// a terminated VM is in state 6 (DONE)
-	if err != nil || d.Id() == "" || d.Get("state").(int) == 6 {
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	serviceTemplateID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.VM(int(serviceTemplateID)).Info(false)
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	err := resourceOpennebulaVirtualMachineUpdateCustom(d, meta, customVirtualMachineUpdate)
+	err := resourceOpennebulaVirtualMachineUpdateCustom(ctx, d, meta, customVirtualMachineUpdate)
 	if err != nil {
 		return err
 	}
 
-	return resourceOpennebulaVirtualMachineRead(d, meta)
+	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
-func customVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+func customVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	var err error
+	var diags diag.Diagnostics
 
 	if d.HasChange("nic") {
-		err = updateNIC(d, meta)
+		err := updateNIC(ctx, d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update NIC",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	return nil
 }
 
-func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta interface{}, customFunc customFunc) error {
+func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema.ResourceData, meta interface{}, customFunc customFunc) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vmInfos, err := vmc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	lock, lockOk := d.GetOk("lock")
@@ -942,18 +1083,36 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 
 		err = vmc.Unlock()
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to unlock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.HasChange("name") {
 		err := vmc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		// TODO: fix it after 5.10 release
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		vmInfos, err := vmc.Info(false)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 		log.Printf("[INFO] Successfully updated name (%s) for VM ID %x\n", vmInfos.Name, vmInfos.ID)
 	}
 
@@ -961,7 +1120,12 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = vmc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Permissions VM %s\n", vmInfos.Name)
@@ -970,7 +1134,12 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 	if d.HasChange("group") {
 		err := changeVmGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change VM group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated group for VM %s\n", vmInfos.Name)
 	}
@@ -1044,21 +1213,31 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 	if update {
 		err = vmc.Update(tpl.String(), parameters.Replace)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.HasChange("disk") {
-		err = updateDisk(d, meta)
+		err = updateDisk(ctx, d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update disk",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if customFunc != nil {
-		err = customFunc(d, meta)
-		if err != nil {
-			return err
+		customDiags := customFunc(ctx, d, meta)
+		if len(customDiags) > 0 {
+			return customDiags
 		}
 	}
 
@@ -1098,7 +1277,12 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 
 				err := updateVMTemplateVec(tpl, "OS", appliedOS, newOS)
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to update OS vector",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 		}
@@ -1129,7 +1313,12 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 
 				updateVMTemplateVec(tpl, "GRAPHICS", appliedGraphics, newGraphics)
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to update GRAPHICS vector",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 		}
@@ -1170,13 +1359,19 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 			} else {
 				updateVMTemplateVec(tpl, "CONTEXT", appliedContext, newContext)
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to update CONTEXT vector",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 		}
 	}
 
 	if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {
+
 		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
 		if timeout == defaultVMTimeout {
 			timeout = d.Timeout(schema.TimeoutUpdate)
@@ -1191,13 +1386,21 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 				err = vmc.Poweroff()
 			}
 			if err != nil {
-				return fmt.Errorf(
-					"Poweroff for virtual machine (ID:%d) failed: %s", vmc.ID, err)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to power off",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
-			_, err = waitForVMState(vmc, timeout, "POWEROFF")
+			_, err = waitForVMState(ctx, vmc, timeout, "POWEROFF")
 			if err != nil {
-				return fmt.Errorf(
-					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "POWEROFF", err)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to wait virtual machine to be in POWEROFF state",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -1219,20 +1422,32 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 
 		err = vmc.Resize(resizeTpl.String(), true)
 		if err != nil {
-			return fmt.Errorf(
-				"resizing for virtual machine (ID:%d) failed: %s", vmc.ID, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to resize",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		if vmRequireShutdown {
 			err = vmc.Resume()
 			if err != nil {
-				return fmt.Errorf(
-					"resume virtual machine (ID:%d) failed: %s", vmc.ID, err)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to resume",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
-			_, err = waitForVMState(vmc, timeout, "RUNNING")
+			_, err = waitForVMState(ctx, vmc, timeout, "RUNNING")
 			if err != nil {
-				return fmt.Errorf(
-					"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, "RUNNING", err)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to wait virtual machine to be in RUNNING state",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully resized VM %s\n", vmInfos.Name)
@@ -1245,23 +1460,36 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 			timeout = d.Timeout(schema.TimeoutUpdate)
 		}
 
-		_, err = waitForVMState(vmc, timeout, "RUNNING")
+		_, err = waitForVMState(ctx, vmc, timeout, "RUNNING")
 		if err != nil {
-			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state RUNNING: %s", vmc.ID, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to wait virtual machine to be in RUNNING state",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
 
 		err := vmc.UpdateConf(tpl.String())
 		if err != nil {
-			return fmt.Errorf("vm updateconf: %s", err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
-		_, err = waitForVMState(vmc, timeout, "RUNNING")
+		_, err = waitForVMState(ctx, vmc, timeout, "RUNNING")
 		if err != nil {
-			return fmt.Errorf(
-				"waiting for virtual machine (ID:%d) to be in state RUNNING: %s", vmc.ID, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to wait virtual machine to be in RUNNING state",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -1271,19 +1499,28 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
-
 		err = vmc.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaVirtualMachineRead(d, meta)
+	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
-func updateDisk(d *schema.ResourceData, meta interface{}) error {
+func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
@@ -1359,7 +1596,7 @@ func updateDisk(d *schema.ResourceData, meta interface{}) error {
 
 		diskID := diskConfig["disk_id"].(int)
 
-		err := vmDiskDetach(vmc, timeout, diskID)
+		err := vmDiskDetach(ctx, vmc, timeout, diskID)
 		if err != nil {
 			return fmt.Errorf("vm disk detach: %s", err)
 
@@ -1380,7 +1617,7 @@ func updateDisk(d *schema.ResourceData, meta interface{}) error {
 
 		diskTpl := makeDiskVector(diskConfig)
 
-		_, err := vmDiskAttach(vmc, timeout, diskTpl)
+		_, err := vmDiskAttach(ctx, vmc, timeout, diskTpl)
 		if err != nil {
 			return fmt.Errorf("vm disk attach: %s", err)
 		}
@@ -1412,7 +1649,7 @@ func updateDisk(d *schema.ResourceData, meta interface{}) error {
 
 			diskID := cfg["disk_id"].(int)
 
-			err := vmDiskResize(vmc, timeout, diskID, diskConfig["size"].(int))
+			err := vmDiskResize(ctx, vmc, timeout, diskID, diskConfig["size"].(int))
 			if err != nil {
 				return fmt.Errorf("vm disk resize: %s", err)
 			}
@@ -1423,7 +1660,7 @@ func updateDisk(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func updateNIC(d *schema.ResourceData, meta interface{}) error {
+func updateNIC(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
@@ -1544,7 +1781,7 @@ func updateNIC(d *schema.ResourceData, meta interface{}) error {
 
 		nicID := nicConfig["nic_id"].(int)
 
-		err := vmNICDetach(vmc, timeout, nicID)
+		err := vmNICDetach(ctx, vmc, timeout, nicID)
 		if err != nil {
 			return fmt.Errorf("vm nic detach: %s", err)
 
@@ -1558,7 +1795,7 @@ func updateNIC(d *schema.ResourceData, meta interface{}) error {
 
 		nicTpl := makeNICVector(nicConfig)
 
-		_, err := vmNICAttach(vmc, timeout, nicTpl)
+		_, err := vmNICAttach(ctx, vmc, timeout, nicTpl)
 		if err != nil {
 			return fmt.Errorf("vm nic attach: %s", err)
 		}
@@ -1612,12 +1849,19 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 	return nil
 }
 
-func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// wait state to be ready
@@ -1626,10 +1870,14 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 		timeout = d.Timeout(schema.TimeoutUpdate)
 	}
 
-	_, err = waitForVMState(vmc, timeout, vmDeleteReadyStates...)
+	_, err = waitForVMState(ctx, vmc, timeout, vmDeleteReadyStates...)
 	if err != nil {
-		return fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDeleteReadyStates, " "), err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(vmDeleteReadyStates, " ")),
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.Get("hard_shutdown").(bool) {
@@ -1638,11 +1886,15 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 		err = vmc.Terminate()
 	}
 	if err != nil {
-		return fmt.Errorf(
-			"Terminate VM (ID:%d) failed: %s", vmc.ID, err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to terminate",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
-	ret, err := waitForVMState(vmc, timeout, "DONE")
+	ret, err := waitForVMState(ctx, vmc, timeout, "DONE")
 	if err != nil {
 
 		log.Printf("[WARN] %s\n", err)
@@ -1663,18 +1915,33 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 					err = vmc.Terminate()
 				}
 				if err != nil {
-					return fmt.Errorf(
-						"Terminate VM (ID:%d) failed: %s", vmc.ID, err)
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to terminate",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 
-				_, err = waitForVMState(vmc, timeout, "DONE")
+				_, err = waitForVMState(ctx, vmc, timeout, "DONE")
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to wait virtual machine to be in DONE state",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 
 			} else {
-				return fmt.Errorf(
-					"Error waiting for virtual machine (%s) to be in state DONE: %s (state: %v, lcmState: %v)", d.Id(), err, vmState, vmLcmState)
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to wait virtual machine to be in DONE state",
+						Detail:   err.Error(),
+					})
+					return diags
+				}
 			}
 		}
 	}
@@ -1683,7 +1950,7 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func waitForVMState(vmc *goca.VMController, timeout time.Duration, states ...string) (interface{}, error) {
+func waitForVMState(ctx context.Context, vmc *goca.VMController, timeout time.Duration, states ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
@@ -1734,16 +2001,17 @@ func waitForVMState(vmc *goca.VMController, timeout time.Duration, states ...str
 		MinTimeout: 3 * time.Second,
 	}
 
-	return stateConf.WaitForState()
+	return stateConf.WaitForStateContext(ctx)
+
 }
 
-func waitForVMsStates(c *goca.Controller, vmIDs []int, timeout time.Duration, states ...string) ([]interface{}, []error) {
+func waitForVMsStates(ctx context.Context, c *goca.Controller, vmIDs []int, timeout time.Duration, states ...string) ([]interface{}, []error) {
 
 	errors := make([]error, 0)
 	vmsInfos := make([]interface{}, 0)
 
 	for _, id := range vmIDs {
-		vmInfo, err := waitForVMState(c.VM(id), timeout, states...)
+		vmInfo, err := waitForVMState(ctx, c.VM(id), timeout, states...)
 		if vmInfo != nil {
 			vmsInfos = append(vmsInfos, vmInfo)
 		}

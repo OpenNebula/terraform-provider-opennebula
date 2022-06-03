@@ -1,12 +1,14 @@
 package opennebula
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -19,12 +21,12 @@ var authTypes = []string{"core", "public", "ssh", "x509", "ldap", "server_cipher
 
 func resourceOpennebulaUser() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaUserCreate,
-		Read:   resourceOpennebulaUserRead,
-		Update: resourceOpennebulaUserUpdate,
-		Delete: resourceOpennebulaUserDelete,
+		CreateContext: resourceOpennebulaUserCreate,
+		ReadContext:   resourceOpennebulaUserRead,
+		UpdateContext: resourceOpennebulaUserUpdate,
+		DeleteContext: resourceOpennebulaUserDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -99,9 +101,11 @@ func getUserController(d *schema.ResourceData, meta interface{}) (*goca.UserCont
 	return uc, nil
 }
 
-func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
+
+	var diags diag.Diagnostics
 
 	userName := d.Get("name").(string)
 	userAuthDriver := d.Get("auth_driver").(string)
@@ -109,7 +113,12 @@ func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) erro
 	if userAuthDriver != "ldap" {
 		userPassword_interface, ok := d.GetOk("password")
 		if !ok {
-			return fmt.Errorf("Password cannot be empty if auth_driver is: %s", userAuthDriver)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Empty password",
+				Detail:   fmt.Sprintf("Password cannot be empty if auth_driver is: %s", userAuthDriver),
+			})
+			return diags
 		}
 		userPassword = userPassword_interface.(string)
 	}
@@ -126,7 +135,12 @@ func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) erro
 
 	userID, err := controller.Users().Create(userName, userPassword, userAuthDriver, userGroups)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.SetId(fmt.Sprintf("%v", userID))
 
@@ -135,11 +149,21 @@ func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) erro
 	if _, ok := d.GetOk("quotas"); ok {
 		quotasStr, err := generateQuotas(d)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate quotas description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = uc.Quota(quotasStr)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to apply quotas",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -153,14 +177,22 @@ func resourceOpennebulaUserCreate(d *schema.ResourceData, meta interface{}) erro
 	if len(tpl.Elements) > 0 {
 		err = uc.Update(tpl.String(), parameters.Merge)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaUserRead(d, meta)
+	return resourceOpennebulaUserRead(ctx, d, meta)
 }
 
-func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	uc, err := getUserController(d, meta)
 	if err != nil {
 		if NoExists(err) {
@@ -168,14 +200,27 @@ func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error 
 			d.SetId("")
 			return nil
 		}
-		return err
+
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	user, err := uc.Info(false)
 	if err != nil {
-		return err
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 	}
 
 	d.SetId(strconv.FormatUint(uint64(user.ID), 10))
@@ -187,7 +232,14 @@ func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error 
 	if fmt.Sprintf("%x", sum) == user.Password {
 		d.Set("password", password)
 	} else {
-		return fmt.Errorf("password doesn't match")
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Password doesn't match",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 	}
 
 	d.Set("auth_driver", user.AuthDriver)
@@ -195,17 +247,32 @@ func resourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error 
 
 	err = flattenUserGroups(d, user)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten groups",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenQuotasMapFromStructs(d, &user.QuotasList)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten quotas",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenUserTemplate(d, &user.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil
@@ -259,17 +326,30 @@ func flattenUserTemplate(d *schema.ResourceData, userTpl *dyn.Template) error {
 	return nil
 }
 
-func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	uc, err := getUserController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("password") {
 		// update password
 		err = uc.Passwd(d.Get("password").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update password",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -277,7 +357,12 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 		// Erase previous authentication driver, let password unchanged
 		err = uc.Chauth(d.Get("auth_driver").(string), "")
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change authentication driver",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -285,7 +370,12 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 		// change the primary group of the User
 		err = uc.Chgrp(d.Get("primary_group").(int))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -300,7 +390,12 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 			}
 			err = uc.DelGroup(g.(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to delete group",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		for _, g := range nGroups {
@@ -309,7 +404,12 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 			}
 			err = uc.AddGroup(g.(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add group",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -318,18 +418,35 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 		if _, ok := d.GetOk("quotas"); ok {
 			quotasStr, err := generateQuotas(d)
 			if err != nil {
-				return err
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to generate quotas description",
+						Detail:   err.Error(),
+					})
+					return diags
+				}
 			}
 			err = uc.Quota(quotasStr)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed apply quotas",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
 
 	userInfos, err := uc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	update := false
@@ -362,22 +479,40 @@ func resourceOpennebulaUserUpdate(d *schema.ResourceData, meta interface{}) erro
 	if update {
 		err = uc.Update(newTpl.String(), parameters.Replace)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaUserRead(d, meta)
+	return resourceOpennebulaUserRead(ctx, d, meta)
 }
 
-func resourceOpennebulaUserDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	gc, err := getUserController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to update controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = gc.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil

@@ -1,16 +1,18 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	templateSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaTemplate() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaTemplateRead,
+		ReadContext: datasourceOpennebulaTemplateRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -130,11 +132,18 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 	return match[0], nil
 }
 
-func datasourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	template, err := templateFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "templates filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(template.Template.Template)
@@ -144,41 +153,76 @@ func datasourceOpennebulaTemplateRead(d *schema.ResourceData, meta interface{}) 
 
 	cpu, err := template.Template.GetCPU()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to get CPU",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.Set("cpu", cpu)
 
 	vcpu, err := template.Template.GetVCPU()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to get VCPU",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.Set("vcpu", vcpu)
 
 	memory, err := template.Template.GetMemory()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to get memory",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.Set("memory", memory)
 
 	err = flattenTemplateDisks(d, &template.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to flatten disks",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenTemplateNICs(d, &template.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to flatten NICs",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenTemplateVMGroup(d, &template.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to flatten VM groups",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

@@ -1,16 +1,18 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	imageSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/image"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaImage() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaImageRead,
+		ReadContext: datasourceOpennebulaImageRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -62,11 +64,18 @@ func imageFilter(d *schema.ResourceData, meta interface{}) (*imageSc.Image, erro
 	return match[0], nil
 }
 
-func datasourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	image, err := imageFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "images filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(image.Template.Template)
@@ -77,7 +86,12 @@ func datasourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) err
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

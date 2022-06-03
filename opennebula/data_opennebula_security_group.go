@@ -1,16 +1,18 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	secgroup "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/securitygroup"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaSecurityGroup() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaSecurityGroupRead,
+		ReadContext: datasourceOpennebulaSecurityGroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -62,11 +64,18 @@ func securityGroupFilter(d *schema.ResourceData, meta interface{}) (*secgroup.Se
 	return match[0], nil
 }
 
-func datasourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	securityGroup, err := securityGroupFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "security groups filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(securityGroup.Template.Template)
@@ -77,7 +86,12 @@ func datasourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interfac
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

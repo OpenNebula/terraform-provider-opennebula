@@ -1,16 +1,18 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	vmGroupSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaVMGroup() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaVMGroupRead,
+		ReadContext: datasourceOpennebulaVMGroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -62,11 +64,18 @@ func vmGroupFilter(d *schema.ResourceData, meta interface{}) (*vmGroupSc.VMGroup
 	return match[0], nil
 }
 
-func datasourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	vmGroup, err := vmGroupFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "VM groups filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(vmGroup.Template)
@@ -77,7 +86,12 @@ func datasourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) e
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

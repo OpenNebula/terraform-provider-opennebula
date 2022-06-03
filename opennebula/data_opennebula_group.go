@@ -1,17 +1,19 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	groupSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/group"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaGroup() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaGroupRead,
+		ReadContext: datasourceOpennebulaGroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -76,14 +78,21 @@ func groupFilter(d *schema.ResourceData, meta interface{}) (*groupSc.GroupShort,
 	return match[0], nil
 }
 
-func datasourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	group, err := groupFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "groups filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(group.Template)
@@ -94,7 +103,12 @@ func datasourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) err
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -116,27 +130,47 @@ func datasourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) err
 		if len(appliedUserIDs) > 0 {
 			err := d.Set("users", appliedUserIDs)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "setting attribute failed",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
 
 	err = d.Set("admins", group.Admins.ID)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "setting attribute failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: Remove this part in release 0.6.0, this additional request is only
 	// here to retrieve the quotas information
 	groupInfo, err := controller.Group(group.ID).Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "group info error",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if _, ok := d.GetOk("quotas"); ok {
 		err = flattenQuotasMapFromStructs(d, &groupInfo.QuotasList)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "failed to flatten quotas",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

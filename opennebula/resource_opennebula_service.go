@@ -1,12 +1,14 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -16,13 +18,13 @@ import (
 
 func resourceOpennebulaService() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaServiceCreate,
-		Read:   resourceOpennebulaServiceRead,
-		Exists: resourceOpennebulaServiceExists,
-		Update: resourceOpennebulaServiceUpdate,
-		Delete: resourceOpennebulaServiceDelete,
+		CreateContext: resourceOpennebulaServiceCreate,
+		ReadContext:   resourceOpennebulaServiceRead,
+		Exists:        resourceOpennebulaServiceExists,
+		UpdateContext: resourceOpennebulaServiceUpdate,
+		DeleteContext: resourceOpennebulaServiceDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -142,12 +144,13 @@ func resourceOpennebulaService() *schema.Resource {
 	}
 }
 
-func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
 	var err error
 	var serviceID int
+	var diags diag.Diagnostics
 
 	// if template id is set, instantiate a Service from this template
 	tc := controller.STemplate(d.Get("template_id").(int))
@@ -160,7 +163,12 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	// Instantiate template
 	service, err := tc.Instantiate(extra_template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to instantiate service",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	serviceID = service.ID
@@ -172,53 +180,86 @@ func resourceOpennebulaServiceCreate(d *schema.ResourceData, meta interface{}) e
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = sc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] service permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if _, ok := d.GetOkExists("gid"); d.Get("gname") != "" || ok {
 		err = changeServiceGroup(d, meta, sc)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if _, ok := d.GetOkExists("uid"); d.Get("uname") != "" || ok {
 		err = changeServiceOwner(d, meta, sc)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change owner",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("name") != "" {
 		err = changeServiceName(d, meta, sc)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	_, err = waitForServiceState(d, meta, "running")
+	_, err = waitForServiceState(ctx, d, meta, "running")
 	if err != nil {
-		service, _ := sc.Info()
-
-		svState := service.Template.Body.StateRaw
-		return fmt.Errorf(
-			"Error waiting for Service (%s) to be in state RUNNING: %s (state: %v)", d.Id(), err, svState)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait service to be in RUNNING state",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
-	return resourceOpennebulaServiceRead(d, meta)
+	return resourceOpennebulaServiceRead(ctx, d, meta)
 }
 
-func resourceOpennebulaServiceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	sc, err := getServiceController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	sv, err := sc.Info()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", sv.ID))
@@ -230,7 +271,12 @@ func resourceOpennebulaServiceRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("state", sv.Template.Body.StateRaw)
 	err = d.Set("permissions", permissionsUnixString(*sv.Permissions))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set attribute",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// Retrieve networks
@@ -264,31 +310,47 @@ func resourceOpennebulaServiceRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceOpennebulaServiceDelete(d *schema.ResourceData, meta interface{}) error {
-	err := resourceOpennebulaServiceRead(d, meta)
-	if err != nil || d.Id() == "" {
-		return err
-	}
+func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	//Get Service
 	sc, err := getServiceController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if err = sc.Delete(); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
 		if err = sc.Recover(true); err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to recover",
+				Detail:   err.Error(),
+			})
 		}
+
+		return diags
+
 	}
 
-	_, err = waitForServiceState(d, meta, "done")
+	_, err = waitForServiceState(ctx, d, meta, "done")
 	if err != nil {
-		service, _ := sc.Info()
-
-		svState := service.Template.Body.StateRaw
-		return fmt.Errorf(
-			"Error waiting for Service (%s) to be in state DONE: %s (state: %v)", d.Id(), err, svState)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait service to be in DONE state",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	log.Printf("[INFO] Successfully terminated service\n")
@@ -296,34 +358,59 @@ func resourceOpennebulaServiceDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaServiceRead(d, meta)
-	// a terminated Service is in state 5 (DONE)
-	if err != nil || d.Id() == "" || d.Get("state").(int) == 5 {
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	imageID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.Service(int(imageID)).Info()
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
+
+	var diags diag.Diagnostics
 
 	//Get Service controller
 	sc, err := getServiceController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	service, err := sc.Info()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("name") {
 		err := sc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change name",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		service, err := sc.Info()
@@ -334,7 +421,12 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = sc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Permissions for Service %s\n", service.Name)
@@ -344,11 +436,21 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		gid := d.Get("gid").(int)
 		group, err := controller.Group(gid).Info(true)
 		if err != nil {
-			return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = sc.Chgrp(gid)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("gname", group.Name)
@@ -357,11 +459,21 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 		group := d.Get("group").(string)
 		gid, err := controller.Groups().ByName(group)
 		if err != nil {
-			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = sc.Chgrp(gid)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("gid", gid)
@@ -371,11 +483,21 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 	if d.HasChange("uid") {
 		user, err := controller.User(d.Get("uid").(int)).Info(true)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed retrieve user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = sc.Chown(d.Get("uid").(int), -1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("uname", user.Name)
@@ -383,18 +505,28 @@ func resourceOpennebulaServiceUpdate(d *schema.ResourceData, meta interface{}) e
 	} else if d.HasChange("uname") {
 		uid, err := controller.Users().ByName(d.Get("uname").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = sc.Chown(uid, -1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("uid", uid)
 		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
 	}
 
-	return resourceOpennebulaServiceRead(d, meta)
+	return resourceOpennebulaServiceRead(ctx, d, meta)
 }
 
 // Helpers
@@ -474,7 +606,7 @@ func changeServiceName(d *schema.ResourceData, meta interface{}, sc *goca.Servic
 	return nil
 }
 
-func waitForServiceState(d *schema.ResourceData, meta interface{}, state string) (interface{}, error) {
+func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta interface{}, state string) (interface{}, error) {
 	var service *service.Service
 	var err error
 
@@ -540,5 +672,6 @@ func waitForServiceState(d *schema.ResourceData, meta interface{}, state string)
 		MinTimeout: 3 * time.Second,
 	}
 
-	return stateConf.WaitForState()
+	return stateConf.WaitForStateContext(ctx)
+
 }

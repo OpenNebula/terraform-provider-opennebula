@@ -1,20 +1,22 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceOpennebulaGroupAdmins() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaGroupAdminsCreate,
-		Read:   resourceOpennebulaGroupAdminsRead,
-		Update: resourceOpennebulaGroupAdminsUpdate,
-		Delete: resourceOpennebulaGroupAdminsDelete,
+		CreateContext: resourceOpennebulaGroupAdminsCreate,
+		ReadContext:   resourceOpennebulaGroupAdminsRead,
+		UpdateContext: resourceOpennebulaGroupAdminsUpdate,
+		DeleteContext: resourceOpennebulaGroupAdminsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -35,9 +37,11 @@ func resourceOpennebulaGroupAdmins() *schema.Resource {
 	}
 }
 
-func resourceOpennebulaGroupAdminsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupAdminsCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
+
+	var diags diag.Diagnostics
 
 	groupID := d.Get("group_id").(int)
 	gc := controller.Group(groupID)
@@ -47,46 +51,75 @@ func resourceOpennebulaGroupAdminsCreate(d *schema.ResourceData, meta interface{
 	for _, id := range adminsIDs {
 		err := gc.AddAdmin(id.(int))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to add an admin to the group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	d.SetId(fmt.Sprint(groupID))
 
-	return resourceOpennebulaGroupAdminsRead(d, meta)
+	return resourceOpennebulaGroupAdminsRead(ctx, d, meta)
 }
 
-func resourceOpennebulaGroupAdminsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupAdminsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	groupID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse the group admins ID",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	group, err := controller.Group(int(groupID)).Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve group informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = d.Set("users_ids", group.Admins.ID)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set field",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil
 }
 
-func resourceOpennebulaGroupAdminsUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupAdminsUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	groupID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse the group admins ID",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	gc := controller.Group(int(groupID))
 
@@ -101,7 +134,12 @@ func resourceOpennebulaGroupAdminsUpdate(d *schema.ResourceData, meta interface{
 	for _, id := range remUsers.List() {
 		err := gc.DelAdmin(id.(int))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to delete a group admin",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -111,20 +149,33 @@ func resourceOpennebulaGroupAdminsUpdate(d *schema.ResourceData, meta interface{
 	for _, id := range addUsers.List() {
 		err := gc.AddAdmin(id.(int))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to add a group admin",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaGroupAdminsRead(d, meta)
+	return resourceOpennebulaGroupAdminsRead(ctx, d, meta)
 }
 
-func resourceOpennebulaGroupAdminsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupAdminsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	groupID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse the group admins ID",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	gc := controller.Group(int(groupID))
 
@@ -133,7 +184,12 @@ func resourceOpennebulaGroupAdminsDelete(d *schema.ResourceData, meta interface{
 	for _, id := range adminsIDs {
 		err := gc.DelAdmin(id.(int))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to delete a group admin",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

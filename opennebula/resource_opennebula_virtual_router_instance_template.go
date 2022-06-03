@@ -20,29 +20,27 @@ func resourceOpennebulaVirtualRouterInstanceTemplate() *schema.Resource {
 		UpdateContext: resourceOpennebulaVirtualRouterInstanceTemplateUpdate,
 		DeleteContext: resourceOpennebulaVirtualRouterInstanceTemplateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: commonTemplateSchemas(),
 	}
 }
 
 func resourceOpennebulaVirtualRouterInstanceTemplateCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaTemplateCreateCustom(d, meta, customVirtualRouterInstanceTemplate)
+	diags := resourceOpennebulaTemplateCreateCustom(ctx, d, meta, customVirtualRouterInstanceTemplate)
 
-	if err != nil {
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance template creation failed",
-			Detail:   fmt.Sprintf("VM (ID:%s) reading failed: %s", d.Id(), err),
+			Summary:  "Failed to create virtual router instance template",
 		})
 	}
 
 	return resourceOpennebulaVirtualRouterInstanceTemplateRead(ctx, d, meta)
 }
 
-func customVirtualRouterInstanceTemplate(d *schema.ResourceData, tpl *dyn.Template) error {
+func customVirtualRouterInstanceTemplate(d *schema.ResourceData, tpl *dyn.Template) diag.Diagnostics {
 
 	tpl.AddPair("VROUTER", "YES")
 
@@ -50,26 +48,31 @@ func customVirtualRouterInstanceTemplate(d *schema.ResourceData, tpl *dyn.Templa
 }
 
 func resourceOpennebulaVirtualRouterInstanceTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaTemplateReadCustom(d, meta, customVirtualRouterInstanceTemplateRead)
+	diags := resourceOpennebulaTemplateReadCustom(ctx, d, meta, customVirtualRouterInstanceTemplateRead)
 
-	if err != nil {
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router instance template reading failed",
-			Detail:   fmt.Sprintf("VM (ID:%s) reading failed: %s", d.Id(), err),
 		})
 	}
 
 	return diags
 }
 
-func customVirtualRouterInstanceTemplateRead(d *schema.ResourceData, tpl *template.Template) error {
+func customVirtualRouterInstanceTemplateRead(ctx context.Context, d *schema.ResourceData, tpl *template.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	vrouter, _ := tpl.Template.Get("VROUTER")
 	if vrouter != "YES" {
-		return fmt.Errorf("template with ID %d is not a template of a virtual router instance", tpl.ID)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Wrong virtual router instance template configuration",
+			Detail:   fmt.Sprintf("template with ID %d is not a template of a virtual router instance", tpl.ID),
+		})
+
 	}
 
 	return nil
@@ -93,15 +96,12 @@ func resourceOpennebulaVirtualRouterInstanceTemplateExists(d *schema.ResourceDat
 }
 
 func resourceOpennebulaVirtualRouterInstanceTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaTemplateUpdateCustom(d, meta)
-
-	if err != nil {
+	diags := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance template reading failed",
-			Detail:   fmt.Sprintf("VM (ID:%s) reading failed: %s", d.Id(), err),
+			Summary:  "Failed to update",
 		})
 	}
 
@@ -109,14 +109,12 @@ func resourceOpennebulaVirtualRouterInstanceTemplateUpdate(ctx context.Context, 
 }
 
 func resourceOpennebulaVirtualRouterInstanceTemplateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaTemplateDelete(d, meta)
-	if err != nil {
+	diags := resourceOpennebulaTemplateDelete(ctx, d, meta)
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance template delete failed",
-			Detail:   fmt.Sprintf("template (ID:%s) delete failed: %s", d.Id(), err),
+			Summary:  "Failed to delete",
 		})
 	}
 

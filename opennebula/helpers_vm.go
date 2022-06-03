@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -12,20 +13,21 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // generic dynamic template customization
-type customDynTemplateFunc func(d *schema.ResourceData, tpl *dyn.Template) error
+type customDynTemplateFunc func(d *schema.ResourceData, tpl *dyn.Template) diag.Diagnostics
 
 // resource customization
-type customTemplateFunc func(d *schema.ResourceData, tpl *template.Template) error
-type customVMFunc func(d *schema.ResourceData, tpl *vm.VM) error
+type customTemplateFunc func(ctx context.Context, d *schema.ResourceData, tpl *template.Template) diag.Diagnostics
+type customVMFunc func(ctx context.Context, d *schema.ResourceData, tpl *vm.VM) diag.Diagnostics
 
-type customFunc func(d *schema.ResourceData, meta interface{}) error
+type customFunc func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics
 
 // vmDiskAttach is an helper that synchronously attach a disk
-func vmDiskAttach(vmc *goca.VMController, timeout time.Duration, diskTpl *shared.Disk) (int, error) {
+func vmDiskAttach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, diskTpl *shared.Disk) (int, error) {
 
 	log.Printf("[DEBUG] Attach disk to virtual machine (ID:%d)", vmc.ID)
 
@@ -47,7 +49,7 @@ func vmDiskAttach(vmc *goca.VMController, timeout time.Duration, diskTpl *shared
 	}
 
 	// wait before checking disk
-	_, err = waitForVMState(vmc, timeout, vmDiskUpdateReadyStates...)
+	_, err = waitForVMState(ctx, vmc, timeout, vmDiskUpdateReadyStates...)
 	if err != nil {
 		return -1, fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
@@ -111,7 +113,7 @@ func vmDiskAttach(vmc *goca.VMController, timeout time.Duration, diskTpl *shared
 }
 
 // vmDiskDetach is an helper that synchronously detach a disk
-func vmDiskDetach(vmc *goca.VMController, timeout time.Duration, diskID int) error {
+func vmDiskDetach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, diskID int) error {
 
 	log.Printf("[DEBUG] Detach disk %d", diskID)
 
@@ -121,7 +123,7 @@ func vmDiskDetach(vmc *goca.VMController, timeout time.Duration, diskID int) err
 	}
 
 	// wait before checking disk
-	_, err = waitForVMState(vmc, timeout, vmDiskUpdateReadyStates...)
+	_, err = waitForVMState(ctx, vmc, timeout, vmDiskUpdateReadyStates...)
 	if err != nil {
 		return fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
@@ -155,7 +157,7 @@ func vmDiskDetach(vmc *goca.VMController, timeout time.Duration, diskID int) err
 }
 
 // vmDiskResize is an helper that synchronously resize a disk
-func vmDiskResize(vmc *goca.VMController, timeout time.Duration, diskID, newsize int) error {
+func vmDiskResize(ctx context.Context, vmc *goca.VMController, timeout time.Duration, diskID, newsize int) error {
 
 	log.Printf("[DEBUG] Resize disk %d", diskID)
 
@@ -167,7 +169,7 @@ func vmDiskResize(vmc *goca.VMController, timeout time.Duration, diskID, newsize
 	}
 
 	// wait before checking disk
-	_, err = waitForVMState(vmc, timeout, vmDiskResizeReadyStates...)
+	_, err = waitForVMState(ctx, vmc, timeout, vmDiskResizeReadyStates...)
 	if err != nil {
 		return fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
@@ -195,7 +197,7 @@ func vmDiskResize(vmc *goca.VMController, timeout time.Duration, diskID, newsize
 }
 
 // vmNICAttach is an helper that synchronously attach a nic
-func vmNICAttach(vmc *goca.VMController, timeout time.Duration, nicTpl *shared.NIC) (int, error) {
+func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, nicTpl *shared.NIC) (int, error) {
 
 	networkID, err := nicTpl.GetI(shared.NetworkID)
 	if err != nil {
@@ -221,7 +223,7 @@ func vmNICAttach(vmc *goca.VMController, timeout time.Duration, nicTpl *shared.N
 	}
 
 	// wait before checking NIC
-	_, err = waitForVMState(vmc, timeout, vmNICUpdateReadyStates...)
+	_, err = waitForVMState(ctx, vmc, timeout, vmNICUpdateReadyStates...)
 	if err != nil {
 		return -1, fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)
@@ -286,7 +288,7 @@ func vmNICAttach(vmc *goca.VMController, timeout time.Duration, nicTpl *shared.N
 }
 
 // vmNICDetach is an helper that synchronously detach a NIC
-func vmNICDetach(vmc *goca.VMController, timeout time.Duration, nicID int) error {
+func vmNICDetach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, nicID int) error {
 
 	log.Printf("[DEBUG] Detach NIC %d", nicID)
 
@@ -296,7 +298,7 @@ func vmNICDetach(vmc *goca.VMController, timeout time.Duration, nicID int) error
 	}
 
 	// wait before checking NIC
-	_, err = waitForVMState(vmc, timeout, vmNICUpdateReadyStates...)
+	_, err = waitForVMState(ctx, vmc, timeout, vmNICUpdateReadyStates...)
 	if err != nil {
 		return fmt.Errorf(
 			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)

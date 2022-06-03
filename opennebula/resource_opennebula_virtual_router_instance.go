@@ -29,7 +29,7 @@ func resourceOpennebulaVirtualRouterInstance() *schema.Resource {
 		DeleteContext: resourceOpennebulaVirtualRouterInstanceDelete,
 		CustomizeDiff: resourceVMCustomizeDiff,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: mergeSchemas(
@@ -245,7 +245,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	}
 
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
-	_, err = waitForVMState(vmc, timeout, expectedState)
+	_, err = waitForVMState(ctx, vmc, timeout, expectedState)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -317,11 +317,16 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 			d.Set("template_disk", []interface{}{})
 		}
 
-		err = resourceOpennebulaVirtualMachineReadCustom(d, meta, func(d *schema.ResourceData, vmInfos *vm.VM) error {
+		diags = resourceOpennebulaVirtualMachineReadCustom(ctx, d, meta, func(ctx context.Context, d *schema.ResourceData, vmInfos *vm.VM) diag.Diagnostics {
 
 			err := flattenDiskFunc(d, &vmInfos.Template)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "failed to flatten disks",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 
 			return nil
@@ -343,23 +348,28 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 }
 
 func resourceOpennebulaVirtualRouterInstanceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaVirtualMachineReadCustom(d, meta, func(d *schema.ResourceData, vmInfos *vm.VM) error {
+	diags := resourceOpennebulaVirtualMachineReadCustom(ctx, d, meta, func(ctx context.Context, d *schema.ResourceData, vmInfos *vm.VM) diag.Diagnostics {
+
+		var diags diag.Diagnostics
 
 		err := flattenVMDisk(d, &vmInfos.Template)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to flatten disks",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		return nil
 	})
 
-	if err != nil {
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance reading failed",
-			Detail:   fmt.Sprintf("VM (ID:%s) reading failed: %s", d.Id(), err),
+			Summary:  "Failed to read",
 		})
 	}
 
@@ -384,14 +394,12 @@ func resourceOpennebulaVirtualRouterInstanceExists(d *schema.ResourceData, meta 
 }
 
 func resourceOpennebulaVirtualRouterInstanceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaVirtualMachineUpdateCustom(d, meta, nil)
-	if err != nil {
+	diags := resourceOpennebulaVirtualMachineUpdateCustom(ctx, d, meta, nil)
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance update failed",
-			Detail:   fmt.Sprintf("VM (ID:%s) update failed: %s", d.Id(), err),
+			Summary:  "Failed to update",
 		})
 	}
 
@@ -399,14 +407,12 @@ func resourceOpennebulaVirtualRouterInstanceUpdate(ctx context.Context, d *schem
 }
 
 func resourceOpennebulaVirtualRouterInstanceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	err := resourceOpennebulaVirtualMachineDelete(d, meta)
-	if err != nil {
+	diags := resourceOpennebulaVirtualMachineDelete(ctx, d, meta)
+	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance delete failed",
-			Detail:   fmt.Sprintf("VM (ID:%s) delete failed: %s", d.Id(), err),
+			Summary:  "Failed to delete",
 		})
 	}
 
