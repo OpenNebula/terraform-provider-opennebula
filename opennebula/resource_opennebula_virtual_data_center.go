@@ -1,10 +1,12 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -21,12 +23,12 @@ type vdcResources struct {
 
 func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaVirtualDataCenterCreate,
-		Read:   resourceOpennebulaVirtualDataCenterRead,
-		Update: resourceOpennebulaVirtualDataCenterUpdate,
-		Delete: resourceOpennebulaVirtualDataCenterDelete,
+		CreateContext: resourceOpennebulaVirtualDataCenterCreate,
+		ReadContext:   resourceOpennebulaVirtualDataCenterRead,
+		UpdateContext: resourceOpennebulaVirtualDataCenterUpdate,
+		DeleteContext: resourceOpennebulaVirtualDataCenterDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -125,18 +127,30 @@ func getVDCController(d *schema.ResourceData, meta interface{}) (*goca.VDCContro
 	return vdcc, nil
 }
 
-func resourceOpennebulaVirtualDataCenterCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	vdcDef, err := generateVDC(d)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to generate description",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	vdcID, err := controller.VDCs().Create(vdcDef, -1)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.SetId(fmt.Sprintf("%v", vdcID))
 
@@ -155,28 +169,48 @@ func resourceOpennebulaVirtualDataCenterCreate(d *schema.ResourceData, meta inte
 		for j := 0; j < len(hosts); j++ {
 			err = vdcc.AddHost(zone_id, hosts[j].(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add host",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		// Add Datastore from the zone
 		for j := 0; j < len(datastores); j++ {
 			err = vdcc.AddDatastore(zone_id, datastores[j].(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add datastore",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		// Add clusters from the zone
 		for j := 0; j < len(clusters); j++ {
 			err = vdcc.AddCluster(zone_id, clusters[j].(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add cluster",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		// Add vnets from the zone
 		for j := 0; j < len(vnets); j++ {
 			err = vdcc.AddVnet(zone_id, vnets[j].(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add virtual network",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -187,15 +221,23 @@ func resourceOpennebulaVirtualDataCenterCreate(d *schema.ResourceData, meta inte
 		for i := 0; i < len(grouplist); i++ {
 			err = vdcc.AddGroup(grouplist[i].(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add group",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
 
-	return resourceOpennebulaVirtualDataCenterRead(d, meta)
+	return resourceOpennebulaVirtualDataCenterRead(ctx, d, meta)
 }
 
-func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualDataCenterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vdcc, err := getVDCController(d, meta)
 	if err != nil {
 		if NoExists(err) {
@@ -203,14 +245,25 @@ func resourceOpennebulaVirtualDataCenterRead(d *schema.ResourceData, meta interf
 			d.SetId("")
 			return nil
 		}
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
+
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vdc, err := vdcc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", vdc.ID))
@@ -254,17 +307,30 @@ func getAddDelIntList(ngrouplist, ogrouplist []interface{}) ([]int, []int) {
 	return addgroup, delgroup
 }
 
-func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vdcc, err := getVDCController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("name") {
 		// Rename VDC
 		err = vdcc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -279,7 +345,12 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 		for _, g := range delgroup {
 			err = vdcc.DelGroup(g)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to delete group",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -287,7 +358,12 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 		for _, g := range addgroup {
 			err = vdcc.AddGroup(g)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add group",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -311,28 +387,48 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 			for j := 0; j < len(hosts); j++ {
 				err = vdcc.DelHost(zone_id, hosts[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to delete host",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 			// Delele Datastore from the zone
 			for j := 0; j < len(datastores); j++ {
 				err = vdcc.DelDatastore(zone_id, datastores[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to delete datastore",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 			// Delete clusters from the zone
 			for j := 0; j < len(clusters); j++ {
 				err = vdcc.DelCluster(zone_id, clusters[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to delete cluster",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 			// Delete vnets from the zone
 			for j := 0; j < len(vnets); j++ {
 				err = vdcc.DelVnet(zone_id, vnets[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to delete virtual network",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 		}
@@ -351,34 +447,54 @@ func resourceOpennebulaVirtualDataCenterUpdate(d *schema.ResourceData, meta inte
 			for j := 0; j < len(hosts); j++ {
 				err = vdcc.AddHost(zone_id, hosts[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to add host",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 			// Add Datastore from the zone
 			for j := 0; j < len(datastores); j++ {
 				err = vdcc.AddDatastore(zone_id, datastores[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to add datastore",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 			// Add clusters from the zone
 			for j := 0; j < len(clusters); j++ {
 				err = vdcc.AddCluster(zone_id, clusters[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to add cluster",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 			// Add vnets from the zone
 			for j := 0; j < len(vnets); j++ {
 				err = vdcc.AddVnet(zone_id, vnets[j].(int))
 				if err != nil {
-					return err
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to add virtual network",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 		}
 	}
 
-	return resourceOpennebulaVirtualDataCenterRead(d, meta)
+	return resourceOpennebulaVirtualDataCenterRead(ctx, d, meta)
 }
 
 func flattenZones(vdc *vdc.VDC) []map[string]interface{} {
@@ -441,15 +557,28 @@ func flattenZones(vdc *vdc.VDC) []map[string]interface{} {
 	return zonemap
 }
 
-func resourceOpennebulaVirtualDataCenterDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualDataCenterDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vdcc, err := getVDCController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = vdcc.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil

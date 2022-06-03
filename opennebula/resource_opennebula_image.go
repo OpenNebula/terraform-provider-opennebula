@@ -1,12 +1,14 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -25,17 +27,17 @@ var defaultImageTimeout = time.Duration(defaultImageMinTimeout) * time.Minute
 
 func resourceOpennebulaImage() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaImageCreate,
-		Read:   resourceOpennebulaImageRead,
-		Exists: resourceOpennebulaImageExists,
-		Update: resourceOpennebulaImageUpdate,
-		Delete: resourceOpennebulaImageDelete,
+		CreateContext: resourceOpennebulaImageCreate,
+		ReadContext:   resourceOpennebulaImageRead,
+		Exists:        resourceOpennebulaImageExists,
+		UpdateContext: resourceOpennebulaImageUpdate,
+		DeleteContext: resourceOpennebulaImageDelete,
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(defaultImageTimeout),
 			Delete: schema.DefaultTimeout(defaultImageTimeout),
 		},
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -246,29 +248,46 @@ func changeImageGroup(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
 	config := meta.(*Configuration)
 	controller := config.Controller
 	var imageID int
 	var err error
+	var diags diag.Diagnostics
 
 	// Check if Image ID for cloning is set
 	if len(d.Get("clone_from_image").(string)) > 0 {
 		imageID, err = resourceOpennebulaImageClone(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to clone image",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	} else { //Otherwise allocate a new image
 		var err error
 
 		imgDef, err := generateImage(d)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		imageID, err = controller.Images().Create(imgDef, uint(d.Get("datastore_id").(int)))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create image",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -276,7 +295,12 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 
 	imgTpl, err := generateImageTemplate(d)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to generate image content",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
@@ -284,40 +308,73 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		timeout = d.Timeout(schema.TimeoutCreate)
 	}
 
-	_, err = waitForImageState(ic, timeout, "READY")
+	_, err = waitForImageState(ctx, ic, timeout, "READY")
 	if err != nil {
-		return fmt.Errorf("Error waiting for Image (%s) to be in state READY: %s", d.Id(), err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait image to be in READY state",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// add template information into image
 	err = ic.Update(imgTpl, 1)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve information",
+			Detail:   err.Error(),
+		})
+		return diags
+	}
 
 	d.SetId(fmt.Sprintf("%v", imageID))
 
 	ic, err = getImageController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// update permisions
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = ic.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("group") != "" {
 		err = changeImageGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("persistent").(bool) {
 		err = ic.Persistent(d.Get("persistent").(bool))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to modify persistency",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -326,16 +383,26 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		var level shared.LockLevel
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = ic.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaImageRead(d, meta)
+	return resourceOpennebulaImageRead(ctx, d, meta)
 }
 
 func resourceOpennebulaImageClone(d *schema.ResourceData, meta interface{}) (int, error) {
@@ -358,7 +425,7 @@ func resourceOpennebulaImageClone(d *schema.ResourceData, meta interface{}) (int
 	return originalic.Clone(d.Get("name").(string), d.Get("datastore_id").(int))
 }
 
-func waitForImageState(ic *goca.ImageController, timeout time.Duration, state ...string) (interface{}, error) {
+func waitForImageState(ctx context.Context, ic *goca.ImageController, timeout time.Duration, state ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
@@ -397,10 +464,13 @@ func waitForImageState(ic *goca.ImageController, timeout time.Duration, state ..
 		MinTimeout: 3 * time.Second,
 	}
 
-	return stateConf.WaitForState()
+	return stateConf.WaitForStateContext(ctx)
 }
 
-func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	// Get all images
 	ic, err := getImageController(d, meta, -2, -1, -1)
 	if err != nil {
@@ -409,14 +479,26 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return err
+
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
+
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	image, err := ic.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", image.ID))
@@ -481,7 +563,12 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 	if len(tags) > 0 {
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -493,25 +580,48 @@ func resourceOpennebulaImageRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceOpennebulaImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaImageRead(d, meta)
-	if err != nil || d.Id() == "" {
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	imageID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.Image(int(imageID)).Info(false)
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	//Get Image
 	ic, err := getImageController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
+
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	image, err := ic.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	lock, lockOk := d.GetOk("lock")
@@ -519,14 +629,24 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 
 		err = ic.Unlock()
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to unlock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.HasChange("name") {
 		err := ic.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for Image %s\n", image.Name)
 	}
@@ -535,7 +655,12 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = ic.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Image %s\n", image.Name)
@@ -544,7 +669,12 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 	if d.HasChange("group") {
 		err = changeImageGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated group for Image %s\n", image.Name)
 	}
@@ -552,16 +682,26 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 	if d.HasChange("persistent") {
 		err = ic.Persistent(d.Get("persistent").(bool))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to modify persistency",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated persistent flag for Image %s\n", image.Name)
 	}
 
 	if d.HasChange("type") {
-		if imagetype, ok := d.GetOk("permissions"); ok {
+		if imagetype, ok := d.GetOk("type"); ok {
 			err = ic.Chtype(imagetype.(string))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change image type",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Image Type %s\n", image.Name)
@@ -609,7 +749,12 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 	if update {
 		err = ic.Update(tpl.String(), parameters.Replace)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update image content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -619,27 +764,50 @@ func resourceOpennebulaImageUpdate(d *schema.ResourceData, meta interface{}) err
 
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = ic.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaImageRead(d, meta)
+	return resourceOpennebulaImageRead(ctx, d, meta)
 }
 
-func resourceOpennebulaImageDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaImageDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	ic, err := getImageController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = ic.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	log.Printf("[INFO] Successfully deleted Image ID %s\n", d.Id())
 
@@ -648,11 +816,15 @@ func resourceOpennebulaImageDelete(d *schema.ResourceData, meta interface{}) err
 		timeout = d.Timeout(schema.TimeoutDelete)
 	}
 
-	_, err = waitForImageState(ic, timeout, "notfound")
+	_, err = waitForImageState(ctx, ic, timeout, "notfound")
 	if err != nil {
-		return fmt.Errorf("Error waiting for Image (%s) to be in state NOTFOUND: %s", d.Id(), err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait image to be in NOTFOUND state",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
-
 	return nil
 }
 

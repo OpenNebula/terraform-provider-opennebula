@@ -1,18 +1,20 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	userSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/user"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaUser() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaUserRead,
+		ReadContext: datasourceOpennebulaUserRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -121,14 +123,21 @@ userLoop:
 	return match[0], nil
 }
 
-func datasourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	user, err := userFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "users filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(user.Template)
@@ -140,13 +149,23 @@ func datasourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) erro
 
 	err = flattenUserGroups(d, user)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to flatten groups",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -154,13 +173,23 @@ func datasourceOpennebulaUserRead(d *schema.ResourceData, meta interface{}) erro
 	// here to retrieve the quotas information
 	userInfo, err := controller.User(user.ID).Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "user info error",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if _, ok := d.GetOk("quotas"); ok {
 		err = flattenQuotasMapFromStructs(d, &userInfo.QuotasList)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "failed to flatten quotas",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

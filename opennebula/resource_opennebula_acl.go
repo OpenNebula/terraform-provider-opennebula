@@ -1,9 +1,11 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/acl"
@@ -39,11 +41,11 @@ var rightMap = map[string]acl.Rights{
 
 func resourceOpennebulaACL() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaACLCreate,
-		Read:   resourceOpennebulaACLRead,
-		Delete: resourceOpennebulaACLDelete,
+		CreateContext: resourceOpennebulaACLCreate,
+		ReadContext:   resourceOpennebulaACLRead,
+		DeleteContext: resourceOpennebulaACLDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -75,23 +77,40 @@ func resourceOpennebulaACL() *schema.Resource {
 	}
 }
 
-func resourceOpennebulaACLCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaACLCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	userHex, err := acl.ParseUsers(d.Get("user").(string))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse ACL users",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	resourceHex, err := acl.ParseResources(d.Get("resource").(string))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse ACL resources",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	rightsHex, err := acl.ParseRights(d.Get("rights").(string))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse ACL rights",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	var aclID int
@@ -99,36 +118,55 @@ func resourceOpennebulaACLCreate(d *schema.ResourceData, meta interface{}) error
 	if len(zone) > 0 {
 		zoneHex, err := acl.ParseZone(zone)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to parse zone",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		aclID, err = controller.ACLs().CreateRule(userHex, resourceHex, rightsHex, zoneHex)
-		if err != nil {
-			return err
-		}
 	} else {
 		aclID, err = controller.ACLs().CreateRule(userHex, resourceHex, rightsHex)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create rule",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.SetId(fmt.Sprintf("%v", aclID))
 
-	return resourceOpennebulaACLRead(d, meta)
+	return resourceOpennebulaACLRead(ctx, d, meta)
 }
 
-func resourceOpennebulaACLRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaACLRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	acls, err := controller.ACLs().Info()
 
+	var diags diag.Diagnostics
+
+	acls, err := controller.ACLs().Info()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve ACL informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	numericID, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return fmt.Errorf("Failed to convert %+v to integer: %+v", d.Id(), err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse the ACL rule ID",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	for _, acl := range acls.ACLs {
@@ -140,17 +178,40 @@ func resourceOpennebulaACLRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return fmt.Errorf("ACL with ID '%+v' not found.", d.Id())
+	diags = append(diags, diag.Diagnostic{
+		Severity: diag.Error,
+		Summary:  fmt.Sprintf("Failed to find ACL rule %s", d.Id()),
+		Detail:   err.Error(),
+	})
+
+	return diags
 }
 
-func resourceOpennebulaACLDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaACLDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	numericID, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return fmt.Errorf("Failed to convert %+v to integer: %+v", d.Id(), err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse ACL rule ID",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
-	return controller.ACLs().DeleteRule(numericID)
+	err = controller.ACLs().DeleteRule(numericID)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete ACL rule",
+			Detail:   err.Error(),
+		})
+	}
+
+	return diags
+
 }

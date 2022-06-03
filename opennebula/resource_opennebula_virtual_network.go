@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -21,16 +23,16 @@ import (
 
 func resourceOpennebulaVirtualNetwork() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaVirtualNetworkCreate,
-		Read:   resourceOpennebulaVirtualNetworkRead,
-		Exists: resourceOpennebulaVirtualNetworkExists,
-		Update: resourceOpennebulaVirtualNetworkUpdate,
-		Delete: resourceOpennebulaVirtualNetworkDelete,
+		CreateContext: resourceOpennebulaVirtualNetworkCreate,
+		ReadContext:   resourceOpennebulaVirtualNetworkRead,
+		Exists:        resourceOpennebulaVirtualNetworkExists,
+		UpdateContext: resourceOpennebulaVirtualNetworkUpdate,
+		DeleteContext: resourceOpennebulaVirtualNetworkDelete,
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(3 * time.Minute),
+			Create: schema.DefaultTimeout(time.Duration(3) * time.Minute),
 		},
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -388,10 +390,11 @@ func validVlanType(intype string) int {
 	return inArray(intype, vlanType)
 }
 
-func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 	var vnc *goca.VirtualNetworkController
+	var diags diag.Diagnostics
 
 	// VNET reservation
 	if rvnet, ok := d.GetOk("reservation_vnet"); ok {
@@ -400,9 +403,21 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		reservation_size := d.Get("reservation_size").(int)
 
 		if reservation_vnet < 0 {
-			return fmt.Errorf("Reservation VNET ID must be greater than 0!")
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Wrong ID for reservation VNET",
+				Detail:   "Reservation VNET ID must be greater than 0",
+			})
 		} else if reservation_size <= 0 {
-			return fmt.Errorf("Reservation size must be strictly greater than 0!")
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Wrong size value",
+				Detail:   "Reservation size must be strictly greater than 0",
+			})
+		}
+
+		if len(diags) > 0 {
+			return diags
 		}
 
 		//The API only takes ATTRIBUTE=VALUE for VNET reservations...
@@ -411,13 +426,24 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		// Get VNet Controller to reserve from
 		vnc = controller.VirtualNetwork(reservation_vnet)
 		// Call .Info to check if the Network exists
-		if _, err := vnc.Info(false); err != nil {
-			return err
+		_, err := vnc.Info(false)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		rID, err := vnc.Reserve(fmt.Sprintf(reservation_string, reservation_size, reservation_name))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to reserve network addresses",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		vnc = controller.VirtualNetwork(rID)
@@ -426,7 +452,12 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 		vnet, err := vnc.Info(false)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.SetId(fmt.Sprintf("%v", vnet.ID))
@@ -436,7 +467,12 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 	} else { //New VNET
 		vnDef, err := generateVn(d)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		// Get Clusters list
@@ -445,7 +481,12 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		// Create VNet
 		vnetID, err := controller.VirtualNetworks().Create(vnDef, clusters[0])
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		vnc = controller.VirtualNetwork(vnetID)
 
@@ -455,9 +496,14 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 
 		if oneVersion.GreaterThanOrEqual(requiredVersion) {
 			timeout := d.Timeout(schema.TimeoutCreate)
-			_, err = waitForVNetworkState(vnc, timeout, "READY")
+			_, err = waitForVNetworkState(ctx, vnc, timeout, "READY")
 			if err != nil {
-				return fmt.Errorf("Error waiting for virtual network (ID:%s) to be in state READY: %s", d.Id(), err)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to wait virtual network to be in READY state",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -466,11 +512,21 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		// Call API once
 		update, err := generateVnTemplate(d)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate template description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = vnc.Update(update, 1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		// Address Ranges
@@ -481,7 +537,12 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 			arstr := generateAR(armap).String()
 			err := vnc.AddAR(arstr)
 			if err != nil {
-				return fmt.Errorf("Error: %s\nAR: %s", err, arstr)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add an address range",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -489,7 +550,12 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		if len(clusters) > 1 {
 			err := setVnetClusters(clusters[1:], meta, vnetID)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to set cluster",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -501,9 +567,14 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 
 			for i := 0; i < d.Get("hold_size").(int); i++ {
 				var address_reservation_string = `LEASES = [ IP = %s]`
-				r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip))
-				if r_err != nil {
-					return r_err
+				err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip))
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to hold a lease",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 
 				ip[3]++
@@ -513,9 +584,14 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		if hold_ips_list, ok := d.GetOk("hold_ips"); ok {
 			for _, ip := range hold_ips_list.([]interface{}) {
 				var address_reservation_string = `LEASES = [ IP = %s]`
-				r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip.(string)))
-				if r_err != nil {
-					return r_err
+				err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip.(string)))
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to hold a lease",
+						Detail:   err.Error(),
+					})
+					return diags
 				}
 			}
 		}
@@ -528,22 +604,36 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 
 		err := vnc.Update(fmt.Sprintf("SECURITY_GROUPS=\"%s\"", secgrouplist), 1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to add security groups",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 	// update permisions
 	if perms, ok := d.GetOk("permissions"); ok {
 		err := vnc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] template permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("group") != "" || d.Get("gid") != "" {
 		err := changeVNetGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -552,16 +642,26 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		var level shared.LockLevel
 		err := StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = vnc.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaVirtualNetworkRead(d, meta)
+	return resourceOpennebulaVirtualNetworkRead(ctx, d, meta)
 }
 
 func generateAR(armap map[string]interface{}) *vn.AddressRange {
@@ -747,7 +847,10 @@ func matchARs(ARConfig map[string]interface{}, AR vn.AR) bool {
 		emptyOrEqual(ARConfig["ula_prefix"], AR.ULAPrefix)
 }
 
-func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vnc, err := getVirtualNetworkController(d, meta, -2, -1, -1)
 	if err != nil {
 		if NoExists(err) {
@@ -755,14 +858,25 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 			d.SetId("")
 			return nil
 		}
-		return err
+
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vn, err := vnc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(strconv.Itoa(vn.ID))
@@ -784,7 +898,12 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 	if len(vn.ParentNetworkID) > 0 {
 		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
 		if err != nil {
-			return fmt.Errorf("Can't parse parent network ID: %s", err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to parse parent network ID",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		d.Set("reservation_vnet", parentNetworkID)
 	}
@@ -793,14 +912,24 @@ func resourceOpennebulaVirtualNetworkRead(d *schema.ResourceData, meta interface
 
 	err = flattenVnetTemplate(d, &vn.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	ARIf := d.Get("ar")
 	if ARIf != nil {
 		err = flattenVnetARs(d, vn)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to flatten address ranges",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -956,19 +1085,36 @@ func flattenAR(config map[string]interface{}, AR vn.AR) map[string]interface{} {
 }
 
 func resourceOpennebulaVirtualNetworkExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaVirtualNetworkRead(d, meta)
-	if err != nil || d.Id() == "" {
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	imageID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.VirtualNetwork(int(imageID)).Info(false)
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	//Get Virtual Network Controller
 	vnc, err := getVirtualNetworkController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	lock, lockOk := d.GetOk("lock")
@@ -976,7 +1122,12 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 
 		err = vnc.Unlock()
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to unlock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -1022,14 +1173,24 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	if changes {
 		err := vnc.Update(tpl.String(), 1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.HasChange("name") {
 		err := vnc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for Vnet\n")
 	}
@@ -1038,14 +1199,24 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vn, err := vnc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("permissions") {
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = vnc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Vnet\n")
@@ -1054,7 +1225,12 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	if d.HasChange("group") {
 		err = changeVNetGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated group for Vnet %s\n", vn.Name)
 	}
@@ -1064,9 +1240,14 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		o_hold_ips_list, _ := d.GetChange("hold_ips")
 		for _, ip := range o_hold_ips_list.([]interface{}) {
 			var address_reservation_string = `LEASES = [ IP = %s]`
-			r_err := vnc.Release(fmt.Sprintf(address_reservation_string, ip.(string)))
-			if r_err != nil {
-				return r_err
+			err := vnc.Release(fmt.Sprintf(address_reservation_string, ip.(string)))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to release a lease on hold",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -1075,7 +1256,12 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vn, err = vnc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("ar") {
@@ -1103,12 +1289,22 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 
 			ARID, err := strconv.ParseInt(ARConfig["id"].(string), 10, 0)
 			if err != nil {
-				return fmt.Errorf("Can't convert id to integer: %s\n", ARConfig["id"].(string))
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to parse address range ID",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 
 			err = vnc.RmAR(int(ARID))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to remove address range",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -1120,7 +1316,12 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 
 			err = vnc.AddAR(ARTemplateStr)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add address range",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 
@@ -1131,9 +1332,14 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 		// Hold only requested IPs
 		for _, ip := range n_hold_ips_list.([]interface{}) {
 			var address_reservation_string = `LEASES = [ IP = %s]`
-			r_err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip.(string)))
-			if r_err != nil {
-				return r_err
+			err := vnc.Hold(fmt.Sprintf(address_reservation_string, ip.(string)))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to hold a lease",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -1144,22 +1350,40 @@ func resourceOpennebulaVirtualNetworkUpdate(d *schema.ResourceData, meta interfa
 
 		err = StringToLockLevel(lock.(string), &level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = vnc.Lock(level)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaVirtualNetworkRead(d, meta)
+	return resourceOpennebulaVirtualNetworkRead(ctx, d, meta)
 }
 
-func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vnc, err := getVirtualNetworkController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// Deprecated
@@ -1170,10 +1394,14 @@ func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interfa
 
 		for i := 0; i < d.Get("reservation_size").(int); i++ {
 			var address_reservation_string = `LEASES=[IP=%s]`
-			r_err := vnc.Release(fmt.Sprintf(address_reservation_string, ip))
-
-			if r_err != nil {
-				return r_err
+			err := vnc.Release(fmt.Sprintf(address_reservation_string, ip))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to release a lease on hold",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 
 			ip[3]++
@@ -1183,9 +1411,14 @@ func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interfa
 	if hold_ips_list, ok := d.GetOk("hold_ips"); ok {
 		for _, ip := range hold_ips_list.([]interface{}) {
 			var address_reservation_string = `LEASES = [ IP = %s]`
-			r_err := vnc.Release(fmt.Sprintf(address_reservation_string, ip.(string)))
-			if r_err != nil {
-				return r_err
+			err := vnc.Release(fmt.Sprintf(address_reservation_string, ip.(string)))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to release a lease on hold",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -1193,14 +1426,19 @@ func resourceOpennebulaVirtualNetworkDelete(d *schema.ResourceData, meta interfa
 
 	err = vnc.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	log.Printf("[INFO] Successfully deleted Vnet\n")
 	return nil
 }
 
-func waitForVNetworkState(vnc *goca.VirtualNetworkController, timeout time.Duration, state ...string) (interface{}, error) {
+func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkController, timeout time.Duration, state ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
@@ -1238,5 +1476,6 @@ func waitForVNetworkState(vnc *goca.VirtualNetworkController, timeout time.Durat
 		MinTimeout: 3 * time.Second,
 	}
 
-	return stateConf.WaitForState()
+	return stateConf.WaitForStateContext(ctx)
+
 }

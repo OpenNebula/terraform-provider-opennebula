@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -16,13 +18,13 @@ import (
 
 func resourceOpennebulaServiceTemplate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaServiceTemplateCreate,
-		Read:   resourceOpennebulaServiceTemplateRead,
-		Exists: resourceOpennebulaServiceTemplateExists,
-		Update: resourceOpennebulaServiceTemplateUpdate,
-		Delete: resourceOpennebulaServiceTemplateDelete,
+		CreateContext: resourceOpennebulaServiceTemplateCreate,
+		ReadContext:   resourceOpennebulaServiceTemplateRead,
+		Exists:        resourceOpennebulaServiceTemplateExists,
+		UpdateContext: resourceOpennebulaServiceTemplateUpdate,
+		DeleteContext: resourceOpennebulaServiceTemplateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -108,22 +110,32 @@ func resourceOpennebulaServiceTemplate() *schema.Resource {
 	}
 }
 
-func resourceOpennebulaServiceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	var err error
+	var diags diag.Diagnostics
 
 	// Marshall the json
 	stemplate := &srv_tmpl.ServiceTemplate{}
-	err = json.Unmarshal([]byte(d.Get("template").(string)), stemplate)
+	err := json.Unmarshal([]byte(d.Get("template").(string)), stemplate)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse service template json description",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = controller.STemplates().Create(stemplate)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create service template",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", stemplate.ID))
@@ -134,44 +146,76 @@ func resourceOpennebulaServiceTemplateCreate(d *schema.ResourceData, meta interf
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = stc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] template permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if _, ok := d.GetOkExists("gid"); d.Get("gname") != "" || ok {
 		err = changeServiceTemplateGroup(d, meta, stc)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if _, ok := d.GetOkExists("uid"); d.Get("uname") != "" || ok {
 		err = changeServiceTemplateOwner(d, meta, stc)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change owner",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("name") != "" {
 		err = changeServiceTemplateName(d, meta, stc)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaServiceTemplateRead(d, meta)
+	return resourceOpennebulaServiceTemplateRead(ctx, d, meta)
 }
 
-func resourceOpennebulaServiceTemplateRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	stc, err := getServiceTemplateController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	st, err := stc.Info()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", st.ID))
@@ -182,68 +226,112 @@ func resourceOpennebulaServiceTemplateRead(d *schema.ResourceData, meta interfac
 	d.Set("gname", st.GName)
 	err = d.Set("permissions", permissionsUnixString(*st.Permissions))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set attribute",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// Get service.Template as map
 	tmpl_byte, err := json.Marshal(st.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to generate json description",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.Set("template", "{\"TEMPLATE\":"+string(tmpl_byte)+"}")
 
 	return nil
 }
 
-func resourceOpennebulaServiceTemplateDelete(d *schema.ResourceData, meta interface{}) error {
-	err := resourceOpennebulaServiceTemplateRead(d, meta)
-	if err != nil || d.Id() == "" {
-		return err
-	}
+func resourceOpennebulaServiceTemplateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	//Get Service
 	stc, err := getServiceTemplateController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
-	if err = stc.Delete(); err != nil {
-		return err
+	err = stc.Delete()
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
-
 	log.Printf("[INFO] Successfully terminated service template\n")
 
 	return nil
 }
 
 func resourceOpennebulaServiceTemplateExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaServiceTemplateRead(d, meta)
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	serviceTemplateID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.STemplate(int(serviceTemplateID)).Info()
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
+
+	var diags diag.Diagnostics
 
 	//Get Service controller
 	stc, err := getServiceTemplateController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed retrieve controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	stemplate, err := stc.Info()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("name") {
 		err := stc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		stemplate, err := stc.Info()
@@ -254,7 +342,12 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = stc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Permissions for service template %s\n", stemplate.Name)
@@ -264,11 +357,21 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		gid := d.Get("gid").(int)
 		group, err := controller.Group(gid).Info(true)
 		if err != nil {
-			return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = stc.Chgrp(gid)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("gname", group.Name)
@@ -277,11 +380,21 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 		group := d.Get("group").(string)
 		gid, err := controller.Groups().ByName(group)
 		if err != nil {
-			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = stc.Chgrp(gid)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("gid", gid)
@@ -291,11 +404,21 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 	if d.HasChange("uid") {
 		user, err := controller.User(d.Get("uid").(int)).Info(true)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrive user informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = stc.Chown(d.Get("uid").(int), -1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("uname", user.Name)
@@ -303,18 +426,28 @@ func resourceOpennebulaServiceTemplateUpdate(d *schema.ResourceData, meta interf
 	} else if d.HasChange("uname") {
 		uid, err := controller.Users().ByName(d.Get("uname").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = stc.Chown(uid, -1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change user",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		d.Set("uid", uid)
 		log.Printf("[INFO] Successfully updated owner for service template %s\n", stemplate.Name)
 	}
 
-	return resourceOpennebulaServiceTemplateRead(d, meta)
+	return resourceOpennebulaServiceTemplateRead(ctx, d, meta)
 }
 
 // Helpers

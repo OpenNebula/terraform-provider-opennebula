@@ -26,7 +26,7 @@ func resourceOpennebulaVirtualRouter() *schema.Resource {
 		UpdateContext: resourceOpennebulaVirtualRouterUpdate,
 		DeleteContext: resourceOpennebulaVirtualRouterDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

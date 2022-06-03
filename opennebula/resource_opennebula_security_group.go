@@ -1,12 +1,14 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -16,13 +18,13 @@ import (
 
 func resourceOpennebulaSecurityGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaSecurityGroupCreate,
-		Read:   resourceOpennebulaSecurityGroupRead,
-		Exists: resourceOpennebulaSecurityGroupExists,
-		Update: resourceOpennebulaSecurityGroupUpdate,
-		Delete: resourceOpennebulaSecurityGroupDelete,
+		CreateContext: resourceOpennebulaSecurityGroupCreate,
+		ReadContext:   resourceOpennebulaSecurityGroupRead,
+		Exists:        resourceOpennebulaSecurityGroupExists,
+		UpdateContext: resourceOpennebulaSecurityGroupUpdate,
+		DeleteContext: resourceOpennebulaSecurityGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -223,7 +225,10 @@ func changeSecurityGroupGroup(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	// Get all Security Group
 	sgc, err := getSecurityGroupController(d, meta, -2, -1, -1)
 	if err != nil {
@@ -232,14 +237,24 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 			d.SetId("")
 			return nil
 		}
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	securitygroup, err := sgc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", securitygroup.ID))
@@ -259,7 +274,12 @@ func resourceOpennebulaSecurityGroupRead(d *schema.ResourceData, meta interface{
 
 	err = flattenSecurityGroupTags(d, &securitygroup.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten tags",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil
@@ -304,27 +324,46 @@ func generateSecurityGroupMapFromStructs(rulesVectors []securitygroup.Rule) []ma
 }
 
 func resourceOpennebulaSecurityGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaSecurityGroupRead(d, meta)
-	if err != nil || d.Id() == "" {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	imageID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = controller.SecurityGroup(int(imageID)).Info(false)
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
+}
+
+func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	var diags diag.Diagnostics
+
 	secGroupDef, err := generateSecurityGroup(d)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to generate description",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	secGroupID, err := controller.SecurityGroups().Create(secGroupDef)
 	if err != nil {
-		log.Printf("[ERROR] Security group creation failed, error: %s", err)
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	sgc := controller.SecurityGroup(secGroupID)
@@ -334,7 +373,12 @@ func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	// add template information into Security group
 	err = sgc.Update(secGroupTpl, 1)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to update description",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", secGroupID))
@@ -343,34 +387,54 @@ func resourceOpennebulaSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = sgc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] Security group permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("group") != "" || d.Get("gid") != "" {
 		err = changeSecurityGroupGroup(d, meta)
 		if err != nil {
-			log.Printf("[ERROR] Security group owner group change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaSecurityGroupRead(d, meta)
+	return resourceOpennebulaSecurityGroupRead(ctx, d, meta)
 }
 
-func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	//Get Security Group
 	sgc, err := getSecurityGroupController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrive controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	securitygroup, err := sgc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	tpl := &securitygroup.Template
 	update := false
@@ -410,7 +474,12 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if update {
 		err = sgc.Update(tpl.String(), 0)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		log.Printf("[INFO] Successfully updated Security Group template %s\n", securitygroup.Name)
@@ -420,7 +489,12 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 			// Only update outdated VMs not all
 			err = sgc.Commit(true)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to commit rules",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 
 			log.Printf("[INFO] Successfully commited Security Group %s changes to outdated Virtual Machines\n", securitygroup.Name)
@@ -431,7 +505,12 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if d.HasChange("name") {
 		err := sgc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for SecurityGroup %s\n", securitygroup.Name)
 	}
@@ -440,7 +519,12 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = sgc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated Permissions Security Group %s\n", securitygroup.Name)
@@ -449,23 +533,41 @@ func resourceOpennebulaSecurityGroupUpdate(d *schema.ResourceData, meta interfac
 	if d.HasChange("group") || d.HasChange("gid") {
 		err = changeSecurityGroupGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated group for Security Group %s\n", securitygroup.Name)
 	}
 
-	return resourceOpennebulaSecurityGroupRead(d, meta)
+	return resourceOpennebulaSecurityGroupRead(ctx, d, meta)
 }
 
-func resourceOpennebulaSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	sgc, err := getSecurityGroupController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = sgc.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	log.Printf("[INFO] Successfully deleted Security Group ID %s\n", d.Id())

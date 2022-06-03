@@ -1,11 +1,13 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -15,13 +17,13 @@ import (
 
 func resourceOpennebulaVMGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaVMGroupCreate,
-		Read:   resourceOpennebulaVMGroupRead,
-		Exists: resourceOpennebulaVMGroupExists,
-		Update: resourceOpennebulaVMGroupUpdate,
-		Delete: resourceOpennebulaVMGroupDelete,
+		CreateContext: resourceOpennebulaVMGroupCreate,
+		ReadContext:   resourceOpennebulaVMGroupRead,
+		Exists:        resourceOpennebulaVMGroupExists,
+		UpdateContext: resourceOpennebulaVMGroupUpdate,
+		DeleteContext: resourceOpennebulaVMGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -189,19 +191,29 @@ func changeVMGroupGroup(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceOpennebulaVMGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	vmg, xmlerr := generateVMGroup(d)
-	if xmlerr != nil {
-		return xmlerr
-	}
+	var diags diag.Diagnostics
 
+	vmg, err := generateVMGroup(d)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to generate description",
+			Detail:   err.Error(),
+		})
+		return diags
+	}
 	vmgID, err := controller.VMGroups().Create(vmg)
 	if err != nil {
-		log.Printf("[ERROR] VMGroup creation failed, error: %s", err)
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	vmgc := controller.VMGroup(vmgID)
@@ -212,22 +224,34 @@ func resourceOpennebulaVMGroupCreate(d *schema.ResourceData, meta interface{}) e
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = vmgc.Chmod(permissionUnix(perms.(string)))
 		if err != nil {
-			log.Printf("[ERROR] template permissions change failed, error: %s", err)
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change permissions",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.Get("group") != "" {
 		err = changeVMGroupGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaVMGroupRead(d, meta)
+	return resourceOpennebulaVMGroupRead(ctx, d, meta)
 }
 
-func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	// Get requested template from all templates
 	vmgc, err := getVMGroupController(d, meta, -2, -1, -1)
 	if err != nil {
@@ -236,12 +260,24 @@ func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) err
 			d.SetId("")
 			return nil
 		}
-		return err
+
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
+
 	}
 
 	vmg, err := vmgc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(fmt.Sprintf("%v", vmg.ID))
@@ -255,12 +291,22 @@ func resourceOpennebulaVMGroupRead(d *schema.ResourceData, meta interface{}) err
 	// Get Human readable vmg information
 	err = flattenVMGroupRoles(d, vmg.Roles)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten roles",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = flattenVMGroupTags(d, &vmg.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten tags",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil
@@ -324,33 +370,65 @@ func flattenVMGroupRoles(d *schema.ResourceData, vmgRoles []vmgroup.Role) error 
 }
 
 func resourceOpennebulaVMGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	err := resourceOpennebulaVMGroupRead(d, meta)
-	if err != nil || d.Id() == "" {
+
+	config := meta.(*Configuration)
+	controller := config.Controller
+
+	serviceTemplateID, err := strconv.ParseInt(d.Id(), 10, 0)
+	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	_, err = controller.VMGroup(int(serviceTemplateID)).Info(false)
+	if NoExists(err) {
+		return false, err
+	}
+
+	return true, err
 }
 
-func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	//Get VMGroup
 	vmgc, err := getVMGroupController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	vmg, err := vmgc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("name") {
 		err := vmgc.Rename(d.Get("name").(string))
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		vmg, err = vmgc.Info(false)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve informations",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for vmg %s\n", vmg.Name)
 	}
@@ -359,7 +437,12 @@ func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) e
 		if perms, ok := d.GetOk("permissions"); ok {
 			err = vmgc.Chmod(permissionUnix(perms.(string)))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 		log.Printf("[INFO] Successfully updated VMGroup %s\n", vmg.Name)
@@ -368,7 +451,12 @@ func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) e
 	if d.HasChange("group") {
 		err = changeVMGroupGroup(d, meta)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to change group",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		log.Printf("[INFO] Successfully updated group for VMGroup %s\n", vmg.Name)
 	}
@@ -382,40 +470,67 @@ func resourceOpennebulaVMGroupUpdate(d *schema.ResourceData, meta interface{}) e
 
 		err = vmgc.Update(vmg.Template.String(), 1)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	if d.HasChange("role") && d.Get("role") != "" {
 		var err error
 
-		vmg, xmlerr := generateVMGroup(d)
-		if xmlerr != nil {
-			return xmlerr
+		vmg, err := generateVMGroup(d)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		err = vmgc.Update(vmg, 0)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 
 		log.Printf("[INFO] Successfully updated Virtual Machine Group %s\n", d.Id())
 	}
 
-	return resourceOpennebulaVMGroupRead(d, meta)
+	return resourceOpennebulaVMGroupRead(ctx, d, meta)
 }
 
-func resourceOpennebulaVMGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaVMGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	vmgc, err := getVMGroupController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	err = vmgc.Delete()
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
-
 	log.Printf("[INFO] Successfully deleted VMGroup ID %s\n", d.Id())
 
 	return nil

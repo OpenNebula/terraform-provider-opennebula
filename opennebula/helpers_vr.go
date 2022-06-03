@@ -42,7 +42,7 @@ func vrNICAttach(ctx context.Context, timeout time.Duration, controller *goca.Co
 
 	// check if virtual router machines are in transient states
 	if len(vrInfos.VMs.ID) > 0 {
-		_, errs := waitForVMsStates(controller, vrInfos.VMs.ID, timeout, vmNICUpdateReadyStates...)
+		_, errs := waitForVMsStates(ctx, controller, vrInfos.VMs.ID, timeout, vmNICUpdateReadyStates...)
 		if len(errs) > 0 {
 			var fullErr string
 			for _, err := range errs {
@@ -152,7 +152,7 @@ func vrNICDetach(ctx context.Context, timeout time.Duration, controller *goca.Co
 
 	// check if virtual router machines are in transient states
 	if len(vrInfos.VMs.ID) > 0 {
-		_, errs := waitForVMsStates(controller, vrInfos.VMs.ID, timeout, vrNICAddInstancesStates...)
+		_, errs := waitForVMsStates(ctx, controller, vrInfos.VMs.ID, timeout, vrNICAddInstancesStates...)
 		if len(errs) > 0 {
 			var fullErr string
 			for _, err := range errs {

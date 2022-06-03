@@ -1,12 +1,14 @@
 package opennebula
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -16,12 +18,12 @@ import (
 
 func resourceOpennebulaGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOpennebulaGroupCreate,
-		Read:   resourceOpennebulaGroupRead,
-		Update: resourceOpennebulaGroupUpdate,
-		Delete: resourceOpennebulaGroupDelete,
+		CreateContext: resourceOpennebulaGroupCreate,
+		ReadContext:   resourceOpennebulaGroupRead,
+		UpdateContext: resourceOpennebulaGroupUpdate,
+		DeleteContext: resourceOpennebulaGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -129,13 +131,20 @@ func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupCo
 	return gc, nil
 }
 
-func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
 	groupID, err := controller.Groups().Create(d.Get("name").(string))
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create group",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	d.SetId(fmt.Sprintf("%v", groupID))
 
@@ -148,7 +157,12 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 			uc := controller.User(userlist[i].(int))
 			err = uc.AddGroup(groupID)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add users",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -159,7 +173,12 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 		for i := 0; i < len(adminlist); i++ {
 			err = gc.AddAdmin(adminlist[i].(int))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add admins",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
 		}
 	}
@@ -167,11 +186,21 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 	if _, ok := d.GetOk("quotas"); ok {
 		quotasStr, err := generateQuotas(d)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to generate quotas description",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 		err = gc.Quota(quotasStr)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to apply quotas",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -182,7 +211,12 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 		// Erase previous template
 		err = gc.Update(d.Get("template").(string), 0)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update the group content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
@@ -202,11 +236,16 @@ func resourceOpennebulaGroupCreate(d *schema.ResourceData, meta interface{}) err
 	if len(tpl.Elements) > 0 {
 		err = gc.Update(tpl.String(), parameters.Merge)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update the group content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
-	return resourceOpennebulaGroupRead(d, meta)
+	return resourceOpennebulaGroupRead(ctx, d, meta)
 }
 
 func makeSunstoneVec(sunstoneConfig map[string]interface{}) *dyn.Vector {
@@ -238,7 +277,10 @@ func makeSunstoneVec(sunstoneConfig map[string]interface{}) *dyn.Vector {
 	return &vector
 }
 
-func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	gc, err := getGroupController(d, meta)
 	if err != nil {
 		if NoExists(err) {
@@ -246,14 +288,25 @@ func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return err
+
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to update get the group controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	group, err := gc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed retrieve group informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	d.SetId(strconv.FormatUint(uint64(group.ID), 10))
@@ -280,24 +333,44 @@ func resourceOpennebulaGroupRead(d *schema.ResourceData, meta interface{}) error
 	if len(appliedUserIDs) > 0 {
 		err = d.Set("users", appliedUserIDs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed set field",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	err = d.Set("admins", group.Admins.ID)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set field",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	if _, ok := d.GetOk("quotas"); ok {
 		err = flattenQuotasMapFromStructs(d, &group.QuotasList)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to flatten quotas",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
 	err = flattenGroupTemplate(d, &group.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil
@@ -361,23 +434,42 @@ func flattenGroupTemplate(d *schema.ResourceData, groupTpl *dyn.Template) error 
 	return nil
 }
 
-func resourceOpennebulaGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	gc, err := getGroupController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("quotas") {
 		if _, ok := d.GetOk("quotas"); ok {
 			quotasStr, err := generateQuotas(d)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to generate quotas",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
+
 			err = gc.Quota(quotasStr)
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to apply quotas",
+					Detail:   err.Error(),
+				})
+				return diags
 			}
+
 		}
 	}
 
@@ -385,15 +477,26 @@ func resourceOpennebulaGroupUpdate(d *schema.ResourceData, meta interface{}) err
 
 	group, err := gc.Info(false)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve groups informations",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.HasChange("template") {
 		// Erase previous template
 		err = gc.Update(d.Get("template").(string), 0)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update group content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
+
 	}
 
 	update := false
@@ -438,23 +541,42 @@ func resourceOpennebulaGroupUpdate(d *schema.ResourceData, meta interface{}) err
 	if update {
 		err = gc.Update(newTpl.String(), parameters.Replace)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update group content",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
+
 	}
 
-	return resourceOpennebulaGroupRead(d, meta)
+	return resourceOpennebulaGroupRead(ctx, d, meta)
 }
 
-func resourceOpennebulaGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
 	gc, err := getGroupController(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get controller",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	if d.Get("delete_on_destruction") == true {
 		err = gc.Delete()
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to delete",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 

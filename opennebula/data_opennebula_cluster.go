@@ -1,16 +1,18 @@
 package opennebula
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	clusterSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/cluster"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataOpennebulaCluster() *schema.Resource {
 	return &schema.Resource{
-		Read: datasourceOpennebulaClusterRead,
+		ReadContext: datasourceOpennebulaClusterRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -62,11 +64,18 @@ func clusterFilter(d *schema.ResourceData, meta interface{}) (*clusterSc.Cluster
 	return match[0], nil
 }
 
-func datasourceOpennebulaClusterRead(d *schema.ResourceData, meta interface{}) error {
+func datasourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	cluster, err := clusterFilter(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "clusters filtering failed",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	tplPairs := pairsToMap(cluster.Template.Template)
@@ -77,7 +86,12 @@ func datasourceOpennebulaClusterRead(d *schema.ResourceData, meta interface{}) e
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "setting attribute failed",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
 	}
 
