@@ -13,8 +13,8 @@ Provides an OpenNebula virtual router resource.
 ## Example Usage
 
 ```hcl
-resource "opennebula_virtual_router_instance_template" "test" {
-  name        = "testacc-vr-template"
+resource "opennebula_virtual_router_instance_template" "example" {
+  name        = "virtual-router-instance-template"
   permissions = "642"
   group       = "oneadmin"
   cpu         = "0.5"
@@ -42,53 +42,56 @@ resource "opennebula_virtual_router_instance_template" "test" {
   }
 }
 
-resource "opennebula_virtual_router" "vrouter" {
-  name        = "testacc-vr"
+resource "opennebula_virtual_router" "example" {
+  name        = "virtual-router"
   permissions = "642"
   group       = "oneadmin"
   description = "This is an example of virtual router"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+  instance_template_id = opennebula_virtual_router_instance_template.example.id
 
   lock = "USE"
+
   tags = {
-    environment = "test"
+    environment = "example"
   }
 }
 
-resource "opennebula_virtual_router_instance" "test" {
-  name        = "testacc-vr-virtual-machine"
+resource "opennebula_virtual_router_instance" "example" {
+  name        = "virtual-router-instance"
   group       = "oneadmin"
   permissions = "642"
   memory      = 128
   cpu         = 0.1
 
-  virtual_router_id = opennebula_virtual_router.test.id
+  virtual_router_id = opennebula_virtual_router.example.id
 
   tags = {
-    customer = "1"
+    environment = "example"
   }
 }
 
-resource "opennebula_virtual_network" "network" {
-  name   = "test-net1"
+resource "opennebula_virtual_network" "example" {
+  name   = "virtual-network"
   type   = "bridge"
   bridge = "onebr"
   mtu    = 1500
+
   ar {
     ar_type = "IP4"
     size    = 12
     ip4     = "172.16.100.130"
   }
+
   permissions     = "642"
   group           = "oneadmin"
   security_groups = [0]
   clusters        = [0]
 }
 
-resource "opennebula_virtual_router_nic" "nic" {
-  virtual_router_id = opennebula_virtual_router.test.id
-  network_id        = opennebula_virtual_network.network2.id
+resource "opennebula_virtual_router_nic" "example" {
+  virtual_router_id = opennebula_virtual_router.example.id
+  network_id        = opennebula_virtual_network.example.id
 }
 ```
 
@@ -115,22 +118,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing virtual router #42 into Terraform, add this declaration to your .tf file:
+`opennebula_virtual_router_nic` can be imported using its ID:
 
-```hcl
-resource "opennebula_virtual_router_nic" "importvr" {
-    name = "importedvr"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_virtual_router_nic.importvr 42
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_virtual_router_nic.example 123
 ```

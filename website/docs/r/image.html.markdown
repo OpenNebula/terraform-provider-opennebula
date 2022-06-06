@@ -18,83 +18,87 @@ a new image is created. When destroyed, this image is removed.
 Clone an existing image and make it persistent:
 
 ```hcl
-resource "opennebula_image" "osimageclone" {
-    clone_from_image = 12937
-    name             = "terraclone-image"
-    datastore_id     = 113
-    persistent       = true
-    permissions      = "660"
-    group            = "terraform"
+resource "opennebula_image" "example" {
+  clone_from_image = 12937
+  name             = "image_clone"
+  datastore_id     = 113
+  persistent       = true
+  permissions      = "660"
+  group            = "terraform"
 }
 ```
 
 Allocate a new OS image using a URL:
 
 ```hcl
-resource "opennebula_image" "osimage" {
-    name         = "Ubuntu 18.04"
-    description  = "Terraform image"
-    datastore_id = 103
-    persistent   = false
-    lock         = "MANAGE"
-    path         = "http://marketplace.opennebula.org/appliance/ca5c3632-359a-429c-ac5b-b86178ee2390/download/0"
-    dev_prefix   = "vd"
-    driver       = "qcow2"
-    permissions  = "660"
-    group        = "terraform"
-    timeout      = 15
-    tags = {
-      environment = "dev"
-    }
+resource "opennebula_image" "example" {
+  name         = "Ubuntu 18.04"
+  description  = "Terraform image"
+  datastore_id = 103
+  persistent   = false
+  lock         = "MANAGE"
+  path         = "http://marketplace.opennebula.org/appliance/ca5c3632-359a-429c-ac5b-b86178ee2390/download/0"
+  dev_prefix   = "vd"
+  driver       = "qcow2"
+  permissions  = "660"
+  group        = "terraform"
+  timeout      = 15
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
 Allocate a new persistent 1GB datablock image:
 
 ```hcl
-resource "opennebula_image" "datablockimage" {
-    name         = "terra-datablock"
-    description  = "Terraform datablock"
-    datastore_id = 103
-    persistent   = true
-    type         = "DATABLOCK"
-    size         = "1024"
-    dev_prefix   = "vd"
-    driver       = "qcow2"
-    group        = "terraform"
-    tags = {
-      environment = "dev"
-    }
+resource "opennebula_image" "example" {
+  name         = "datablock"
+  description  = "Terraform datablock"
+  datastore_id = 103
+  persistent   = true
+  type         = "DATABLOCK"
+  size         = "1024"
+  dev_prefix   = "vd"
+  driver       = "qcow2"
+  group        = "terraform"
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
 Allocate a new context file:
 
 ```hcl
-resource "opennebula_image" "contextfile" {
-    name         = "terra-contextfile"
-    description  = "Terraform context"
-    datastore_id = 2
-    type         = "CONTEXT"
-    path         = "http://server/myscript.sh"
-    tags = {
-      environment = "dev"
-    }
+resource "opennebula_image" "example" {
+  name         = "contextfile"
+  description  = "Terraform context"
+  datastore_id = 2
+  type         = "CONTEXT"
+  path         = "http://server/myscript.sh"
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
 Allocate a new CDROM image:
 
 ```hcl
-resource "opennebula_image" "cdimage" {
-    name         = "terra-cdimage"
-    description  = "Terraform cdrom"
-    datastore_id = 103
-    type         = "CDROM"
-    path         = "http://server/mini.iso"
-    tags = {
-      environment = "dev"
-    }
+resource "opennebula_image" "example" {
+  name         = "cdimage"
+  description  = "Terraform cdrom"
+  datastore_id = 103
+  type         = "CDROM"
+  path         = "http://example.com/example_amd64.iso"
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
@@ -123,6 +127,7 @@ The following arguments are supported:
 ## Attribute Reference
 
 The following attributes are exported:
+
 * `id` - ID of the image.
 * `uid` - User ID whom owns the image.
 * `gid` - Group ID which owns the image.
@@ -131,22 +136,8 @@ The following attributes are exported:
 
 ## Import
 
-To import an existing image #14 into Terraform, add this declaration to your .tf file:
+`opennebula_image` can be imported using its ID:
 
-```hcl
-resource "opennebula_image" "importimage" {
-    name = "importedimage"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_image.importimage 14
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_image.example 123
 ```

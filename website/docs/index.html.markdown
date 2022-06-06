@@ -10,12 +10,12 @@ description: |-
 
 The OpenNebula provider is used to interact with OpenNebula cluster resources.
 
-The provider allow you to manage your OpenNebula clusters resources.
+The provider allows you to manage your OpenNebula clusters resources.
 It needs to be configured with proper credentials before it can be used.
 
-Use the navigation to the left to read about the available resources.
-
 ## Example Usage
+
+Configure the OpenNebula Provider:
 
 ```hcl
 provider "opennebula" {
@@ -24,8 +24,11 @@ provider "opennebula" {
   username      = "<USERNAME>"
   password      = "<PASSWORD OR TOKEN>"
 }
+```
 
-# Create a new group of users to the OpenNebula cluster
+Create a new group of users to the OpenNebula cluster:
+
+```hcl
 resource "opennebula_group" "group" {
   # ...
 }

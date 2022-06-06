@@ -13,7 +13,7 @@ Use this data source to retrieve the virtual data center information for a given
 ## Example Usage
 
 ```hcl
-data "opennebula_virtual_data_center" "ExistingVdc" {
+data "opennebula_virtual_data_center" "example" {
   name = "My_VDC"
 }
 ```

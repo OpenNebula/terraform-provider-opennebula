@@ -13,8 +13,8 @@ Use this data source to retrieve the user information for a given name.
 ## Example Usage
 
 ```hcl
-data "opennebula_user" "user" {
-  name = "User"
+data "opennebula_user" "example" {
+  name = "John"
 }
 ```
 

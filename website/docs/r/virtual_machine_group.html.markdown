@@ -16,17 +16,19 @@ a new virtual machine group is created. When destroyed, this virtual machine gro
 ## Example Usage
 
 ```hcl
-resource "opennebula_virtual_machine_group" "test" {
-  name        = "test-vmgroup"
+resource "opennebula_virtual_machine_group" "example" {
+  name        = "virtual-machine-group"
   group       = "oneadmin"
   permissions = "642"
+
   role {
     name              = "anti-aff"
-    host_anti_affined = [ 0 ]
+    host_anti_affined = [0]
     policy            = "ANTI_AFFINED"
   }
+
   tags = {
-    environment = "dev"
+    environment = "example"
   }
 }
 ```
@@ -69,23 +71,8 @@ The Following attributes are exported under `role`:
 
 ## Import
 
-To import an existing virtual machine group #42 into Terraform, add this declaration to your .tf file:
+`opennebula_virtual_machine_group` can be imported using its ID:
 
-```hcl
-resource "opennebula_virtual_machine_group" "importvmg" {
-    name = "importedvmg"
-}
+```shell
+terraform import opennebula_virtual_machine_group.example 123
 ```
-
-And then run:
-
-```
-terraform import opennebula_virtual_machine_group.importvmg 42
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
-```
-

@@ -13,8 +13,8 @@ Provides an OpenNebula virtual router instance resource.
 ## Example Usage
 
 ```hcl
-resource "opennebula_virtual_router_instance_template" "test" {
-  name        = "testacc-vr-template"
+resource "opennebula_virtual_router_instance_template" "example" {
+  name        = "virtual-router-instance-template"
   permissions = "642"
   group       = "oneadmin"
   cpu         = "0.5"
@@ -38,35 +38,36 @@ resource "opennebula_virtual_router_instance_template" "test" {
   }
 
   tags = {
-    env = "prod"
+    environment = "example"
   }
 }
 
-resource "opennebula_virtual_router" "vrouter" {
-  name        = "testacc-vr"
+resource "opennebula_virtual_router" "example" {
+  name        = "virtual-router"
   permissions = "642"
   group       = "oneadmin"
   description = "This is an example of virtual router"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+  instance_template_id = opennebula_virtual_router_instance_template.example.id
 
   lock = "USE"
+
   tags = {
-    environment = "test"
+    environment = "example"
   }
 }
 
-resource "opennebula_virtual_router_instance" "test" {
-  name        = "testacc-vr-virtual-machine"
+resource "opennebula_virtual_router_instance" "example" {
+  name        = "virtual-router-instance"
   group       = "oneadmin"
   permissions = "642"
   memory      = 128
   cpu         = 0.1
 
-  virtual_router_id = opennebula_virtual_router.test.id
+  virtual_router_id = opennebula_virtual_router.example.id
 
   tags = {
-    customer = "1"
+    environment = "example"
   }
 }
 ```
@@ -175,22 +176,8 @@ For disks defined in the template, if they are not overriden, are described in `
 
 ## Import
 
-To import an existing virtual router instance #42 into Terraform, add this declaration to your .tf file:
-
-```hcl
-resource "opennebula_virtual_router_instance" "importvm" {
-    name = "importedvm"
-}
-```
-
-And then run:
+`opennebula_virtual_router_instance` can be imported using its ID:
 
 ```sh
-terraform import opennebula_virtual_router_instance.importvm 42
-```
-
-Verify that Terraform does not perform any change:
-
-```sh
-terraform plan
+terraform import opennebula_virtual_router_instance.example 123
 ```

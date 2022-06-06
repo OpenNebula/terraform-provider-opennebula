@@ -13,7 +13,7 @@ Use this data source to retrieve the virtual network information for a given nam
 ## Example Usage
 
 ```hcl
-data "opennebula_virtual_network" "ExistingVNet" {
+data "opennebula_virtual_network" "example" {
   name = "My_VNet"
 }
 ```

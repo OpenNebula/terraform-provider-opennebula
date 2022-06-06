@@ -13,7 +13,7 @@ Use this data source to retrieve the security group information for a given name
 ## Example Usage
 
 ```hcl
-data "opennebula_security_group" "ExistingSecurityGroup" {
+data "opennebula_security_group" "example" {
   name = "My_Security_Group"
 }
 ```

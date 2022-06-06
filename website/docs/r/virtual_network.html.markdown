@@ -20,38 +20,40 @@ a new virtual network is created. When destroyed, that virtual network is remove
 Allocate a new virtual network from the parent virtual network "394":
 
 ```hcl
-resource "opennebula_virtual_network" "reservation" {
-    name             = "terravnetres"
-    description      = "my terraform vnet"
-    reservation_vnet = 394
-    reservation_size = 5
-    security_groups  = [ 0 ]
+resource "opennebula_virtual_network" "example" {
+  name             = "virtual-network"
+  description      = "Terraform vnet"
+  reservation_vnet = 394
+  reservation_size = 5
+  security_groups  = [0]
 }
 ```
 
 ### Virtual network creation
 
 ```hcl
-resource "opennebula_virtual_network" "vnet" {
-    name            = "tarravnet"
-    permissions     = "660"
-    group           = opennebula_group.group.name
-    bridge          = "br0"
-    physical_device = "eth0"
-    type            = "fw"
-    mtu             = 1500
-    dns             = "172.16.100.1"
-    gateway         = "172.16.100.1"
-    security_groups = [ 0 ]
-    clusters        = [ 0 ]
-    ar {
-         ar_type = "IP4"
-         size    = 16
-         ip4     = "172.16.100.101"
-    }
-    tags = {
-      environment = "dev"
-    }
+resource "opennebula_virtual_network" "example" {
+  name            = "virtual-network"
+  permissions     = "660"
+  group           = opennebula_group.example.name
+  bridge          = "br0"
+  physical_device = "eth0"
+  type            = "fw"
+  mtu             = 1500
+  dns             = "172.16.100.1"
+  gateway         = "172.16.100.1"
+  security_groups = [0]
+  clusters        = [0]
+
+  ar {
+    ar_type = "IP4"
+    size    = 16
+    ip4     = "172.16.100.101"
+  }
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
@@ -77,7 +79,7 @@ The following arguments are supported:
 * `network_mask` - (Optional) Network mask. Conflicts with `reservation_vnet` and `reservation_size`.
 * `dns` - (Optional) Text String containing a comma separated list of DNS IPs. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ar` - (Optional) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
-* `hold_ips` - (Optional) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with `reservation_vnet` and `reservation_size`.
+* `hold_ips` - (Optional) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with`reservation_vnet` and `reservation_size`.
 * `hold_size` - (Deprecated) Carve a network reservation of this size from the reservation starting from `ip_hold`. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ip_hold` - (Deprecated) Start IP of the range to be held. Conflicts with `reservation_vnet` and `reservation_size`.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
@@ -117,24 +119,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing virtual network #1234 into Terraform, add this declaration to your .tf file (don't specify the reservation_size):
+`opennebula_virtual_network` can be imported using its ID:
 
-```hcl
-resource "opennebula_virtual_network" "importtest" {
-    name             = "importedvnet"
-    reservation_vnet = 394
-    security_groups  = ["0"]
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_virtual_network.importtest 1234
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_virtual_network.example 123
 ```

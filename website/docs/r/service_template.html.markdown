@@ -16,34 +16,34 @@ a new service template will be created. When destroyed, that service template wi
 ## Example Usage
 
 ```hcl
-resource "opennebula_service_template" "stemplate" {
-    name = "tf-stemplate"
-    template = templatefile("${path.module}/template.json", {})
-    permissions = 642
-    uname = "oneadmin"
-    gname = "oneadmin"
+resource "opennebula_service_template" "example" {
+  name        = "servicetemplate"
+  template    = templatefile("${path.module}/template.json", {})
+  permissions = 642
+  uname       = "oneadmin"
+  gname       = "oneadmin"
 }
 ```
 
-`template.json` file contains a `json` document with the definition of the service template.
+`template.json` file contains a `json` document with the definition of the service template:
 
-```
-${jsonencode({
-	"TEMPLATE": {
-		"BODY": {
-			"name": "tm-stemplate",
-			"deployment": "straight",
-			"roles": [
-				{
-					"name": "master",
-					"cardinality": 3,
-					"vm_template": 0,
-					"min_vms": 2
-				}
-			]
-		}
-	}
-})}
+```json
+{
+  "TEMPLATE": {
+    "BODY": {
+      "name": "tm-stemplate",
+      "deployment": "straight",
+      "roles": [
+        {
+          "name": "master",
+          "cardinality": 3,
+          "vm_template": 0,
+          "min_vms": 2
+        }
+      ]
+    }
+  }
+}
 ```
 
 ## Argument Reference
@@ -70,21 +70,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing service template #42 into Terraform, add this declaration to your .tf file:
+`opennebula_security_group` can be imported using its ID:
 
-```hcl
-resource "opennebula_service_template" "importservicetmpl" {}
+```shell
+terraform import opennebula_service_template.example 123
 ```
-
-And then run:
-
-```
-terraform import opennebula_service_template.importservicetmpl 42
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
-```
-

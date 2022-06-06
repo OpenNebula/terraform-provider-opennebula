@@ -16,8 +16,8 @@ a new service will be created. When destroyed, that service will be removed.
 ## Example Usage
 
 ```hcl
-resource "opennebula_service" "service" {
-  name           = "service-tf"
+resource "opennebula_service" "example" {
+  name           = "service"
   template_id    = 11
   extra_template = templatefile("${path.module}/extra_template.json", {})
 }
@@ -25,15 +25,17 @@ resource "opennebula_service" "service" {
 
 `extra_template.json` file contains a `json` document with extra information used during service instantiate (e.g networks, custom attriubtes...):
 
-```
-${jsonencode({
-	"networks_values":[{
-		"vnet":{
-			"reserve_from":"2",
-			"extra": "SIZE=3"
-		}
-	}]
-})}
+```json
+{
+  "networks_values": [
+    {
+      "vnet": {
+        "reserve_from": "2",
+        "extra": "SIZE=3"
+      }
+    }
+  ]
+}
 ```
 
 ## Argument Reference
@@ -64,21 +66,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing service #42 into Terraform, add this declaration to your .tf file:
+`opennebula_service` can be imported using its ID:
 
-```hcl
-resource "opennebula_service" "importservice" {}
+```shell
+terraform import opennebula_service.example 123
 ```
-
-And then run:
-
-```
-terraform import opennebula_service.importservice 42
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
-```
-

@@ -13,7 +13,7 @@ Use this data source to retrieve the image information for a given name.
 ## Example Usage
 
 ```hcl
-data "opennebula_image" "ExistingImage" {
+data "opennebula_image" "example" {
   name = "My_Image"
 }
 ```

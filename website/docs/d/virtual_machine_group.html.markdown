@@ -13,7 +13,7 @@ Use this data source to retrieve the virtual machine group information for a giv
 ## Example Usage
 
 ```hcl
-data "opennebula_virtual_machine_group" "ExistingVMGroup" {
+data "opennebula_virtual_machine_group" "example" {
   name = "My_VMGroup"
 }
 ```

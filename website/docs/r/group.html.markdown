@@ -16,40 +16,42 @@ a new group is created. When destroyed, it is removed.
 ## Example Usage
 
 ```hcl
-resource "opennebula_group" "group" {
-    name                  = "terraform"
-    quotas {
-        datastore_quotas {
-            id     = 1
-            images = 3
-            size   = 10000
-        }
-        vm_quotas {
-            cpu            = 3
-            running_cpu    = 3
-            memory         = 2048
-            running_memory = 2048
-        }
-        network_quotas = {
-            id     = 10
-            leases = 6
-        }
-        network_quotas = {
-            id     = 11
-            leases = 4
-        }
-        image_quotas = {
-            id          = 8
-            running_vms = 1
-        }
-        image_quotas = {
-            id          = 9
-            running_vms = 1
-        }
+resource "opennebula_group" "example" {
+  name = "group"
+
+  quotas {
+    datastore_quotas {
+      id     = 1
+      images = 3
+      size   = 10000
     }
-    tags = {
-        environment = "dev"
+    vm_quotas {
+      cpu            = 3
+      running_cpu    = 3
+      memory         = 2048
+      running_memory = 2048
     }
+    network_quotas {
+      id     = 10
+      leases = 6
+    }
+    network_quotas {
+      id     = 11
+      leases = 4
+    }
+    image_quotas = {
+      id          = 8
+      running_vms = 1
+    }
+    image_quotas {
+      id          = 9
+      running_vms = 1
+    }
+  }
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
@@ -123,22 +125,8 @@ The following attribute is exported:
 
 ## Import
 
-To import an existing group #134 into Terraform, add this declaration to your .tf file:
+`opennebula_group` can be imported using its ID:
 
-```hcl
-resource "opennebula_group" "importgroup" {
-    name = "importedgroup"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_group.importgroup 134
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_group.example 123
 ```

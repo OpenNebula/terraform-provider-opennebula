@@ -13,7 +13,7 @@ Use this data source to retrieve the template information for a given name.
 ## Example Usage
 
 ```hcl
-data "opennebula_template" "ExistingTemplate" {
+data "opennebula_template" "example" {
   name = "My_Template"
 }
 ```

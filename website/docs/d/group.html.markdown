@@ -13,7 +13,7 @@ Use this data source to retrieve the group information for a given name.
 ## Example Usage
 
 ```hcl
-data "opennebula_group" "ExistingGroup" {
+data "opennebula_group" "example" {
   name = "My_Service_Group"
 }
 ```

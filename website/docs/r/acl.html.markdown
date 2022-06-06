@@ -16,10 +16,10 @@ a new ACL is created. When destroyed, this ACL is removed. Note that ACLs curren
 ## Example Usage
 
 ```hcl
-resource "opennebula_acl" "acl" {
-    user     = "@1"
-    resource = "HOST+CLUSTER+DATASTORE/*"
-    rights   = "USE+MANAGE+ADMIN"
+resource "opennebula_acl" "example" {
+  user     = "@1"
+  resource = "HOST+CLUSTER+DATASTORE/*"
+  rights   = "USE+MANAGE+ADMIN"
 }
 ```
 
@@ -28,65 +28,48 @@ resource "opennebula_acl" "acl" {
 The following arguments are supported:
 
 * `user` - (Required) User component of the new rule.
-    - `#<id>` matches a single user id
-    - `@<id>` matches a group id
-    - `*` matches everything.
+  * `#<id>` matches a single user id
+  * `@<id>` matches a group id
+  * `*` matches everything.
 * `resource` - (Required) Resource component of the new rule. Any combination of valid resources, separated by a `+`.
 
   **Must contain a slash for resource subset.**
   Resource subset string uses the same syntax as the User-string, and additionally supports `%<id>` to limit by Cluster ID.
 
   The following objects are valid:
-    - VM
-    - HOST
-    - NET
-    - IMAGE
-    - USER
-    - TEMPLATE
-    - GROUP
-    - DATASTORE
-    - CLUSTER
-    - DOCUMENT
-    - ZONE
-    - SECGROUP
-    - VDC
-    - VROUTER
-    - MARKETPLACE
-    - MARKETPLACEAPP
-    - VMGROUP
-    - VNTEMPLATE
+  * VM
+  * HOST
+  * NET
+  * IMAGE
+  * USER
+  * TEMPLATE
+  * GROUP
+  * DATASTORE
+  * CLUSTER
+  * DOCUMENT
+  * ZONE
+  * SECGROUP
+  * VDC
+  * VROUTER
+  * MARKETPLACE
+  * MARKETPLACEAPP
+  * VMGROUP
+  * VNTEMPLATE
 * `rights` - (Optional) Rights component of the new rule. Any combination of valid Rights, separated by a `+`.
 
   The following rights are valid:
-    - USE
-    - MANAGE
-    - ADMIN
-    - CREATE
+  * USE
+  * MANAGE
+  * ADMIN
+  * CREATE
 * `zone` - (Optional) Zone component of the new rule.
-    - `#<id>` matches a single zone id
-    - `*` matches everything.
-
+  * `#<id>` matches a single zone id
+  * `*` matches everything.
 
 ## Import
 
-To import an existing ACL #134 into Terraform, add this declaration to your .tf file:
+`opennebula_acl` can be imported using its ID:
 
-```hcl
-resource "opennebula_acl" "importacl" {
-    user     = "@1"
-    resource = "HOST+CLUSTER+DATASTORE/*"
-    rights   = "USE+MANAGE+ADMIN"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_acl.importacl 134
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_acl.example 123
 ```

@@ -16,11 +16,11 @@ a new virtual machine is created. When destroyed, this virtual machine is remove
 ## Example Usage
 
 ```hcl
+resource "opennebula_virtual_machine" "example" {
+  count = 2
 
-resource "opennebula_virtual_machine" "demo" {
-  count       = 2
-  name        = "tfdemovm"
-  description = "this is a VM template"
+  name        = "virtual-machine-${count.index}"
+  description = "VM"
   cpu         = 1
   vcpu        = 1
   memory      = 1024
@@ -45,7 +45,7 @@ resource "opennebula_virtual_machine" "demo" {
   }
 
   disk {
-    image_id = opennebula_image.osimage.id
+    image_id = opennebula_image.example.id
     size     = 10000
     target   = "vda"
     driver   = "qcow2"
@@ -56,7 +56,7 @@ resource "opennebula_virtual_machine" "demo" {
   nic {
     model           = "virtio"
     network_id      = var.vnetid
-    security_groups = [opennebula_security_group.mysecgroup.id]
+    security_groups = [opennebula_security_group.example.id]
   }
 
   vmgroup {
@@ -67,7 +67,7 @@ resource "opennebula_virtual_machine" "demo" {
   sched_requirements = "FREE_CPU > 60"
 
   tags = {
-    environment = "dev"
+    environment = "example"
   }
 
   timeout = 5
@@ -221,22 +221,8 @@ For disks and NICs defined in the template, if they are not overriden, are descr
 
 ## Import
 
-To import an existing virtual machine #42 into Terraform, add this declaration to your .tf file:
+`opennebula_virtual_machine` can be imported using its ID:
 
-```hcl
-resource "opennebula_virtual_machine" "importvm" {
-    name = "importedvm"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_virtual_machine.importvm 42
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_virtual_machine.example 123
 ```

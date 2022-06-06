@@ -16,16 +16,17 @@ a new virtual data center is created. When destroyed, this virtual data center i
 ## Example Usage
 
 ```hcl
-resource "opennebula_virtual_data_center" "vdc" {
-    name      = "terravdc"
-    group_ids = [opennebula_group.group.id]
-    zones {
-        id            = 0
-        host_ids      = [0, 1]
-        datastore_ids = [0, 1, 2]
-        vnet_ids      = [opennebula_virtual_network.vnet.id]
-        cluster_ids   = [0, 100]
-    }
+resource "opennebula_virtual_data_center" "example" {
+  name      = "virtual-data-center"
+  group_ids = [opennebula_group.example.id]
+  
+  zones {
+    id            = 0
+    host_ids      = [0, 1]
+    datastore_ids = [0, 1, 2]
+    vnet_ids      = [opennebula_virtual_network.example.id]
+    cluster_ids   = [0, 100]
+  }
 }
 ```
 
@@ -55,22 +56,8 @@ The following attribute is exported:
 
 ## Import
 
-To import an existing virtual data center #13 into Terraform, add this declaration to your .tf file:
+`opennebula_virtual_data_center` can be imported using its ID:
 
-```hcl
-resource "opennebula_virtual_data_center" "importvdc" {
-    name = "importedvdc"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_virtual_data_center.importvdc 13
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_virtual_data_center.example 123
 ```

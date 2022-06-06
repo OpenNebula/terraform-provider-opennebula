@@ -13,7 +13,7 @@ Use this data source to retrieve the cluster information from it's name or tags.
 ## Example Usage
 
 ```hcl
-data "opennebula_cluster" "ExistingCluster" {
+data "opennebula_cluster" "example" {
   name = "My_Cluster"
 }
 ```

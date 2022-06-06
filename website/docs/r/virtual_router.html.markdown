@@ -13,17 +13,18 @@ Provides an OpenNebula virtual router resource.
 ## Example Usage
 
 ```hcl
-resource "opennebula_virtual_router" "vrouter" {
-  name        = "testacc-vr"
+resource "opennebula_virtual_router" "example" {
+  name        = "virtual-router"
   permissions = "642"
   group       = "oneadmin"
   description = "This is an example of virtual router"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+  instance_template_id = opennebula_virtual_router_instance_template.example.id
 
-  lock        = "USE"
+  lock = "USE"
+
   tags = {
-    environment = "test"
+    environment = "example"
   }
 }
 ```
@@ -51,22 +52,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing virtual router #42 into Terraform, add this declaration to your .tf file:
-
-```hcl
-resource "opennebula_virtual_router" "importvr" {
-    name = "importedvr"
-}
-```
-
-And then run:
+`opennebula_virtual_router` can be imported using its ID:
 
 ```sh
-terraform import opennebula_virtual_router.importvr 42
-```
-
-Verify that Terraform does not perform any change:
-
-```sh
-terraform plan
+terraform import opennebula_virtual_router.example 123
 ```

@@ -16,9 +16,9 @@ a new template is created. When destroyed, this template is removed.
 ## Example Usage
 
 ```hcl
-resource "opennebula_template" "mytemplate" {
-  name        = "mytemplate"
-  description = "this is a VM template"
+resource "opennebula_template" "example" {
+  name        = "template"
+  description = "VM template"
   cpu         = 1
   vcpu        = 1
   memory      = 1024
@@ -43,7 +43,7 @@ resource "opennebula_template" "mytemplate" {
   }
 
   disk {
-    image_id = opennebula_image.osimage.id
+    image_id = opennebula_image.example.id
     size     = 10000
     target   = "vda"
     driver   = "qcow2"
@@ -52,7 +52,7 @@ resource "opennebula_template" "mytemplate" {
   nic {
     model           = "virtio"
     network_id      = var.vnetid
-    security_groups = [opennebula_security_group.mysecgroup.id]
+    security_groups = [opennebula_security_group.example.id]
   }
 
   vmgroup {
@@ -61,13 +61,13 @@ resource "opennebula_template" "mytemplate" {
   }
 
   sched_requirements = "FREE_CPU > 60"
-  
+
   user_inputs = {
-    BLOG_TITLE="M|text|Blog Title",
+    BLOG_TITLE = "M|text|Blog Title",
   }
 
   tags = {
-    environment = "dev"
+    environment = "example"
   }
 }
 ```
@@ -160,7 +160,6 @@ Minimum 1 item. Maximum 8 items.
 * `type` - (Required) - Hypervisor. Supported values: `kvm`, `lxd`, `vmware`.
 * `data` - (Required) - Raw data to pass to the hypervisor.
 
-
 ### VM group parameters
 
 `vmgroup` supports the following arguments:
@@ -181,22 +180,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing virtual machine template #54 into Terraform, add this declaration to your .tf file:
+`opennebula_template` can be imported using its ID:
 
-```hcl
-resource "opennebula_template" "importtpl" {
-    name = "importedtpl"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_template.importtppl 54
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_template.example 123
 ```

@@ -16,26 +16,30 @@ a new security group is created. When destroyed, this security group is removed.
 ## Example Usage
 
 ```hcl
-resource "opennebula_security_group" "mysecgroup" {
-    name        = "terrasec"
-    description = "Terraform security group"
-    group       = "terraform"
-    rule {
-        protocol  = "ALL"
-        rule_type = "OUTBOUND"
-    }
-    rule {
-        protocol  = "TCP"
-        rule_type = "INBOUND"
-        range     = "22"
-    }
-    rule {
-        protocol  = "ICMP"
-        rule_type = "INBOUND"
-    }
-    tags = {
-      environment = "dev"
-    }
+resource "opennebula_security_group" "example" {
+  name        = "security-group"
+  description = "Terraform security group"
+  group       = "terraform"
+
+  rule {
+    protocol  = "ALL"
+    rule_type = "OUTBOUND"
+  }
+
+  rule {
+    protocol  = "TCP"
+    rule_type = "INBOUND"
+    range     = "22"
+  }
+
+  rule {
+    protocol  = "ICMP"
+    rule_type = "INBOUND"
+  }
+
+  tags = {
+    environment = "example"
+  }
 }
 ```
 
@@ -63,7 +67,7 @@ The following arguments are supported:
 * `range` - (Optional) Comma separated list of ports and port ranges.
 * `icmp_type` - (Optional) Type of ICMP traffic to apply to when 'protocol' is `ICMP`.
 
-See https://docs.opennebula.org/5.12/operation/network_management/security_groups.html for more details on allowed values.
+See <https://docs.opennebula.org/5.12/operation/network_management/security_groups.html> for more details on allowed values.
 
 ## Attribute Reference
 
@@ -77,22 +81,8 @@ The following attribute are exported:
 
 ## Import
 
-To import an existing security group #142 into Terraform, add this declaration to your .tf file:
+`opennebula_security_group` can be imported using its ID:
 
-```hcl
-resource "opennebula_security_group" "importsg" {
-    name = "importedsg"
-}
-```
-
-And then run:
-
-```
-terraform import opennebula_security_group.importsg 142
-```
-
-Verify that Terraform does not perform any change:
-
-```
-terraform plan
+```shell
+terraform import opennebula_security_group.example 123
 ```
