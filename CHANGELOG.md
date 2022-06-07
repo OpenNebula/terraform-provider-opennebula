@@ -1,56 +1,53 @@
-## 0.5.0 (Unreleased)
+## 0.5.0 (June 7th, 2022)
 
 NOTES:
 
-* All datasources schemas have been reworked and an independant read method has been added for each.
-* The provider has been migrated to use the SDK v2.
-* OpenNebula binding (goca) dependency has been updated to the 6.4 release.
+* All datasources schemas have been reworked and an independant read method has been added for each (#229)
+* The provider has been migrated to use the SDK v2 (#161)
+* OpenNebula binding (goca) dependency has been updated to the 6.4 release (#270)
 
 FEATURES:
 
-* **New Data Source**: `opennebula_cluster`: allow filtering based on `name` and `tags`
-* **New Resources**: `opennebula_virtual_router`, `opennebula_virtual_router_instance`, `opennebula_virtual_router_instance_template`, `opennebula_virtual_router_nic`
+* **New Data Source**: `opennebula_cluster`: allow filtering based on `name` and `tags` (#234)
+* **New Resources**: `opennebula_virtual_router`, `opennebula_virtual_router_instance`, `opennebula_virtual_router_instance_template`, `opennebula_virtual_router_nic` (#170)
+* resources/opennebula_virtual_machine: Add 'on_disk_change' property to opennebula_virtual_machine (#184)
+* **New Resource**: `opennebula_group_admins` (#245)
+* resources/opennebula_template: add `features` section (#237)
 
 ENHANCEMENTS:
 
-* data/opennebula_group: make `name` optional and add `tags` filtering
-* data/opennebula_image: make `name` optional and enable `tags` filtering
-* data/opennebula_security_group: make `name` optional and enable `tags` filtering
-* data/opennebula_template: make `name` optional and enable `tags` filtering
-* data/opennebula_template_vm_group: make `name` optional and enable `tags` filtering
-* data/opennebula_user: make `name` optional and enable `tags` filtering
-* data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering
-* data/opennebula_virtual_network: make `name` optional and enable `tags` filtering
-* resources/opennebula_group: add `sunstone` and `tags` sections
-* resources/opennebula_virtual_network: compatibility added for network states
-* resources/opennebula_virtal_machine: enable VM vcpu, cpu and memory update
-* resources/opennebula_user: add `tags` sections
-* resources/opennebula_acl: enable `zone` parameter
-
-FEATURES:
-
-* resources/opennebula_virtual_machine: Add 'on_disk_change' property to opennebula_virtual_machine
-* **New Resource**: opennebula_group_admins
-* resources/opennebula_template: add `features` section
+* data/opennebula_group: make `name` optional and add `tags` filtering (#268)
+* data/opennebula_image: make `name` optional and enable `tags` filtering (#229)
+* data/opennebula_security_group: make `name` optional and enable `tags` filtering (#229)
+* data/opennebula_template: make `name` optional and enable `tags` filtering (#229)
+* data/opennebula_template_vm_group: make `name` optional and enable `tags` filtering (#229)
+* data/opennebula_user: make `name` optional and enable `tags` filtering (#229)
+* data/opennebula_virtual_data_center: make `name` optional and add `tags` filtering (#229)
+* data/opennebula_virtual_network: make `name` optional and enable `tags` filtering (#229)
+* resources/opennebula_group: add `sunstone` and `tags` sections (#251)
+* resources/opennebula_virtual_network: compatibility added for network states (#270)
+* resources/opennebula_virtal_machine: enable VM vcpu, cpu and memory update (#273)
+* resources/opennebula_user: add `tags` sections (#275)
+* resources/opennebula_acl: enable `zone` parameter (#277)
 
 DEPRECATION:
 
-* data/opennebula_group: deprecate `quotas`, `template`, remove `users`
-* data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true`
-* data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template`
-* data/opennebula_user: deprecate `quotas` and `auth_driver`
-* data/opennebula_virtual_network: deprecate `description`. Make `mtu` computed
+* data/opennebula_group: deprecate `quotas`, `template`, remove `users` (#251, #229)
+* data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true` (@frousselet, #253)
+* data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template` (#229)
+* data/opennebula_user: deprecate `quotas` and `auth_driver` (#229)
+* data/opennebula_virtual_network: deprecate `description`. Make `mtu` computed (#229)
 
 BUG FIXES:
 
-* resources/opennebula_security_group: read `name`
-* resources/opennebula_virtual_machine: fix volatile disk update adding `computed_volatile_format`
-* resources/opennebula_virtual_machine: fix template quotes escaping
-* resources/opennebula_template: fix template quotes escaping
-* resources/opennebula_template: fix reading and update of `cpu`, `vcpu`, `memory`
-* resources/opennebula_virtual_machine: fix reading of `cpu`, `vcpu`, `memory`
-* resources/openenbula_image: fix key deletions in `tags`
-* resources/opennebula_security_group: fix key deletions in `tags`
+* resources/opennebula_security_group: read `name` (#229)
+* resources/opennebula_virtual_machine: fix volatile disk update adding `computed_volatile_format` (#260)
+* resources/opennebula_virtual_machine: fix template quotes escaping (#270)
+* resources/opennebula_template: fix template quotes escaping (#270)
+* resources/opennebula_template: fix reading and update of `cpu`, `vcpu`, `memory` (#236)
+* resources/opennebula_virtual_machine: fix reading of `cpu`, `vcpu`, `memory` (#236)
+* resources/openenbula_image: fix key deletions in `tags`  (#275)
+* resources/opennebula_security_group: fix key deletions in `tags`  (#275)
 
 ## 0.4.3 (March 23th, 2022)
 
