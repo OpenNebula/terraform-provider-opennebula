@@ -96,12 +96,6 @@ func resourceOpennebulaVirtualRouter() *schema.Resource {
 				Description: "A description of the entity",
 			},
 			"lock": lockSchema(),
-			"timeout": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     3,
-				Description: "Timeout (in minutes) within virtual machine resources should be available. Default: 3 minutes",
-			},
 			"tags": tagsSchema(),
 		},
 	}

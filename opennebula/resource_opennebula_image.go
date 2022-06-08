@@ -20,6 +20,8 @@ import (
 )
 
 var imagetypes = []string{"OS", "CDROM", "DATABLOCK", "KERNEL", "RAMDISK", "CONTEXT"}
+var defaultImageMinTimeout = 10
+var defaultImageTimeout = time.Duration(defaultImageMinTimeout) * time.Minute
 
 func resourceOpennebulaImage() *schema.Resource {
 	return &schema.Resource{
@@ -28,6 +30,10 @@ func resourceOpennebulaImage() *schema.Resource {
 		Exists: resourceOpennebulaImageExists,
 		Update: resourceOpennebulaImageUpdate,
 		Delete: resourceOpennebulaImageDelete,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(defaultImageTimeout),
+			Delete: schema.DefaultTimeout(defaultImageTimeout),
+		},
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -168,8 +174,9 @@ func resourceOpennebulaImage() *schema.Resource {
 			"timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     10,
+				Default:     defaultImageMinTimeout,
 				Description: "Timeout (in minutes) within resource should be available. Default: 10 minutes",
+				Deprecated:  "Native terraform timeout facilities should be used instead",
 			},
 			"group": {
 				Type:        schema.TypeString,
@@ -272,7 +279,11 @@ func resourceOpennebulaImageCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	timeout := d.Get("timeout").(int)
+	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultImageTimeout {
+		timeout = d.Timeout(schema.TimeoutCreate)
+	}
+
 	_, err = waitForImageState(ic, timeout, "READY")
 	if err != nil {
 		return fmt.Errorf("Error waiting for Image (%s) to be in state READY: %s", d.Id(), err)
@@ -347,7 +358,7 @@ func resourceOpennebulaImageClone(d *schema.ResourceData, meta interface{}) (int
 	return originalic.Clone(d.Get("name").(string), d.Get("datastore_id").(int))
 }
 
-func waitForImageState(ic *goca.ImageController, timeout int, state ...string) (interface{}, error) {
+func waitForImageState(ic *goca.ImageController, timeout time.Duration, state ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"anythingelse"},
@@ -381,7 +392,7 @@ func waitForImageState(ic *goca.ImageController, timeout int, state ...string) (
 				return imgInfos, "anythingelse", nil
 			}
 		},
-		Timeout:    time.Duration(timeout) * time.Minute,
+		Timeout:    timeout,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -632,7 +643,11 @@ func resourceOpennebulaImageDelete(d *schema.ResourceData, meta interface{}) err
 	}
 	log.Printf("[INFO] Successfully deleted Image ID %s\n", d.Id())
 
-	timeout := d.Get("timeout").(int)
+	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultImageTimeout {
+		timeout = d.Timeout(schema.TimeoutDelete)
+	}
+
 	_, err = waitForImageState(ic, timeout, "notfound")
 	if err != nil {
 		return fmt.Errorf("Error waiting for Image (%s) to be in state NOTFOUND: %s", d.Id(), err)

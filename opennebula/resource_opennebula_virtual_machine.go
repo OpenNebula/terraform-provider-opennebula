@@ -25,6 +25,8 @@ var (
 	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
 	vmDeleteReadyStates     = []string{"RUNNING", "HOLD", "POWEROFF", "STOPPED", "UNDEPLOYED", "SUSPENDED"}
+	defaultVMMinTimeout     = 3
+	defaultVMTimeout        = time.Duration(defaultVMMinTimeout) * time.Minute
 )
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {
@@ -35,6 +37,11 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 		Update:        resourceOpennebulaVirtualMachineUpdate,
 		Delete:        resourceOpennebulaVirtualMachineDelete,
 		CustomizeDiff: resourceVMCustomizeDiff,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(defaultVMTimeout),
+			Update: schema.DefaultTimeout(defaultVMTimeout),
+			Delete: schema.DefaultTimeout(defaultVMTimeout),
+		},
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -323,7 +330,10 @@ func resourceOpennebulaVirtualMachineCreate(d *schema.ResourceData, meta interfa
 		expectedState = "HOLD"
 	}
 
-	timeout := d.Get("timeout").(int)
+	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultVMTimeout {
+		timeout = d.Timeout(schema.TimeoutCreate)
+	}
 	_, err = waitForVMState(vmc, time.Duration(timeout)*time.Minute, expectedState)
 	if err != nil {
 		return fmt.Errorf(
@@ -1168,6 +1178,9 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 
 	if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {
 		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+		if timeout == defaultVMTimeout {
+			timeout = d.Timeout(schema.TimeoutUpdate)
+		}
 
 		vmState, _, _ := vmInfos.State()
 		vmRequireShutdown := vmState != vm.Poweroff && vmState != vm.Undeployed
@@ -1228,6 +1241,9 @@ func resourceOpennebulaVirtualMachineUpdateCustom(d *schema.ResourceData, meta i
 	if updateConf {
 
 		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+		if timeout == defaultVMTimeout {
+			timeout = d.Timeout(schema.TimeoutUpdate)
+		}
 
 		_, err = waitForVMState(vmc, timeout, "RUNNING")
 		if err != nil {
@@ -1282,6 +1298,9 @@ func updateDisk(d *schema.ResourceData, meta interface{}) error {
 	newDisksCfg := new.([]interface{})
 
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultVMTimeout {
+		timeout = d.Timeout(schema.TimeoutUpdate)
+	}
 
 	// get unique elements of each list of configs
 	// NOTE: diffListConfig relies on Set, so we may loose list ordering of disks here
@@ -1419,6 +1438,9 @@ func updateNIC(d *schema.ResourceData, meta interface{}) error {
 	newNicsCfg := new.([]interface{})
 
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultVMTimeout {
+		timeout = d.Timeout(schema.TimeoutUpdate)
+	}
 
 	// get unique elements of each list of configs
 	// NOTE: diffListConfig relies on Set, so we may loose list ordering of NICs here
@@ -1600,6 +1622,9 @@ func resourceOpennebulaVirtualMachineDelete(d *schema.ResourceData, meta interfa
 
 	// wait state to be ready
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultVMTimeout {
+		timeout = d.Timeout(schema.TimeoutUpdate)
+	}
 
 	_, err = waitForVMState(vmc, timeout, vmDeleteReadyStates...)
 	if err != nil {
