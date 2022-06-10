@@ -1,6 +1,9 @@
 package opennebula
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -72,30 +75,57 @@ func Provider() *schema.Provider {
 }
 
 type Configuration struct {
+	OneVersion string
 	Controller *goca.Controller
 	mutex      MutexKV
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	one_client := goca.NewDefaultClient(goca.NewConfig(d.Get("username").(string),
-		d.Get("password").(string),
-		d.Get("endpoint").(string)))
 
-	if flow_endpoint, ok := d.GetOk("flow_endpoint"); ok {
-		flow_client := goca.NewDefaultFlowClient(
-			goca.NewFlowConfig(d.Get("username").(string),
-				d.Get("password").(string),
-				flow_endpoint.(string)))
+	username, ok := d.GetOk("username")
+	if !ok {
+		return nil, fmt.Errorf("username should be defined")
+	}
+
+	password, ok := d.GetOk("password")
+	if !ok {
+		return nil, fmt.Errorf("password should be defined")
+	}
+
+	endpoint, ok := d.GetOk("endpoint")
+	if !ok {
+		return nil, fmt.Errorf("endpoint should be defined")
+	}
+
+	oneClient := goca.NewDefaultClient(goca.NewConfig(username.(string),
+		password.(string),
+		endpoint.(string)))
+
+	version, err := goca.NewController(oneClient).SystemVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[INFO] OpenNebula version: %s", version)
+
+	flowEndpoint, ok := d.GetOk("flow_endpoint")
+	if ok {
+		flowClient := goca.NewDefaultFlowClient(
+			goca.NewFlowConfig(username.(string),
+				password.(string),
+				flowEndpoint.(string)))
 
 		return &Configuration{
-			Controller: goca.NewGenericController(one_client, flow_client),
+			OneVersion: version,
+			Controller: goca.NewGenericController(oneClient, flowClient),
 			mutex:      *NewMutexKV(),
 		}, nil
 
 	}
 
 	return &Configuration{
-		Controller: goca.NewController(one_client),
+		OneVersion: version,
+		Controller: goca.NewController(oneClient),
 		mutex:      *NewMutexKV(),
 	}, nil
 }
