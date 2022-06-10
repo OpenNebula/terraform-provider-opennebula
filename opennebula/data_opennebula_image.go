@@ -56,9 +56,9 @@ func imageFilter(d *schema.ResourceData, meta interface{}) (*imageSc.Image, erro
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no image match the tags")
+		return nil, fmt.Errorf("no image match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several images match the tags")
+		return nil, fmt.Errorf("several images match the constraints")
 	}
 
 	return match[0], nil

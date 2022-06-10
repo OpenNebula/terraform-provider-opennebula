@@ -56,9 +56,9 @@ func clusterFilter(d *schema.ResourceData, meta interface{}) (*clusterSc.Cluster
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no cluster match the tags")
+		return nil, fmt.Errorf("no cluster match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several clusters match the tags")
+		return nil, fmt.Errorf("several clusters match the constraints")
 	}
 
 	return match[0], nil

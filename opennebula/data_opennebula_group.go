@@ -70,9 +70,9 @@ func groupFilter(d *schema.ResourceData, meta interface{}) (*groupSc.GroupShort,
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no group match the tags")
+		return nil, fmt.Errorf("no group match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several groups match the tags")
+		return nil, fmt.Errorf("several groups match the constraints")
 	}
 
 	return match[0], nil

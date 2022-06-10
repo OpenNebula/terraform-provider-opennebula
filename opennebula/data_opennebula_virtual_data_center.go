@@ -56,9 +56,9 @@ func vdcFilter(d *schema.ResourceData, meta interface{}) (*vdcSc.VDC, error) {
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no virtual data center match the tags")
+		return nil, fmt.Errorf("no virtual data center match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several virtual data centers match the tags")
+		return nil, fmt.Errorf("several virtual data centers match the constraints")
 	}
 
 	return match[0], nil
