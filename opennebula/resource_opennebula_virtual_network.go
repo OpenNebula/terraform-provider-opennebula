@@ -450,12 +450,7 @@ func resourceOpennebulaVirtualNetworkCreate(d *schema.ResourceData, meta interfa
 		vnc = controller.VirtualNetwork(vnetID)
 
 		// virtual network states were introduce with OpenNebula 6.4 release
-		ver, err := controller.SystemVersion()
-		if err != nil {
-			return nil
-		}
-
-		oneVersion, err := version.NewVersion(ver)
+		oneVersion, err := version.NewVersion(config.OneVersion)
 		requiredVersion, err := version.NewVersion("6.4.0")
 
 		if oneVersion.GreaterThanOrEqual(requiredVersion) {
