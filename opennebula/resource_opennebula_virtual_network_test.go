@@ -17,7 +17,7 @@ import (
 )
 
 func TestAccVirtualNetwork(t *testing.T) {
-	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network")
+	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network.*[\n]?.*\\[25\\]")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
