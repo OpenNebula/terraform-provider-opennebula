@@ -97,7 +97,7 @@ The following arguments are supported:
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule.
 * `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
 * `tags` - (Optional) Virtual Machine tags (Key = Value).
-* `timeout` - (Optional) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
+* `timeout` - (Deprecated) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
 * `hard_shutdown` - (Optional) If the VM doesn't have ACPI support, it immediately poweroff/terminate/reboot/undeploy the VM. Defaults to false.
