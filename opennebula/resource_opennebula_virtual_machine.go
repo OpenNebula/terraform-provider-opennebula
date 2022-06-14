@@ -309,6 +309,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
+		generateVMNIC(d, vmTpl)
+
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
 		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmTpl.String(), false)
@@ -348,6 +350,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			})
 			return diags
 		}
+
+		generateVMNIC(d, vmTpl)
 
 		// Create VM not in pending state
 		vmID, err = controller.VMs().Create(vmTpl.String(), d.Get("pending").(bool))
@@ -2064,6 +2068,19 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, e
 	}
 
 	return tpl, nil
+}
+
+func generateVMNIC(d *schema.ResourceData, tpl *vm.Template) {
+	//Generate NIC definition
+	nics := d.Get("nic").([]interface{})
+	log.Printf("Number of NICs: %d", len(nics))
+
+	for i := 0; i < len(nics); i++ {
+		nicconfig := nics[i].(map[string]interface{})
+
+		nic := makeNICVector(nicconfig)
+		tpl.Elements = append(tpl.Elements, nic)
+	}
 }
 
 func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
