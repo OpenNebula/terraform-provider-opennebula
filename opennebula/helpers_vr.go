@@ -11,9 +11,13 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 )
 
-var vrNICAddInstancesStates = []string{"RUNNING", "POWEROFF", "DONE"}
+var vrNICAddInstancesStates = VMStates{
+	States: []vm.State{vm.Poweroff, vm.Done},
+	LCMs:   []vm.LCMState{vm.Running},
+}
 
 // vrNICAttach is an helper that synchronously attach a nic
 func vrNICAttach(ctx context.Context, timeout time.Duration, controller *goca.Controller, vrID int, nicTpl *shared.NIC) (int, error) {
@@ -42,14 +46,24 @@ func vrNICAttach(ctx context.Context, timeout time.Duration, controller *goca.Co
 
 	// check if virtual router machines are in transient states
 	if len(vrInfos.VMs.ID) > 0 {
-		_, errs := waitForVMsStates(ctx, controller, vrInfos.VMs.ID, timeout, vmNICUpdateReadyStates...)
+
+		transient := vmNICTransientStates
+		transient.Append(vmNICUpdateReadyStates)
+		finalStrs := vmNICUpdateReadyStates.ToStrings()
+
+		stateConf := NewVMUpdateStateConf(timeout,
+			transient.ToStrings(),
+			finalStrs,
+		)
+
+		_, errs := waitForVMsStates(ctx, controller, vrInfos.VMs.ID, stateConf)
 		if len(errs) > 0 {
 			var fullErr string
 			for _, err := range errs {
 				fullErr += fmt.Sprintf("\nVM error: %s\n", err.Error())
 			}
 			return -1, fmt.Errorf(
-				"Virtual router waiting for virtual machines to be in state %s: %s", strings.Join(vmNICUpdateReadyStates, " "), fullErr)
+				"Virtual router waiting for virtual machines to be in state %s: %s", strings.Join(finalStrs, " "), fullErr)
 		}
 	}
 
@@ -152,14 +166,23 @@ func vrNICDetach(ctx context.Context, timeout time.Duration, controller *goca.Co
 
 	// check if virtual router machines are in transient states
 	if len(vrInfos.VMs.ID) > 0 {
-		_, errs := waitForVMsStates(ctx, controller, vrInfos.VMs.ID, timeout, vrNICAddInstancesStates...)
+		transient := vmNICTransientStates
+		transient.Append(vmNICUpdateReadyStates)
+		finalStrs := vrNICAddInstancesStates.ToStrings()
+
+		stateConf := NewVMUpdateStateConf(timeout,
+			transient.ToStrings(),
+			finalStrs,
+		)
+
+		_, errs := waitForVMsStates(ctx, controller, vrInfos.VMs.ID, stateConf)
 		if len(errs) > 0 {
 			var fullErr string
 			for _, err := range errs {
 				fullErr += fmt.Sprintf("\nVM error: %s\n", err.Error())
 			}
 			return fmt.Errorf(
-				"Virtual router waiting for virtual machines to be in state %s: %s", strings.Join(vrNICAddInstancesStates, " "), fullErr)
+				"Virtual router waiting for virtual machines to be in state %s: %s", strings.Join(finalStrs, " "), fullErr)
 		}
 	}
 

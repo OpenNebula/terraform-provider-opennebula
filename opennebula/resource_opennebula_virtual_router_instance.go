@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
@@ -244,17 +245,26 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	d.SetId(fmt.Sprintf("%v", vmID))
 	vmc := controller.VM(vmID)
 
-	expectedState := "RUNNING"
+	final := NewVMLCMState(vm.Running)
 	if d.Get("pending").(bool) {
-		expectedState = "HOLD"
+		final = NewVMState(vm.State(vm.Running))
 	}
 
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
-	_, err = waitForVMState(ctx, vmc, timeout, expectedState)
+
+	finalStrs := final.ToStrings()
+
+	_, err = waitForVMStates(ctx, vmc, resource.StateChangeConf{
+		Pending:    vmCreateTransientStates.ToStrings(),
+		Target:     finalStrs,
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 2 * time.Second,
+	})
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Failed to wait instance to be in %s state", expectedState),
+			Summary:  fmt.Sprintf("Failed to wait instance to be in %s state", finalStrs),
 			Detail:   err.Error(),
 		})
 		return diags

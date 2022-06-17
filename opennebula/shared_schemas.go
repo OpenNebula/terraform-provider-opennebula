@@ -34,7 +34,7 @@ func commonVMSchemas() map[string]*schema.Schema {
 			"timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     defaultVMMinTimeout,
+				Default:     defaultVMTimeoutMin,
 				Description: "Timeout (in minutes) within resource should be available. Default: 3 minutes",
 				Deprecated:  "Native terraform timeout facilities should be used instead",
 			},
