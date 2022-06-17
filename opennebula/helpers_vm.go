@@ -48,11 +48,17 @@ func vmDiskAttach(ctx context.Context, vmc *goca.VMController, timeout time.Dura
 
 	}
 
-	// wait before checking disk
-	_, err = waitForVMState(ctx, vmc, timeout, vmDiskUpdateReadyStates...)
+	// wait before checking disk list
+	// final states ar added to transient one in case of slow cloud
+	transient := vmDiskTransientStates
+	transient.Append(vmDiskUpdateReadyStates)
+	finalStrs := vmDiskUpdateReadyStates.ToStrings()
+	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), finalStrs)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		return -1, fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(finalStrs, ","), err)
 	}
 
 	// compare disk list to check that a new disk is attached
@@ -122,11 +128,17 @@ func vmDiskDetach(ctx context.Context, vmc *goca.VMController, timeout time.Dura
 		return fmt.Errorf("can't detach disk %d: %s\n", diskID, err)
 	}
 
-	// wait before checking disk
-	_, err = waitForVMState(ctx, vmc, timeout, vmDiskUpdateReadyStates...)
+	// wait before checking disk list
+	// final states ar added to transient one in case of slow cloud
+	transient := vmDiskTransientStates.
+		Append(vmDiskUpdateReadyStates)
+	finalStrs := vmDiskUpdateReadyStates.ToStrings()
+	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), finalStrs)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		return fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(finalStrs, ","), err)
 	}
 
 	// Check that disk is detached
@@ -168,11 +180,17 @@ func vmDiskResize(ctx context.Context, vmc *goca.VMController, timeout time.Dura
 		return fmt.Errorf("can't resize image with Disk ID:%d: %s\n", diskID, err)
 	}
 
-	// wait before checking disk
-	_, err = waitForVMState(ctx, vmc, timeout, vmDiskResizeReadyStates...)
+	// wait before checking disk list
+	// final states ar added to transient one in case of slow cloud
+	transient := vmDiskTransientStates
+	transient.Append(vmDiskResizeReadyStates)
+	finalStrs := vmDiskResizeReadyStates.ToStrings()
+	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), finalStrs)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		return fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmDiskUpdateReadyStates, " "), err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(finalStrs, ","), err)
 	}
 
 	// Check that disk has new size
@@ -222,11 +240,17 @@ func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 		return -1, fmt.Errorf("can't attach network with ID:%d: %s\n", networkID, err)
 	}
 
-	// wait before checking NIC
-	_, err = waitForVMState(ctx, vmc, timeout, vmNICUpdateReadyStates...)
+	// wait before checking NIC list
+	// final states ar added to transient one in case of slow cloud
+	transient := vmNICTransientStates
+	transient.Append(vmNICUpdateReadyStates)
+	finalStrs := vmNICUpdateReadyStates.ToStrings()
+	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), finalStrs)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		return -1, fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(finalStrs, ","), err)
 	}
 
 	// compare NIC list to check that a new NIC is attached
@@ -297,11 +321,17 @@ func vmNICDetach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 		return fmt.Errorf("can't detach NIC %d: %s\n", nicID, err)
 	}
 
-	// wait before checking NIC
-	_, err = waitForVMState(ctx, vmc, timeout, vmNICUpdateReadyStates...)
+	// wait before checking NIC list
+	// final states ar added to transient one in case of slow cloud
+	transient := vmNICTransientStates
+	transient.Append(vmNICUpdateReadyStates)
+	finalStrs := vmNICUpdateReadyStates.ToStrings()
+	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), finalStrs)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		return fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(vmNICUpdateReadyStates, " "), err)
+			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(finalStrs, ","), err)
 	}
 
 	// Check that NIC is detached

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
@@ -21,13 +20,10 @@ import (
 )
 
 var (
-	vmDiskOnChangeValues    = []string{"RECREATE", "SWAP"}
-	vmDiskUpdateReadyStates = []string{"RUNNING", "POWEROFF"}
-	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
-	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
-	vmDeleteReadyStates     = []string{"RUNNING", "HOLD", "POWEROFF", "STOPPED", "UNDEPLOYED", "SUSPENDED"}
-	defaultVMTimeoutMin     = 20
-	defaultVMTimeout        = time.Duration(defaultVMTimeoutMin) * time.Minute
+	vmDiskOnChangeValues = []string{"RECREATE", "SWAP"}
+
+	defaultVMTimeoutMin = 20
+	defaultVMTimeout    = time.Duration(defaultVMTimeoutMin) * time.Minute
 )
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {
@@ -368,25 +364,32 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 	d.SetId(fmt.Sprintf("%v", vmID))
 	vmc := controller.VM(vmID)
 
-	expectedState := "RUNNING"
+	final := NewVMLCMState(vm.Running)
 	if d.Get("pending").(bool) {
-		expectedState = "HOLD"
+		final = NewVMState(vm.Hold)
 	}
 
+	// wait for the VM to be started and ready
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
 	if timeout == defaultVMTimeout {
 		timeout = d.Timeout(schema.TimeoutCreate)
 	}
-	_, err = waitForVMState(ctx, vmc, timeout, expectedState)
+
+	stateConf := NewVMStateConf(timeout,
+		vmCreateTransientStates.ToStrings(),
+		final.ToStrings(),
+	)
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", expectedState),
+			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", final.ToStrings()),
 			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
 
+	// finalize the VM configuration
 	//Set the permissions on the VM if it was defined, otherwise use the UMASK in OpenNebula
 	if perms, ok := d.GetOk("permissions"); ok {
 		err = vmc.Chmod(permissionUnix(perms.(string)))
@@ -1223,6 +1226,26 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			})
 			return diags
 		}
+
+		timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+		if timeout == defaultVMTimeout {
+			timeout = d.Timeout(schema.TimeoutCreate)
+		}
+
+		finalStrs := NewVMLCMState(vm.Running).ToStrings()
+		stateConf := NewVMUpdateStateConf(timeout,
+			[]string{},
+			finalStrs,
+		)
+		_, err = waitForVMStates(ctx, vmc, stateConf)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(finalStrs, ",")),
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 	}
 
 	if d.HasChange("disk") {
@@ -1396,7 +1419,17 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				})
 				return diags
 			}
-			_, err = waitForVMState(ctx, vmc, timeout, "POWEROFF")
+
+			// wait for the VM to be powered off
+			// RUNNING state is added to transient one in case of slow cloud
+			transient := vmPowerOffTransientStates
+			transient.LCMs = append(transient.LCMs, vm.Running)
+			stateConf := NewVMUpdateStateConf(timeout,
+				transient.ToStrings(),
+				NewVMState(vm.Poweroff).ToStrings(),
+			)
+
+			_, err = waitForVMStates(ctx, vmc, stateConf)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -1433,6 +1466,21 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			return diags
 		}
 
+		// wait for the VM to be back in POWEROFF state
+		transientStrs := NewVMLCMState(vm.HotplugResize).ToStrings()
+		finalStrs := NewVMState(vm.Poweroff, vm.Undeployed).ToStrings()
+		stateConf := NewVMUpdateStateConf(timeout, transientStrs, finalStrs)
+
+		_, err = waitForVMStates(ctx, vmc, stateConf)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(finalStrs, ",")),
+				Detail:   err.Error(),
+			})
+			return diags
+		}
+
 		if vmRequireShutdown {
 			err = vmc.Resume()
 			if err != nil {
@@ -1443,7 +1491,13 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				})
 				return diags
 			}
-			_, err = waitForVMState(ctx, vmc, timeout, "RUNNING")
+			stateConf := NewVMUpdateStateConf(timeout,
+				NewVMLCMState(vm.BootPoweroff).ToStrings(),
+				NewVMLCMState(vm.Running).ToStrings(),
+			)
+
+			// wait for the VM to be back in RUNNING state
+			_, err = waitForVMStates(ctx, vmc, stateConf)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -1463,7 +1517,18 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			timeout = d.Timeout(schema.TimeoutUpdate)
 		}
 
-		_, err = waitForVMState(ctx, vmc, timeout, "RUNNING")
+		// wait for the VM to be RUNNING to avoid action failures
+		// RUNNING state is added to transient one in case of slow cloud
+		transientStrs := NewVMLCMState(vm.Running).
+			Append(vmDiskTransientStates).
+			Append(vmNICTransientStates).ToStrings()
+		finalStrs := NewVMLCMState(vm.Running).ToStrings()
+		stateConf := NewVMUpdateStateConf(timeout,
+			transientStrs,
+			finalStrs,
+		)
+
+		_, err = waitForVMStates(ctx, vmc, stateConf)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -1485,7 +1550,12 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			return diags
 		}
 
-		_, err = waitForVMState(ctx, vmc, timeout, "RUNNING")
+		// wait for the VM to be RUNNING after update
+		stateConf = NewVMUpdateStateConf(timeout,
+			[]string{},
+			finalStrs,
+		)
+		_, err = waitForVMStates(ctx, vmc, stateConf)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -1870,14 +1940,21 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 	// wait state to be ready
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
 	if timeout == defaultVMTimeout {
-		timeout = d.Timeout(schema.TimeoutUpdate)
+		timeout = d.Timeout(schema.TimeoutDelete)
 	}
 
-	_, err = waitForVMState(ctx, vmc, timeout, vmDeleteReadyStates...)
+	// wait for the VM to be in a state that permit it to be deleted
+	finalStrs := vmDeleteReadyStates.ToStrings()
+	stateConf := NewVMUpdateStateConf(timeout,
+		[]string{},
+		finalStrs,
+	)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(vmDeleteReadyStates, " ")),
+			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(finalStrs, ",")),
 			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
@@ -1888,23 +1965,25 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 	} else {
 		err = vmc.Terminate()
 	}
+
+	// wait for the VM to be powered off
+	// RUNNING state is added to transient one in case of slow cloud
+	transientStrs := NewVMLCMState(vm.Running).
+		Append(vmDeleteTransientStates).
+		ToStrings()
+
+	stateConf = NewVMStateConf(timeout,
+		transientStrs,
+		NewVMState(vm.Done).ToStrings(),
+	)
+
+	ret, err := waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to terminate",
-			Detail:   err.Error(),
-		})
-		return diags
-	}
 
-	ret, err := waitForVMState(ctx, vmc, timeout, "DONE")
-	if err != nil {
+		log.Printf("[WARN] waitForVMStates: %s\n", err)
 
-		log.Printf("[WARN] %s\n", err)
-
-		// Retry if timeout not reached
-		_, ok := err.(*resource.TimeoutError)
-		if !ok && ret != nil {
+		// retry
+		if ret != nil {
 
 			vmInfos, _ := ret.(*vm.VM)
 			vmState, vmLcmState, _ := vmInfos.State()
@@ -1917,6 +1996,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 				} else {
 					err = vmc.Terminate()
 				}
+
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
@@ -1926,7 +2006,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 					return diags
 				}
 
-				_, err = waitForVMState(ctx, vmc, timeout, "DONE")
+				_, err = waitForVMStates(ctx, vmc, stateConf)
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
@@ -1946,84 +2026,21 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 					return diags
 				}
 			}
+		} else {
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to wait virtual machine to be in DONE state",
+					Detail:   err.Error(),
+				})
+				return diags
+			}
 		}
+
 	}
 
 	log.Printf("[INFO] Successfully terminated VM\n")
 	return nil
-}
-
-func waitForVMState(ctx context.Context, vmc *goca.VMController, timeout time.Duration, states ...string) (interface{}, error) {
-
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"anythingelse"},
-		Target:  states,
-		Refresh: func() (interface{}, string, error) {
-
-			log.Println("Refreshing VM state...")
-
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vmInfos, err := vmc.Info(false)
-			if err != nil {
-				if NoExists(err) {
-					// Do not return an error here as it is excpected if the VM is already in DONE state
-					// after its destruction
-					return vmInfos, "notfound", nil
-				}
-				return vmInfos, "", err
-			}
-
-			vmState, vmLcmState, err := vmInfos.State()
-			if err != nil {
-				return vmInfos, "", err
-			}
-			log.Printf("VM (ID:%d, name:%s) is currently in state %s and in LCM state %s", vmInfos.ID, vmInfos.Name, vmState.String(), vmLcmState.String())
-
-			switch vmState {
-
-			case vm.Done, vm.Hold, vm.Suspended, vm.Stopped, vm.Poweroff, vm.Undeployed:
-				return vmInfos, vmState.String(), nil
-			case vm.Active:
-				switch vmLcmState {
-				case vm.Running:
-					return vmInfos, vmLcmState.String(), nil
-				case vm.BootFailure, vm.PrologFailure, vm.EpilogFailure:
-					vmerr, _ := vmInfos.UserTemplate.Get(vmk.Error)
-					return vmInfos, vmLcmState.String(), fmt.Errorf("VM (ID:%d) entered fail state, error: %s", vmInfos.ID, vmerr)
-				default:
-					return vmInfos, "anythingelse", nil
-				}
-			default:
-				return vmInfos, "anythingelse", nil
-			}
-
-		},
-		Timeout:    timeout,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
-
-	return stateConf.WaitForStateContext(ctx)
-
-}
-
-func waitForVMsStates(ctx context.Context, c *goca.Controller, vmIDs []int, timeout time.Duration, states ...string) ([]interface{}, []error) {
-
-	errors := make([]error, 0)
-	vmsInfos := make([]interface{}, 0)
-
-	for _, id := range vmIDs {
-		vmInfo, err := waitForVMState(ctx, c.VM(id), timeout, states...)
-		if vmInfo != nil {
-			vmsInfos = append(vmsInfos, vmInfo)
-		}
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
-
-	return vmsInfos, errors
 }
 
 func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, error) {

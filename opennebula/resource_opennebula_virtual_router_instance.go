@@ -244,17 +244,24 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	d.SetId(fmt.Sprintf("%v", vmID))
 	vmc := controller.VM(vmID)
 
-	expectedState := "RUNNING"
+	final := NewVMLCMState(vm.Running)
 	if d.Get("pending").(bool) {
-		expectedState = "HOLD"
+		final = NewVMState(vm.State(vm.Running))
 	}
 
 	timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
-	_, err = waitForVMState(ctx, vmc, timeout, expectedState)
+
+	finalStrs := final.ToStrings()
+	stateConf := NewVMStateConf(timeout,
+		vmCreateTransientStates.ToStrings(),
+		finalStrs,
+	)
+
+	_, err = waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Failed to wait instance to be in %s state", expectedState),
+			Summary:  fmt.Sprintf("Failed to wait instance to be in %s state", strings.Join(finalStrs, ",")),
 			Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 		})
 		return diags
