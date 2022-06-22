@@ -69,7 +69,7 @@ func testAccCheckServiceTemplateDestroy(s *terraform.State) error {
 		if rs.Type != "opennebula_service_template" {
 			continue
 		}
-		stID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		stID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		stc := controller.STemplate(int(stID))
 		// Get Service Info
 		stemplate, _ := stc.Info()
@@ -87,7 +87,7 @@ func testAccCheckServiceTemplatePermissions(expected *shared.Permissions) resour
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			stID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			stID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			stc := controller.STemplate(int(stID))
 			// Get Service
 			stemplate, _ := stc.Info()

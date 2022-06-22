@@ -210,7 +210,7 @@ func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args 
 
 		// Try to find the VM by ID, if specified
 
-		id, err := strconv.ParseUint(d.Id(), 10, 64)
+		id, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}

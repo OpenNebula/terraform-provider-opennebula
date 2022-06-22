@@ -143,14 +143,14 @@ func testAccCheckVirtualRouterDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		switch rs.Type {
 		case "opennebula_virtual_router":
-			vrID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vrID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vrc := controller.VirtualRouter(int(vrID))
 			vr, _ := vrc.Info(false)
 			if vr != nil {
 				return fmt.Errorf("Expected virtual router %s to have been destroyed", rs.Primary.ID)
 			}
 		case "opennebula_virtual_network":
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vnc := controller.Template(int(vnID))
 			// Get Virtual Machine Info
 			vn, _ := vnc.Info(false, false)
@@ -158,7 +158,7 @@ func testAccCheckVirtualRouterDestroy(s *terraform.State) error {
 				return fmt.Errorf("Expected virtual network %s to have been destroyed", rs.Primary.ID)
 			}
 		case "opennebula_virtual_router_instance":
-			vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vmc := controller.VM(int(vmID))
 			// Get Virtual Machine Info
 			vm, _ := vmc.Info(false)
@@ -169,7 +169,7 @@ func testAccCheckVirtualRouterDestroy(s *terraform.State) error {
 				}
 			}
 		case "opennebula_virtual_router_instance_template":
-			tplID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			tplID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			tc := controller.Template(int(tplID))
 			// Get Virtual Machine Info
 			tpl, _ := tc.Info(false, false)
@@ -192,7 +192,7 @@ func testAccCheckVirtualRouterPermissions(expected *shared.Permissions, resource
 			switch rs.Type {
 			case "opennebula_virtual_router":
 
-				vrID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+				vrID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 				vrc := controller.VirtualRouter(int(vrID))
 				// Get virtual router Info
 				vrInfos, _ := vrc.Info(false)

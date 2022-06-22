@@ -71,7 +71,7 @@ func testAccCheckVMGroupDestroy(s *terraform.State) error {
 		if rs.Type != "opennebula_virtual_machine_group" {
 			continue
 		}
-		vmgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		vmgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		vmgc := controller.VMGroup(int(vmgID))
 		// Get Virtual Machine Group Info
 		vmg, _ := vmgc.Info(false)
@@ -92,7 +92,7 @@ func testAccCheckVMGroupPermissions(expected *shared.Permissions) resource.TestC
 			if rs.Type != "opennebula_virtual_machine_group" {
 				continue
 			}
-			vmgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vmgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vmgc := controller.VMGroup(int(vmgID))
 			// Get Virtual Machine Group Info
 			vmg, _ := vmgc.Info(false)

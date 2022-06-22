@@ -405,7 +405,7 @@ func getServiceController(d *schema.ResourceData, meta interface{}) (*goca.Servi
 	var sc *goca.ServiceController
 
 	if d.Id() != "" {
-		id, err := strconv.ParseUint(d.Id(), 10, 64)
+		id, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}

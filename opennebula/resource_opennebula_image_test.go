@@ -114,7 +114,7 @@ func testAccCheckImageDestroy(s *terraform.State) error {
 	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
-		imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		ic := controller.Image(int(imageID))
 		// Get Image Info
 		// TODO: fix it after 5.10 release
@@ -134,7 +134,7 @@ func testAccCheckImagePermissions(expected *shared.Permissions, resourcename str
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			imageID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			ic := controller.Image(int(imageID))
 			// Get image Info
 			// TODO: fix it after 5.10 release

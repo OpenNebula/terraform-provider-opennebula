@@ -167,7 +167,7 @@ func testAccCheckTemplatePermissions(expected *shared.Permissions) resource.Test
 			if rs.Type != "opennebula_template" {
 				continue
 			}
-			tID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			tID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			tc := controller.Template(int(tID))
 			// TODO: fix it after 5.10 release availability
 			// Force the "extended" bool to false to keep ONE 5.8 behavior
@@ -199,7 +199,7 @@ func testAccCheckTemplateDestroy(s *terraform.State) error {
 		if rs.Type != "opennebula_template" {
 			continue
 		}
-		templateID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		templateID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		tc := controller.Template(int(templateID))
 		// Get Template Info
 		template, _ := tc.Info(false, false)

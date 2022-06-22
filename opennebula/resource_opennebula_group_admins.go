@@ -61,7 +61,7 @@ func resourceOpennebulaGroupAdminsRead(d *schema.ResourceData, meta interface{})
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	groupID, err := strconv.ParseInt(d.Id(), 10, 64)
+	groupID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func resourceOpennebulaGroupAdminsUpdate(d *schema.ResourceData, meta interface{
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	groupID, err := strconv.ParseInt(d.Id(), 10, 64)
+	groupID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func resourceOpennebulaGroupAdminsDelete(d *schema.ResourceData, meta interface{
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	groupID, err := strconv.ParseInt(d.Id(), 10, 64)
+	groupID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
 		return err
 	}

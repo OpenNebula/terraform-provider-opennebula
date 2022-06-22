@@ -62,7 +62,7 @@ func testAccCheckACLDestroy(s *terraform.State) error {
 	}
 
 	for _, rs := range s.RootModule().Resources {
-		id, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		id, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		for _, acl := range acls.ACLs {
 			if int(id) == acl.ID {
 				return fmt.Errorf("Expected group %s to have been destroyed", rs.Primary.ID)

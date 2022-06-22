@@ -1,3 +1,9 @@
+## 0.5.1 (Unreleased)
+
+BUG FIXES:
+
+* provider: Fix incorrect conversions between integer types (#278)
+
 ## 0.5.0 (June 7th, 2022)
 
 NOTES:

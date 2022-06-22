@@ -60,7 +60,7 @@ func testAccCheckVirtualDataCenterDestroy(s *terraform.State) error {
 		if rs.Type != "opennebula_virtual_data_center" {
 			continue
 		}
-		vdcID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		vdcID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		vdcc := controller.VDC(int(vdcID))
 		// Get Virtual Data Center Info
 		vdc, _ := vdcc.Info(false)
@@ -81,7 +81,7 @@ func testAccCheckVirtualDataCenterGroups(slice []int) resource.TestCheckFunc {
 			if rs.Type != "opennebula_virtual_data_center" {
 				continue
 			}
-			vdcID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vdcID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vdcc := controller.VDC(int(vdcID))
 			// Get Virtual Data Center Info
 			vdc, _ := vdcc.Info(false)
@@ -105,7 +105,7 @@ func testAccCheckVirtualDataCenterZones(zoneidx int, expected map[string]interfa
 			if rs.Type != "opennebula_virtual_data_center" {
 				continue
 			}
-			vdcID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vdcID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vdcc := controller.VDC(int(vdcID))
 			// Get Virtual Data Center Info
 			vdc, _ := vdcc.Info(false)

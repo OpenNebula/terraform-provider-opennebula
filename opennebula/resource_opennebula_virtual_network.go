@@ -336,7 +336,7 @@ func getVirtualNetworkController(d *schema.ResourceData, meta interface{}, args 
 
 	// Try to find the VNet by ID, if specified
 	if d.Id() != "" {
-		id, err := strconv.ParseUint(d.Id(), 10, 64)
+		id, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -889,7 +889,7 @@ func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
 		case "MTU":
 			mtustr, _ := vnTpl.Get("MTU")
 			if mtustr != "" {
-				mtu, err := strconv.ParseInt(mtustr, 10, 64)
+				mtu, err := strconv.ParseInt(mtustr, 10, 0)
 				if err != nil {
 					return err
 				}

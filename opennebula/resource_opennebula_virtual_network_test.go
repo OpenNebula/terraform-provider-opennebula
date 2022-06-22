@@ -154,7 +154,7 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
-		vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		vnc := controller.VirtualNetwork(int(vnID))
 
 		// Wait for Virtual Network deleted
@@ -188,7 +188,7 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vnc := controller.VirtualNetwork(int(vnID))
 			// Get Virtual Network Info
 			// TODO: fix it after 5.10 release
@@ -218,7 +218,7 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vnc := controller.VirtualNetwork(int(vnID))
 			// Get Virtual Network Info
 			// TODO: fix it after 5.10 release
