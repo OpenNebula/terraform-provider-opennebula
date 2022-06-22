@@ -68,7 +68,7 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
-		userID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		userID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		uc := controller.User(int(userID))
 		// Get User Info
 		// TODO: fix it after 5.10 release

@@ -117,7 +117,7 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
-		groupID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		groupID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		gc := controller.Group(int(groupID))
 		// Get Group Info
 		// TODO: fix it after 5.10 release

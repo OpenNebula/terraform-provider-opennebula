@@ -144,7 +144,7 @@ func getVMGroupController(d *schema.ResourceData, meta interface{}, args ...int)
 
 	// Try to find the vm group by ID, if specified
 	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 64)
+		gid, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -300,14 +300,14 @@ func flattenVMGroupRoles(d *schema.ResourceData, vmgRoles []vmgroup.Role) error 
 		if vmgr.HostAffined != "" {
 			hostAffString := strings.Split(vmgr.HostAffined, ",")
 			for _, h := range hostAffString {
-				hostAffInt, _ := strconv.ParseInt(h, 10, 32)
+				hostAffInt, _ := strconv.ParseInt(h, 10, 0)
 				hAff = append(hAff, int(hostAffInt))
 			}
 		}
 		if vmgr.HostAntiAffined != "" {
 			hostAntiAffString := strings.Split(vmgr.HostAntiAffined, ",")
 			for _, h := range hostAntiAffString {
-				hostAntiAffInt, _ := strconv.ParseInt(h, 10, 32)
+				hostAntiAffInt, _ := strconv.ParseInt(h, 10, 0)
 				hAntiAff = append(hAff, int(hostAntiAffInt))
 			}
 		}

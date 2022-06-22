@@ -604,7 +604,7 @@ func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		switch rs.Type {
 		case "opennebula_image":
-			imgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			imgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			imgc := controller.Image(int(imgID))
 			// Get Virtual Machine Info
 			img, _ := imgc.Info(false)
@@ -616,7 +616,7 @@ func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
 			}
 
 		case "opennebula_virtual_machine":
-			vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			vmc := controller.VM(int(vmID))
 			// Get Virtual Machine Info
 			vm, _ := vmc.Info(false)
@@ -659,7 +659,7 @@ func testAccCheckVirtualMachinePermissions(expected *shared.Permissions) resourc
 			switch rs.Type {
 			case "opennebula_virtual_machine":
 
-				vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+				vmID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 				vmc := controller.VM(int(vmID))
 				// Get Virtual Machine Info
 				vm, err := vmc.Info(false)

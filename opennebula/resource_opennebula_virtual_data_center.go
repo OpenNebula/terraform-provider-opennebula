@@ -106,7 +106,7 @@ func getVDCController(d *schema.ResourceData, meta interface{}) (*goca.VDCContro
 
 	// Try to find the VDC by ID, if specified
 	if d.Id() != "" {
-		vdcid, err := strconv.ParseUint(d.Id(), 10, 64)
+		vdcid, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}

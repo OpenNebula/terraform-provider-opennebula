@@ -325,7 +325,7 @@ func getServiceTemplateController(d *schema.ResourceData, meta interface{}) (*go
 	var stc *goca.STemplateController
 
 	if d.Id() != "" {
-		id, err := strconv.ParseUint(d.Id(), 10, 64)
+		id, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}

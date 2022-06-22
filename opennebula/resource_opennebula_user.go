@@ -80,7 +80,7 @@ func getUserController(d *schema.ResourceData, meta interface{}) (*goca.UserCont
 
 	// Try to find the User by ID, if specified
 	if d.Id() != "" {
-		uid, err := strconv.ParseUint(d.Id(), 10, 64)
+		uid, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}

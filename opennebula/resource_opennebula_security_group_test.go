@@ -61,7 +61,7 @@ func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
 	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
-		sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+		sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 		sgc := controller.SecurityGroup(int(sgID))
 		// Get Security Group Info
 		// TODO: fix it after 5.10 release
@@ -81,7 +81,7 @@ func testAccSecurityGroupRule(ruleidx int, key, value string) resource.TestCheck
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 64)
+			sgID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
 			sgc := controller.SecurityGroup(int(sgID))
 			// Get Security Group Info
 			// TODO: fix it after 5.10 release

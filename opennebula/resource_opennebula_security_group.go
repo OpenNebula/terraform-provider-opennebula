@@ -176,7 +176,7 @@ func getSecurityGroupController(d *schema.ResourceData, meta interface{}, args .
 
 	// Try to find the Security Group by ID, if specified
 	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 64)
+		gid, err := strconv.ParseUint(d.Id(), 10, 0)
 		if err != nil {
 			return nil, err
 		}
