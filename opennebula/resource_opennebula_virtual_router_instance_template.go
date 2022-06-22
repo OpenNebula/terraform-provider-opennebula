@@ -33,7 +33,7 @@ func resourceOpennebulaVirtualRouterInstanceTemplateCreate(ctx context.Context, 
 	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create virtual router instance template",
+			Summary:  "Failed to create",
 		})
 	}
 
@@ -54,7 +54,7 @@ func resourceOpennebulaVirtualRouterInstanceTemplateRead(ctx context.Context, d 
 	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router instance template reading failed",
+			Summary:  "Failed to read",
 		})
 	}
 
@@ -69,8 +69,8 @@ func customVirtualRouterInstanceTemplateRead(ctx context.Context, d *schema.Reso
 	if vrouter != "YES" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Wrong virtual router instance template configuration",
-			Detail:   fmt.Sprintf("template with ID %d is not a template of a virtual router instance", tpl.ID),
+			Summary:  "Misconfigured virtual router instance template",
+			Detail:   fmt.Sprintf("the template (ID:%d) doesn't contains the VROUTER=YES tag", tpl.ID),
 		})
 
 	}
