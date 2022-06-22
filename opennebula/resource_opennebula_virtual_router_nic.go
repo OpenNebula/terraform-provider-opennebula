@@ -118,8 +118,8 @@ func resourceOpennebulaVirtualRouterNICCreate(ctx context.Context, d *schema.Res
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router nic attach failed",
-			Detail:   fmt.Sprintf("Virtual router (ID:%d): %s", vRouterID, err),
+			Summary:  "Failed to attach NIC",
+			Detail:   err.Error(),
 		})
 		return diags
 	}
@@ -142,8 +142,8 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "get virtual router informations",
-			Detail:   fmt.Sprintf("Virtual router (ID:%d): %s", vrouterID, err),
+			Summary:  "Failed to retrieve informations",
+			Detail:   err.Error(),
 		})
 		return diags
 	}
@@ -163,8 +163,8 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	if nic == nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "virtual router nic not found",
-			Detail:   fmt.Sprintf("Virtual router (ID:%d): NIC (ID:%s) not found", vrouterID, d.Id()),
+			Summary:  "Failed to find the NIC in the virtual router NIC list",
+			Detail:   err.Error(),
 		})
 		return diags
 	}
@@ -227,8 +227,8 @@ func resourceOpennebulaVirtualRouterNICDelete(ctx context.Context, d *schema.Res
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "can't parse virtual router ID",
-			Detail:   fmt.Sprintf("%s is not an ID: %s", d.Id(), err),
+			Summary:  "Failed to parse virtual router ID",
+			Detail:   err.Error(),
 		})
 		return diags
 	}
@@ -238,8 +238,8 @@ func resourceOpennebulaVirtualRouterNICDelete(ctx context.Context, d *schema.Res
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "can't detach virtual router NIC",
-			Detail:   fmt.Sprintf("Virtual router (ID:%d): NIC (ID:%d): %s", vRouterID, int(nicID), err),
+			Summary:  "Failed to detach NIC",
+			Detail:   err.Error(),
 		})
 		return diags
 	}
