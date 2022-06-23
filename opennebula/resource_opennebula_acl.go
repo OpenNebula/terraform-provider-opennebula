@@ -11,34 +11,6 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/acl"
 )
 
-var resourceMap = map[string]acl.Resources{
-	"VM":             acl.VM,
-	"HOST":           acl.Host,
-	"NET":            acl.Net,
-	"IMAGE":          acl.Image,
-	"USER":           acl.User,
-	"TEMPLATE":       acl.Template,
-	"GROUP":          acl.Group,
-	"DATASTORE":      acl.Datastore,
-	"CLUSTER":        acl.Cluster,
-	"DOCUMENT":       acl.Document,
-	"ZONE":           acl.Zone,
-	"SECGROUP":       acl.SecGroup,
-	"VDC":            acl.Vdc,
-	"VROUTER":        acl.VRouter,
-	"MARKETPLACE":    acl.MarketPlace,
-	"MARKETPLACEAPP": acl.MarketPlaceApp,
-	"VMGROUP":        acl.VMGroup,
-	"VNTEMPLATE":     acl.VNTemplate,
-}
-
-var rightMap = map[string]acl.Rights{
-	"USE":    acl.Use,
-	"MANAGE": acl.Manage,
-	"ADMIN":  acl.Admin,
-	"CREATE": acl.Create,
-}
-
 func resourceOpennebulaACL() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaACLCreate,
