@@ -28,6 +28,11 @@ func resourceOpennebulaVirtualRouterInstance() *schema.Resource {
 		UpdateContext: resourceOpennebulaVirtualRouterInstanceUpdate,
 		DeleteContext: resourceOpennebulaVirtualRouterInstanceDelete,
 		CustomizeDiff: resourceVMCustomizeDiff,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(defaultVMTimeout),
+			Update: schema.DefaultTimeout(defaultVMTimeout),
+			Delete: schema.DefaultTimeout(defaultVMTimeout),
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
