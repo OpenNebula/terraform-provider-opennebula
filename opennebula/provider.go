@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -76,7 +77,7 @@ func Provider() *schema.Provider {
 }
 
 type Configuration struct {
-	OneVersion string
+	OneVersion *ver.Version
 	Controller *goca.Controller
 	mutex      MutexKV
 }
@@ -116,7 +117,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		password.(string),
 		endpoint.(string)))
 
-	version, err := goca.NewController(oneClient).SystemVersion()
+	versionStr, err := goca.NewController(oneClient).SystemVersion()
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -125,8 +126,17 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		})
 		return nil, diags
 	}
+	version, err := ver.NewVersion(versionStr)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse OpenNebula version",
+			Detail:   err.Error(),
+		})
+		return nil, diags
+	}
 
-	log.Printf("[INFO] OpenNebula version: %s", version)
+	log.Printf("[INFO] OpenNebula version: %s", versionStr)
 
 	flowEndpoint, ok := d.GetOk("flow_endpoint")
 	if ok {
