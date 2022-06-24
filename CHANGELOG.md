@@ -1,5 +1,12 @@
 ## 0.5.1 (Unreleased)
 
+ENHANCEMENTS:
+
+* Replace several deprecated SDK functions (#269)
+* resources/opennebula_virtual_machine: deprecate custom timeout attribute in favor of the SDK timeout facilities (#267)
+* resources/opennebula_virtual_router_instance: deprecate custom timeout attribute in favor of the SDK timeout facilities (#267)
+* resources/opennebula_image: deprecate custom timeout attribute in favor of the SDK timeout facilities (#267)
+
 BUG FIXES:
 
 * provider: Fix incorrect conversions between integer types (#278)
