@@ -493,10 +493,9 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		vnc = controller.VirtualNetwork(vnetID)
 
 		// virtual network states were introduce with OpenNebula 6.4 release
-		oneVersion, err := version.NewVersion(config.OneVersion)
-		requiredVersion, err := version.NewVersion("6.4.0")
+		requiredVersion, _ := version.NewVersion("6.4.0")
 
-		if oneVersion.GreaterThanOrEqual(requiredVersion) {
+		if config.OneVersion.GreaterThanOrEqual(requiredVersion) {
 			timeout := d.Timeout(schema.TimeoutCreate)
 			_, err = waitForVNetworkState(ctx, vnc, timeout, "READY")
 			if err != nil {
