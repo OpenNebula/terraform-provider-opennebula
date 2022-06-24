@@ -12,7 +12,65 @@ Thanks for getting involved in the Terraform Provider for OpenNebula. Here are a
 ### Building from sources
 
 ```shell
+# Clone terraform-provider-opennebula
+git clone git@github.com:OpenNebula/terraform-provider-opennebula.git
+
+# Create directory under Terraform plugins directory
+mkdir -p $HOME/.terraform.d/plugins/one.test/one/opennebula/0.5.1/darwin_arm64
+
+# Create a link to the Provider binary
+ln -s $(pwd)/terraform-provider-opennebula/terraform-provider-opennebula $HOME/.terraform.d/plugins/one.test/one/opennebula/0.5.1/darwin_arm64
+
+# Build the Provider
+cd terraform-provider-opennebula
 go build
+```
+
+```hcl
+terraform {
+  required_providers {
+    opennebula = {
+      source  = "one.test/one/opennebula"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "opennebula" {
+  # ...
+}
+
+resource "opennebula_image" "image" {
+  # ...
+}
+```
+
+During the `terraform init`, the provider should be initialized as `unauthenticated`:
+
+```text
+$ terraform init
+
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding one.test/one/opennebula versions matching "~> 0.1"...
+- Installing one.test/one/opennebula v0.5.1...
+- Installed one.test/one/opennebula v0.5.1 (unauthenticated)
+
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
 ```
 
 ## Issues and Pull Requests
