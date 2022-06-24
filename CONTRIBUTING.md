@@ -12,26 +12,30 @@ Thanks for getting involved in the Terraform Provider for OpenNebula. Here are a
 ### Building from sources
 
 ```shell
+export tf_arch=darwin_arm64
+export tf_one_version=0.0.1
+
 # Clone terraform-provider-opennebula
 git clone git@github.com:OpenNebula/terraform-provider-opennebula.git
 
 # Create directory under Terraform plugins directory
-mkdir -p $HOME/.terraform.d/plugins/one.test/one/opennebula/0.5.1/darwin_arm64
+mkdir -p ${HOME}/.terraform.d/plugins/one.test/one/opennebula/${tf_one_version}/${tf_arch}
 
 # Create a link to the Provider binary
-ln -s $(pwd)/terraform-provider-opennebula/terraform-provider-opennebula $HOME/.terraform.d/plugins/one.test/one/opennebula/0.5.1/darwin_arm64
+ln -s $(pwd)/terraform-provider-opennebula/terraform-provider-opennebula ${HOME}/.terraform.d/plugins/one.test/one/opennebula/${tf_one_version}/${tf_arch}
 
 # Build the Provider
 cd terraform-provider-opennebula
 go build
 ```
 
+Now you can create a new `main.tf` file:
+
 ```hcl
 terraform {
   required_providers {
     opennebula = {
       source  = "one.test/one/opennebula"
-      version = "~> 0.1"
     }
   }
 }
@@ -53,9 +57,9 @@ $ terraform init
 Initializing the backend...
 
 Initializing provider plugins...
-- Finding one.test/one/opennebula versions matching "~> 0.1"...
-- Installing one.test/one/opennebula v0.5.1...
-- Installed one.test/one/opennebula v0.5.1 (unauthenticated)
+- Finding latest version of one.test/one/opennebula...
+- Installing one.test/one/opennebula v0.0.1...
+- Installed one.test/one/opennebula v0.0.1 (unauthenticated)
 
 Terraform has created a lock file .terraform.lock.hcl to record the provider
 selections it made above. Include this file in your version control repository
