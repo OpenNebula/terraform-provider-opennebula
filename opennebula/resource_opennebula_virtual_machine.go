@@ -26,8 +26,8 @@ var (
 	vmDiskResizeReadyStates = []string{"RUNNING", "POWEROFF", "UNDEPLOYED"}
 	vmNICUpdateReadyStates  = vmDiskUpdateReadyStates
 	vmDeleteReadyStates     = []string{"RUNNING", "HOLD", "POWEROFF", "STOPPED", "UNDEPLOYED", "SUSPENDED"}
-	defaultVMMinTimeout     = 3
-	defaultVMTimeout        = time.Duration(defaultVMMinTimeout) * time.Minute
+	defaultVMTimeoutMin     = 20
+	defaultVMTimeout        = time.Duration(defaultVMTimeoutMin) * time.Minute
 )
 
 func resourceOpennebulaVirtualMachine() *schema.Resource {

@@ -22,7 +22,7 @@ import (
 )
 
 var imagetypes = []string{"OS", "CDROM", "DATABLOCK", "KERNEL", "RAMDISK", "CONTEXT"}
-var defaultImageMinTimeout = 10
+var defaultImageMinTimeout = 20
 var defaultImageTimeout = time.Duration(defaultImageMinTimeout) * time.Minute
 
 func resourceOpennebulaImage() *schema.Resource {
