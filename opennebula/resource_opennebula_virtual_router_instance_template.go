@@ -33,7 +33,7 @@ func resourceOpennebulaVirtualRouterInstanceTemplateCreate(ctx context.Context, 
 	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the virtual router instance template",
 		})
 		return diags
 	}
@@ -55,7 +55,7 @@ func resourceOpennebulaVirtualRouterInstanceTemplateRead(ctx context.Context, d 
 	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to read",
+			Summary:  "Failed to read virtual router instance template",
 		})
 	}
 
@@ -102,7 +102,7 @@ func resourceOpennebulaVirtualRouterInstanceTemplateUpdate(ctx context.Context, 
 	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to update",
+			Summary:  "Failed to update virtual router instance template",
 		})
 		return diags
 	}
@@ -116,7 +116,7 @@ func resourceOpennebulaVirtualRouterInstanceTemplateDelete(ctx context.Context, 
 	if len(diags) > 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to delete",
+			Summary:  "Failed to delete virtual router instance template",
 		})
 	}
 

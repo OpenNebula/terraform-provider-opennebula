@@ -217,7 +217,7 @@ func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceDat
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "failed to flatten disks",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Template (ID: %d): %s", template.ID, err),
 		})
 		return diags
 	}
@@ -227,7 +227,7 @@ func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceDat
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "failed to flatten NICs",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Template (ID: %d): %s", template.ID, err),
 		})
 		return diags
 	}
@@ -237,7 +237,7 @@ func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceDat
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "failed to flatten VM groups",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Template (ID: %d): %s", template.ID, err),
 		})
 		return diags
 	}
@@ -248,7 +248,7 @@ func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceDat
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Template (ID: %d): %s", template.ID, err),
 			})
 			return diags
 		}

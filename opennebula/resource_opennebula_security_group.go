@@ -239,7 +239,7 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the security group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -252,7 +252,7 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -277,7 +277,7 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten tags",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -360,7 +360,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the security group",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -376,7 +376,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to update description",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -390,7 +390,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -402,7 +402,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -420,7 +420,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to retrive controller",
+			Summary:  "Failed to get the security group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -432,7 +432,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -477,7 +477,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -492,7 +492,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to commit rules",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -508,7 +508,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -522,7 +522,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -536,7 +536,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -554,7 +554,7 @@ func resourceOpennebulaSecurityGroupDelete(ctx context.Context, d *schema.Resour
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the security group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -565,7 +565,7 @@ func resourceOpennebulaSecurityGroupDelete(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

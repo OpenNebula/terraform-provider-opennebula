@@ -89,7 +89,7 @@ func datasourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Security group (ID: %d): %s", securityGroup.ID, err),
 			})
 			return diags
 		}

@@ -120,7 +120,8 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create OpenNebula controller",
+			Summary:  "Failed to get OpenNebula release number",
+			Detail:   err.Error(),
 		})
 		return nil, diags
 	}

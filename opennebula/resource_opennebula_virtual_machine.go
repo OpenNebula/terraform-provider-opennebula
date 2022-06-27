@@ -291,7 +291,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM Template (ID: %d): %s", templateID, err),
 			})
 			return diags
 		}
@@ -358,7 +358,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to create",
+				Summary:  "Failed to create the VM",
 				Detail:   err.Error(),
 			})
 			return diags
@@ -382,7 +382,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", expectedState),
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -395,7 +395,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
 
-				Detail: err.Error(),
+				Detail: fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -408,7 +408,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
 
-				Detail: err.Error(),
+				Detail: fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -422,7 +422,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -432,7 +432,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -466,7 +466,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to flatten disks",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -476,7 +476,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to flatten NICs",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -504,7 +504,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual machine controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -518,7 +518,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -536,7 +536,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to set attribute",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -553,7 +553,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -563,7 +563,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -573,7 +573,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten tags",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -595,7 +595,7 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to flatten disks",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -604,7 +604,7 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to flatten NICs",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1045,7 +1045,7 @@ func customVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, met
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update NIC",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1063,7 +1063,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual machine controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -1076,7 +1076,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -1089,7 +1089,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to unlock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1101,7 +1101,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1112,7 +1112,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1126,7 +1126,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1140,7 +1140,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change VM group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1219,7 +1219,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1231,7 +1231,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update disk",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1283,7 +1283,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to update OS vector",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -1319,7 +1319,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to update GRAPHICS vector",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -1365,7 +1365,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to update CONTEXT vector",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -1392,7 +1392,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to power off",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1401,7 +1401,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to wait virtual machine to be in POWEROFF state",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1428,7 +1428,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to resize",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1439,7 +1439,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to resume",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1448,7 +1448,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to wait virtual machine to be in RUNNING state",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1468,7 +1468,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to wait virtual machine to be in RUNNING state",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1479,8 +1479,8 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Summary:  "Failed to update VM configuration",
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1490,7 +1490,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to wait virtual machine to be in RUNNING state",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1505,7 +1505,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1514,7 +1514,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1861,7 +1861,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual machine controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -1878,7 +1878,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(vmDeleteReadyStates, " ")),
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -1921,7 +1921,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to terminate",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -1931,7 +1931,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to wait virtual machine to be in DONE state",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -1941,7 +1941,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to wait virtual machine to be in DONE state",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}

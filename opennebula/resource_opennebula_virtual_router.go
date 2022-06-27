@@ -181,7 +181,7 @@ func resourceOpennebulaVirtualRouterCreate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router permission change failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -193,7 +193,7 @@ func resourceOpennebulaVirtualRouterCreate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router group change failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -207,7 +207,7 @@ func resourceOpennebulaVirtualRouterCreate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router wrong lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -217,7 +217,7 @@ func resourceOpennebulaVirtualRouterCreate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router group lock failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -241,7 +241,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router error",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -252,7 +252,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router info error",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -289,7 +289,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "virtual router set attribute error",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -304,7 +304,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 						diags = append(diags, diag.Diagnostic{
 							Severity: diag.Error,
 							Summary:  "virtual router set attribute error",
-							Detail:   err.Error(),
+							Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 						})
 						return diags
 					}
@@ -319,7 +319,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router set attribute error",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -354,7 +354,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router error",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -364,7 +364,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router info error",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -377,7 +377,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router unlock error",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -389,7 +389,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router rename error",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -399,7 +399,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router info error",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -413,7 +413,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "virtual router permission change failed",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -427,7 +427,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router group change failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -471,7 +471,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router update failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -486,7 +486,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router wrong lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -496,7 +496,7 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "virtual router group lock failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -513,7 +513,7 @@ func resourceOpennebulaVirtualRouterDelete(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router error",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -523,7 +523,7 @@ func resourceOpennebulaVirtualRouterDelete(ctx context.Context, d *schema.Resour
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router delete failed",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

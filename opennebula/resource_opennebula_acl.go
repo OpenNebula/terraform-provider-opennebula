@@ -54,6 +54,7 @@ func resourceOpennebulaACLCreate(ctx context.Context, d *schema.ResourceData, me
 	controller := config.Controller
 
 	var diags diag.Diagnostics
+	var err error
 
 	userHex, err := acl.ParseUsers(d.Get("user").(string))
 	if err != nil {
@@ -86,9 +87,10 @@ func resourceOpennebulaACLCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	var aclID int
+	var zoneHex string
 	zone := d.Get("zone").(string)
 	if len(zone) > 0 {
-		zoneHex, err := acl.ParseZone(zone)
+		zoneHex, err = acl.ParseZone(zone)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -105,7 +107,7 @@ func resourceOpennebulaACLCreate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create rule",
+			Summary:  "Failed to create the ACL rule",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -126,7 +128,7 @@ func resourceOpennebulaACLRead(ctx context.Context, d *schema.ResourceData, meta
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve ACL informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("ACL (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -136,7 +138,7 @@ func resourceOpennebulaACLRead(ctx context.Context, d *schema.ResourceData, meta
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to parse the ACL rule ID",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("ACL (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -153,7 +155,7 @@ func resourceOpennebulaACLRead(ctx context.Context, d *schema.ResourceData, meta
 	diags = append(diags, diag.Diagnostic{
 		Severity: diag.Error,
 		Summary:  fmt.Sprintf("Failed to find ACL rule %s", d.Id()),
-		Detail:   err.Error(),
+		Detail:   fmt.Sprintf("ACL (ID: %s): %s", d.Id(), err),
 	})
 
 	return diags
@@ -170,7 +172,7 @@ func resourceOpennebulaACLDelete(ctx context.Context, d *schema.ResourceData, me
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to parse ACL rule ID",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("ACL (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -180,7 +182,7 @@ func resourceOpennebulaACLDelete(ctx context.Context, d *schema.ResourceData, me
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete ACL rule",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("ACL (ID: %s): %s", d.Id(), err),
 		})
 	}
 

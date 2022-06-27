@@ -433,7 +433,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Virtual network (ID: %d) reservation: %s", reservation_vnet, err),
 			})
 			return diags
 		}
@@ -443,7 +443,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to reserve network addresses",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Virtual network (ID: %d) reservation: %s", reservation_vnet, err),
 			})
 			return diags
 		}
@@ -457,7 +457,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -485,7 +485,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to create",
+				Summary:  "Failed to create the virtual network",
 				Detail:   err.Error(),
 			})
 			return diags
@@ -503,7 +503,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to wait virtual network to be in READY state",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -517,7 +517,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to generate template description",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -526,7 +526,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -542,7 +542,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add an address range",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -555,7 +555,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to set cluster",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -574,7 +574,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to hold a lease",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -591,7 +591,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to hold a lease",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -609,7 +609,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to add security groups",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -621,7 +621,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -633,7 +633,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -647,7 +647,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -657,7 +657,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -863,7 +863,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual network controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -876,7 +876,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -903,7 +903,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to parse parent network ID",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -917,7 +917,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -929,7 +929,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to flatten address ranges",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1113,7 +1113,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual network controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -1127,7 +1127,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to unlock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1178,7 +1178,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1190,7 +1190,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1204,7 +1204,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -1216,7 +1216,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1230,7 +1230,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1247,7 +1247,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to release a lease on hold",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1261,7 +1261,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -1294,7 +1294,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to parse address range ID",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1304,7 +1304,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to remove address range",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1321,7 +1321,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add address range",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1339,7 +1339,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to hold a lease",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1355,7 +1355,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1365,7 +1365,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -1382,7 +1382,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual network controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -1401,7 +1401,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to release a lease on hold",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1418,7 +1418,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to release a lease on hold",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -1431,7 +1431,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

@@ -87,7 +87,7 @@ func resourceOpennebulaGroupAdminsRead(ctx context.Context, d *schema.ResourceDa
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve group informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 		})
 		return diags
 	}
@@ -97,7 +97,7 @@ func resourceOpennebulaGroupAdminsRead(ctx context.Context, d *schema.ResourceDa
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to set field",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 		})
 		return diags
 	}
@@ -137,7 +137,7 @@ func resourceOpennebulaGroupAdminsUpdate(ctx context.Context, d *schema.Resource
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to delete a group admin",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}
@@ -152,7 +152,7 @@ func resourceOpennebulaGroupAdminsUpdate(ctx context.Context, d *schema.Resource
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to add a group admin",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}
@@ -187,7 +187,7 @@ func resourceOpennebulaGroupAdminsDelete(ctx context.Context, d *schema.Resource
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to delete a group admin",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}

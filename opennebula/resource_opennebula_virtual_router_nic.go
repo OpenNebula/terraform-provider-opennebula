@@ -16,7 +16,6 @@ import (
 
 var defaultVRNICTimeout = time.Duration(10) * time.Minute
 
-
 func resourceOpennebulaVirtualRouterNIC() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaVirtualRouterNICCreate,
@@ -122,7 +121,7 @@ func resourceOpennebulaVirtualRouterNICCreate(ctx context.Context, d *schema.Res
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to attach NIC",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router NIC (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -146,7 +145,7 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router NIC (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -167,7 +166,7 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to find the NIC in the virtual router NIC list",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router NIC (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -231,7 +230,7 @@ func resourceOpennebulaVirtualRouterNICDelete(ctx context.Context, d *schema.Res
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to parse virtual router ID",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router NIC (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -242,7 +241,7 @@ func resourceOpennebulaVirtualRouterNICDelete(ctx context.Context, d *schema.Res
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to detach NIC",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router NIC (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

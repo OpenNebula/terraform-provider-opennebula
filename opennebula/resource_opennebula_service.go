@@ -183,7 +183,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -195,7 +195,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -207,7 +207,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change owner",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -219,7 +219,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -230,7 +230,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to wait service to be in RUNNING state",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -246,7 +246,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the service controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -257,7 +257,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -274,7 +274,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to set attribute",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -319,7 +319,7 @@ func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the service controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -329,13 +329,13 @@ func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		if err = sc.Recover(true); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to recover",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 		}
 
@@ -348,7 +348,7 @@ func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to wait service to be in DONE state",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -386,7 +386,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the service controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -397,7 +397,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -408,7 +408,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change name",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -424,7 +424,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -439,7 +439,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -448,7 +448,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -462,7 +462,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -471,7 +471,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -486,7 +486,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed retrieve user",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -495,7 +495,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change user",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -508,7 +508,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve user",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -517,7 +517,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change user",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}

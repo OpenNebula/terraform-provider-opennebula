@@ -106,7 +106,7 @@ func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
 			})
 			return diags
 		}
@@ -133,7 +133,7 @@ func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "setting attribute failed",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
 				})
 				return diags
 			}
@@ -145,7 +145,7 @@ func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "setting attribute failed",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
 		})
 		return diags
 	}
@@ -157,7 +157,7 @@ func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "group info error",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
 		})
 		return diags
 	}
@@ -168,7 +168,7 @@ func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "failed to flatten quotas",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
 			})
 			return diags
 		}
