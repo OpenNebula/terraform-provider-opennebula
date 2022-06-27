@@ -21,6 +21,8 @@ import (
 	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
 )
 
+var defaultVNetTimeout = time.Duration(5) * time.Minute
+
 func resourceOpennebulaVirtualNetwork() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaVirtualNetworkCreate,
@@ -29,7 +31,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 		UpdateContext: resourceOpennebulaVirtualNetworkUpdate,
 		DeleteContext: resourceOpennebulaVirtualNetworkDelete,
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(time.Duration(3) * time.Minute),
+			Create: schema.DefaultTimeout(defaultVNetTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,

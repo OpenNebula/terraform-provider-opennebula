@@ -14,6 +14,9 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
 
+var defaultVRNICTimeout = time.Duration(10) * time.Minute
+
+
 func resourceOpennebulaVirtualRouterNIC() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaVirtualRouterNICCreate,
@@ -21,8 +24,8 @@ func resourceOpennebulaVirtualRouterNIC() *schema.Resource {
 		Exists:        resourceOpennebulaVirtualRouterNICExists,
 		DeleteContext: resourceOpennebulaVirtualRouterNICDelete,
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Delete: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(defaultVRNICTimeout),
+			Delete: schema.DefaultTimeout(defaultVRNICTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
