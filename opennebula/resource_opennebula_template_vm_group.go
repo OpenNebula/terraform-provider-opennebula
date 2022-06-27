@@ -210,7 +210,7 @@ func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the VM group",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -227,7 +227,7 @@ func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -239,7 +239,7 @@ func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -263,7 +263,7 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the VM group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -275,7 +275,7 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -294,7 +294,7 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten roles",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -304,7 +304,7 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten tags",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -396,7 +396,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the VM group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -406,7 +406,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -417,7 +417,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -426,7 +426,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -440,7 +440,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -454,7 +454,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -473,7 +473,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -487,7 +487,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to generate description",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -497,7 +497,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -516,7 +516,7 @@ func resourceOpennebulaVMGroupDelete(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the VM group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -527,7 +527,7 @@ func resourceOpennebulaVMGroupDelete(ctx context.Context, d *schema.ResourceData
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

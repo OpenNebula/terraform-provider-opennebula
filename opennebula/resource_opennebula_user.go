@@ -137,7 +137,7 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the user",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -152,7 +152,7 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to generate quotas description",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -161,7 +161,7 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to apply quotas",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -180,7 +180,7 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -203,7 +203,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the user controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -217,7 +217,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -236,7 +236,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Password doesn't match",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -250,7 +250,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten groups",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -260,7 +260,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten quotas",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -270,7 +270,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -334,7 +334,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the user controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -347,7 +347,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update password",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -360,7 +360,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change authentication driver",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -373,7 +373,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -393,7 +393,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to delete group",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -407,7 +407,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add group",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -422,7 +422,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to generate quotas description",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -432,7 +432,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed apply quotas",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -444,7 +444,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -482,7 +482,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -499,7 +499,7 @@ func resourceOpennebulaUserDelete(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to update controller",
+			Summary:  "Failed to get the user controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -510,7 +510,7 @@ func resourceOpennebulaUserDelete(ctx context.Context, d *schema.ResourceData, m
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

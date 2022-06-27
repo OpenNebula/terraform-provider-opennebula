@@ -89,7 +89,7 @@ func datasourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Image (ID: %d): %s", image.ID, err),
 			})
 			return diags
 		}

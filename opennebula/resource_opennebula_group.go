@@ -141,7 +141,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create group",
+			Summary:  "Failed to create the group",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -160,7 +160,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add users",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 				})
 				return diags
 			}
@@ -176,7 +176,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add admins",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 				})
 				return diags
 			}
@@ -189,7 +189,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to generate quotas description",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}
@@ -198,7 +198,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to apply quotas",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}
@@ -214,7 +214,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update the group content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}
@@ -239,7 +239,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update the group content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
 			})
 			return diags
 		}
@@ -291,7 +291,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to update get the group controller",
+			Summary:  "Failed to get the group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -304,7 +304,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed retrieve group informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -336,7 +336,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed set field",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -347,7 +347,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to set field",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -357,7 +357,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to flatten quotas",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -368,7 +368,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -442,7 +442,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -455,7 +455,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to generate quotas",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -465,7 +465,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to apply quotas",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -480,7 +480,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve groups informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -492,7 +492,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update group content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -544,7 +544,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update group content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -562,7 +562,7 @@ func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the group controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -574,7 +574,7 @@ func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to delete",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}

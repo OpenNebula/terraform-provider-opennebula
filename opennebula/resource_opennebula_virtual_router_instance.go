@@ -79,7 +79,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve virtual router informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Virtual router (ID: %d): %s", vRouterID, err),
 		})
 		return diags
 	}
@@ -100,7 +100,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve virtual router instance template informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %d): %s", templateID, err),
 		})
 		return diags
 	}
@@ -140,7 +140,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to generate an temporary ID for the virtual router instance",
+			Summary:  "Failed to generate an temporary ID used to identify the the virtual router instance",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -155,7 +155,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the virtual router instance",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -166,7 +166,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -186,7 +186,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve the virtual router instances informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -220,7 +220,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -255,7 +255,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Failed to wait instance to be in %s state", expectedState),
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -267,7 +267,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -279,7 +279,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -293,7 +293,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -303,7 +303,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -329,7 +329,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to flatten disks",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -363,7 +363,7 @@ func resourceOpennebulaVirtualRouterInstanceRead(ctx context.Context, d *schema.
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to flatten disks",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual router instance (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}

@@ -89,7 +89,7 @@ func datasourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("VM group (ID: %d): %s", vmGroup.ID, err),
 			})
 			return diags
 		}

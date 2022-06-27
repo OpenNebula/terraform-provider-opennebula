@@ -301,7 +301,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the template",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -318,7 +318,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -330,7 +330,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -344,7 +344,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -354,7 +354,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -376,7 +376,7 @@ func templateReadCustom(ctx context.Context, d *schema.ResourceData, templateInf
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten NICs",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -398,7 +398,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the template controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -412,7 +412,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -431,7 +431,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template disks",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -449,7 +449,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to set attribute",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -467,7 +467,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -477,7 +477,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -501,7 +501,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to set attribute",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -580,7 +580,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the template controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -594,7 +594,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -607,7 +607,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to unlock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -619,7 +619,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -632,7 +632,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to retrieve informations",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -646,7 +646,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -660,7 +660,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -820,7 +820,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -835,7 +835,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -845,7 +845,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -872,7 +872,7 @@ func resourceOpennebulaTemplateDelete(ctx context.Context, d *schema.ResourceDat
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the template controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -883,7 +883,7 @@ func resourceOpennebulaTemplateDelete(ctx context.Context, d *schema.ResourceDat
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

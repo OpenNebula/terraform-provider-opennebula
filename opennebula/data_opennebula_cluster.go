@@ -89,7 +89,7 @@ func datasourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Cluster (ID: %d): %s", cluster.ID, err),
 			})
 			return diags
 		}

@@ -147,7 +147,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create",
+			Summary:  "Failed to create the virtual data center",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -172,7 +172,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add host",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -184,7 +184,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add datastore",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -196,7 +196,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add cluster",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -208,7 +208,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add virtual network",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -224,7 +224,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add group",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -247,7 +247,7 @@ func resourceOpennebulaVirtualDataCenterRead(ctx context.Context, d *schema.Reso
 		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual data center controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -261,7 +261,7 @@ func resourceOpennebulaVirtualDataCenterRead(ctx context.Context, d *schema.Reso
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -315,7 +315,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual data center controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -328,7 +328,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -348,7 +348,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to delete group",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -361,7 +361,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to add group",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -390,7 +390,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to delete host",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -402,7 +402,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to delete datastore",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -414,7 +414,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to delete cluster",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -426,7 +426,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to delete virtual network",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -450,7 +450,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to add host",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -462,7 +462,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to add datastore",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -474,7 +474,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to add cluster",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -486,7 +486,7 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to add virtual network",
-						Detail:   err.Error(),
+						Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 					})
 					return diags
 				}
@@ -565,7 +565,7 @@ func resourceOpennebulaVirtualDataCenterDelete(ctx context.Context, d *schema.Re
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the virtual data center controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -576,7 +576,7 @@ func resourceOpennebulaVirtualDataCenterDelete(ctx context.Context, d *schema.Re
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("virtual data center (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

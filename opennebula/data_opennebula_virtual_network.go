@@ -100,7 +100,7 @@ func datasourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "failed to get MTU attribute",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("Virtual network (ID: %d): %s", vnet.ID, err),
 		})
 		return diags
 	}
@@ -112,7 +112,7 @@ func datasourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resou
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("Virtual network (ID: %d): %s", vnet.ID, err),
 			})
 			return diags
 		}

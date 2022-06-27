@@ -284,7 +284,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to create image",
+				Summary:  "Failed to create the image",
 				Detail:   err.Error(),
 			})
 			return diags
@@ -298,7 +298,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to generate image content",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -313,7 +313,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to wait image to be in READY state",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -324,7 +324,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve information",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -335,7 +335,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the image controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -348,7 +348,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change permissions",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -360,7 +360,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -372,7 +372,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to modify persistency",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -386,7 +386,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -396,7 +396,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -482,7 +482,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the image controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -496,7 +496,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -566,7 +566,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to set attribute",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -606,7 +606,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the image controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -619,7 +619,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -632,7 +632,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to unlock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -644,7 +644,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to rename",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -658,7 +658,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change permissions",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -672,7 +672,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to change group",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -685,7 +685,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to modify persistency",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -699,7 +699,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to change image type",
-					Detail:   err.Error(),
+					Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 				})
 				return diags
 			}
@@ -752,7 +752,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update image content",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -767,7 +767,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to convert lock level",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -777,7 +777,7 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to lock",
-				Detail:   err.Error(),
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
 			return diags
 		}
@@ -794,7 +794,7 @@ func resourceOpennebulaImageDelete(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to get controller",
+			Summary:  "Failed to get the image controller",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -805,7 +805,7 @@ func resourceOpennebulaImageDelete(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -821,7 +821,7 @@ func resourceOpennebulaImageDelete(ctx context.Context, d *schema.ResourceData, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to wait image to be in NOTFOUND state",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
