@@ -12,6 +12,7 @@ BUG FIXES:
 * provider: Fix incorrect conversions between integer types (#278)
 * provider: Fail on bad credentials (#288)
 * data/opennebula_template: Fix error when `cpu`, `vcpu` or `memory` undefined (#284)
+* resources/opennebula_virtual_machine: fix missing NIC generation (#289)
 
 ## 0.5.0 (June 7th, 2022)
 
