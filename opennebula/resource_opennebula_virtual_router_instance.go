@@ -413,6 +413,7 @@ func resourceOpennebulaVirtualRouterInstanceUpdate(ctx context.Context, d *schem
 			Severity: diag.Error,
 			Summary:  "Failed to update",
 		})
+		return diags
 	}
 
 	return resourceOpennebulaVirtualRouterInstanceRead(ctx, d, meta)

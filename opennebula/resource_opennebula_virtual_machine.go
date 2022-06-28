@@ -1966,6 +1966,15 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 		err = vmc.Terminate()
 	}
 
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to terminate",
+			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	// wait for the VM to be powered off
 	// RUNNING state is added to transient one in case of slow cloud
 	transientStrs := NewVMLCMState(vm.Running).

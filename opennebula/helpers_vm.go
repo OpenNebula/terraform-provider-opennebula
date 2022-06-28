@@ -289,13 +289,10 @@ func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 			for _, pair := range nicTpl.Pairs {
 
 				value, err := nic.GetStr(pair.Key())
-				if err != nil {
-
-				}
-
-				if value != pair.Value {
+				if err != nil || value != pair.Value {
 					continue loop
 				}
+
 			}
 
 			attachedNIC = &updatedNICs[i]
