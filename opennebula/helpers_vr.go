@@ -14,7 +14,7 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 )
 
-var vrNICAddInstancesStates = VMStates{
+var vrNICDeleteInstancesStates = VMStates{
 	States: []vm.State{vm.Poweroff, vm.Done},
 	LCMs:   []vm.LCMState{vm.Running},
 }
@@ -170,7 +170,8 @@ func vrNICDetach(ctx context.Context, timeout time.Duration, controller *goca.Co
 		// If one of the VMs is being deleted it will have it's NIC detached
 		transient := vmNICTransientStates
 		transient.Append(vmNICUpdateReadyStates)
-		finalStrs := vrNICAddInstancesStates.ToStrings()
+		transient.Append(vmDeleteTransientStates)
+		finalStrs := vrNICDeleteInstancesStates.ToStrings()
 
 		stateConf := NewVMUpdateStateConf(timeout,
 			transient.ToStrings(),
