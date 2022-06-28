@@ -56,9 +56,9 @@ func vmGroupFilter(d *schema.ResourceData, meta interface{}) (*vmGroupSc.VMGroup
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no vm group match the tags")
+		return nil, fmt.Errorf("no vm group match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several vm group match the tags")
+		return nil, fmt.Errorf("several vm group match the constraints")
 	}
 
 	return match[0], nil

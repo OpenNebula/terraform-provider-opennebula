@@ -68,9 +68,9 @@ func vnetFilter(d *schema.ResourceData, meta interface{}) (*vnetSc.VirtualNetwor
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no virtual network match the tags")
+		return nil, fmt.Errorf("no virtual network match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several virtual networks match the tags")
+		return nil, fmt.Errorf("several virtual networks match the constraints")
 	}
 
 	return match[0], nil

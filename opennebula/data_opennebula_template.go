@@ -2,6 +2,7 @@ package opennebula
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -20,9 +21,48 @@ func dataOpennebulaTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Template",
 			},
-			"cpu":    cpuSchema(),
-			"vcpu":   vcpuSchema(),
-			"memory": memorySchema(),
+			"cpu": func() *schema.Schema {
+				s := cpuSchema()
+
+				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
+					value := v.(float64)
+
+					if value == 0 {
+						errs = append(errs, errors.New("cpu should be strictly greater than 0"))
+					}
+
+					return
+				}
+				return s
+			}(),
+			"vcpu": func() *schema.Schema {
+				s := vcpuSchema()
+
+				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
+					value := v.(float64)
+
+					if value == 0 {
+						errs = append(errs, errors.New("vcpu should be strictly greater than 0"))
+					}
+
+					return
+				}
+				return s
+			}(),
+			"memory": func() *schema.Schema {
+				s := memorySchema()
+
+				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
+					value := v.(float64)
+
+					if value == 0 {
+						errs = append(errs, errors.New("memory should be strictly greater than 0"))
+					}
+
+					return
+				}
+				return s
+			}(),
 			"context": func() *schema.Schema {
 				s := contextSchema()
 				s.Deprecated = "use 'tags' for selection instead"
@@ -88,31 +128,37 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 			continue
 		}
 
-		tplCPU, err := template.Template.GetCPU()
-		if err != nil {
-			continue
+		if cpuOk {
+			tplCPU, err := template.Template.GetCPU()
+			if err != nil {
+				continue
+			}
+
+			if tplCPU != cpu.(float64) {
+				continue
+			}
 		}
 
-		if cpuOk && tplCPU != cpu.(float64) {
-			continue
+		if vcpuOk {
+			tplVCPU, err := template.Template.GetVCPU()
+			if err != nil {
+				continue
+			}
+
+			if tplVCPU != vcpu.(int) {
+				continue
+			}
 		}
 
-		tplVCPU, err := template.Template.GetVCPU()
-		if err != nil {
-			continue
-		}
+		if memoryOk {
+			tplMemory, err := template.Template.GetMemory()
+			if err != nil {
+				continue
+			}
 
-		if vcpuOk && tplVCPU != vcpu.(int) {
-			continue
-		}
-
-		tplMemory, err := template.Template.GetMemory()
-		if err != nil {
-			continue
-		}
-
-		if memoryOk && tplMemory != memory.(int) {
-			continue
+			if tplMemory != memory.(int) {
+				continue
+			}
 		}
 
 		if tagsOk && !matchTags(template.Template.Template, tags) {
@@ -124,9 +170,9 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no template match the tags")
+		return nil, fmt.Errorf("no template match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several templates match the tags")
+		return nil, fmt.Errorf("==several templates match the constraints")
 	}
 
 	return match[0], nil
@@ -152,37 +198,19 @@ func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceDat
 	d.Set("name", template.Name)
 
 	cpu, err := template.Template.GetCPU()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "failed to get CPU",
-			Detail:   err.Error(),
-		})
-		return diags
+	if err == nil {
+		d.Set("cpu", cpu)
 	}
-	d.Set("cpu", cpu)
 
 	vcpu, err := template.Template.GetVCPU()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "failed to get VCPU",
-			Detail:   err.Error(),
-		})
-		return diags
+	if err == nil {
+		d.Set("vcpu", vcpu)
 	}
-	d.Set("vcpu", vcpu)
 
 	memory, err := template.Template.GetMemory()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "failed to get memory",
-			Detail:   err.Error(),
-		})
-		return diags
+	if err == nil {
+		d.Set("memory", memory)
 	}
-	d.Set("memory", memory)
 
 	err = flattenTemplateDisks(d, &template.Template)
 	if err != nil {

@@ -115,9 +115,9 @@ userLoop:
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no user match the tags")
+		return nil, fmt.Errorf("no user match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several users match the tags")
+		return nil, fmt.Errorf("several users match the constraints")
 	}
 
 	return match[0], nil

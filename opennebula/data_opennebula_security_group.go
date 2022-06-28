@@ -56,9 +56,9 @@ func securityGroupFilter(d *schema.ResourceData, meta interface{}) (*secgroup.Se
 
 	// check filtering results
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no security group match the tags")
+		return nil, fmt.Errorf("no security group match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("several security group match the tags")
+		return nil, fmt.Errorf("several security group match the constraints")
 	}
 
 	return match[0], nil
