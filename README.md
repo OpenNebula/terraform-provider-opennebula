@@ -16,12 +16,12 @@
 
 [![CI](https://github.com/OpenNebula/terraform-provider-opennebula/actions/workflows/ci.yaml/badge.svg)](https://github.com/OpenNebula/terraform-provider-opennebula/actions/workflows/ci.yaml)
 
-## Quick Start
+## Quick start
 
 * [Install Terraform](https://learn.hashicorp.com/terraform/getting-started/install)
 * [Use the Provider](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs)
 
-## Example Usage
+## Example usage
 
 Configure the OpenNebula Provider:
 
@@ -42,6 +42,13 @@ resource "opennebula_group" "group" {
 }
 ```
 
+## OpenNebula versions support
+
+- `~> 6.4`
+- `~> 5.12`
+
+See OpenNebula's [Release Policy](https://github.com/OpenNebula/one/wiki/Release-Policy) for more details.
+
 ## Contributing
 
 Please refer to [CONTRIBUTING.md](./CONTRIBUTING.md).
@@ -52,4 +59,4 @@ Please refer to [LICENSE](./LICENSE).
 
 ## References
 
-Other Projects about Terraform provider exists. This project has been inspired by [Runtastic](https://github.com/runtastic/terraform-provider-opennebula) and [BlackBerry](https://github.com/blackberry/terraform-provider-opennebula) projects
+Other Projects about Terraform provider exists. This project has been inspired by [Runtastic](https://github.com/runtastic/terraform-provider-opennebula) and [BlackBerry](https://github.com/blackberry/terraform-provider-opennebula) projects.
