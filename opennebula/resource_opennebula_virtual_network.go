@@ -193,6 +193,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: ARFields(),
 				},
+				Deprecated: "use virtual network address range resource instead",
 			},
 			"hold_ips": {
 				Type:          schema.TypeList,
@@ -202,6 +203,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "hold ips in the related virtual network address range resource instead",
 			},
 			"hold_size": {
 				Type:          schema.TypeInt,
@@ -535,7 +537,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 
 		for _, arinterface := range ars {
 			armap := arinterface.(map[string]interface{})
-			arstr := generateAR(armap).String()
+			arstr := vnetGenerateAR(armap).String()
 			err := vnc.AddAR(arstr)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
@@ -561,6 +563,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		}
 
 		// Deprecated
+
 		if d.Get("hold_size").(int) > 0 {
 			// add address range and reservations
 			ip := net.ParseIP(d.Get("ip_hold").(string))
@@ -665,7 +668,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 	return resourceOpennebulaVirtualNetworkRead(ctx, d, meta)
 }
 
-func generateAR(armap map[string]interface{}) *vn.AddressRange {
+func vnetGenerateAR(armap map[string]interface{}) *vn.AddressRange {
 
 	ar := vn.NewAddressRange()
 
@@ -1313,7 +1316,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		for _, ARIf := range ARToAdd {
 			ARConfig := ARIf.(map[string]interface{})
 
-			ARTemplateStr := generateAR(ARConfig).String()
+			ARTemplateStr := vnetGenerateAR(ARConfig).String()
 
 			err = vnc.AddAR(ARTemplateStr)
 			if err != nil {
@@ -1473,7 +1476,7 @@ func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkControlle
 			}
 		},
 		Timeout:    timeout,
-		Delay:      10 * time.Second,
+		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
 
