@@ -41,25 +41,19 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "3"),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP4",
-						"size":    "16",
-						"ip4":     "172.16.100.110",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP4",
-						"size":    "15",
-						"ip4":     "172.16.100.170",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP4",
-						"size":    "12",
-						"ip4":     "172.16.100.130",
-					}),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "2"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.112"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.1", "172.16.100.131"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "size", "16"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "hold_ips.0", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "size", "15"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "ip4", "172.16.100.170"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "size", "12"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ip4", "172.16.100.130"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.0", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -90,29 +84,21 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "4"),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP4",
-						"size":    "15",
-						"ip4":     "172.16.100.170",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP4",
-						"size":    "17",
-						"ip4":     "172.16.100.110",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP4",
-						"size":    "13",
-						"ip4":     "172.16.100.140",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
-						"ar_type": "IP6",
-						"size":    "2",
-					}),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "2"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.112"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.1", "172.16.100.141"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "size", "17"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "hold_ips.0", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "size", "15"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "ip4", "172.16.100.170"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "size", "13"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ip4", "172.16.100.140"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.0", "172.16.100.141"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "ar_type", "IP6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "size", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -159,30 +145,34 @@ func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 	controller := config.Controller
 
 	for _, rs := range s.RootModule().Resources {
-		vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
-		vnc := controller.VirtualNetwork(int(vnID))
+		switch rs.Type {
+		case "opennebula_virtual_network":
+			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
+			vnc := controller.VirtualNetwork(int(vnID))
 
-		// Wait for Virtual Network deleted
-		stateConf := &resource.StateChangeConf{
-			Pending: []string{"anythingelse"},
-			Target:  []string{""},
-			Refresh: func() (interface{}, string, error) {
+			// Wait for Virtual Network deleted
+			stateConf := &resource.StateChangeConf{
+				Pending: []string{"anythingelse"},
+				Target:  []string{""},
+				Refresh: func() (interface{}, string, error) {
 
-				vn, _ := vnc.Info(false)
-				if vn == nil {
-					return vn, "", nil
-				}
+					vn, _ := vnc.Info(false)
+					if vn == nil {
+						return vn, "", nil
+					}
 
-				return vn, "EXISTS", nil
-			},
-			Timeout:    1 * time.Minute,
-			Delay:      10 * time.Second,
-			MinTimeout: 3 * time.Second,
+					return vn, "EXISTS", nil
+				},
+				Timeout:    1 * time.Minute,
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			_, err := stateConf.WaitForStateContext(context.Background())
+
+			return err
+		default:
 		}
-
-		_, err := stateConf.WaitForStateContext(context.Background())
-
-		return err
 	}
 
 	return nil
@@ -194,23 +184,27 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
-			vnc := controller.VirtualNetwork(int(vnID))
-			// Get Virtual Network Info
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vn, _ := vnc.Info(false)
-			if vn == nil {
-				return fmt.Errorf("Expected virtual_network %s to exist when checking permissions", rs.Primary.ID)
-			}
+			switch rs.Type {
+			case "opennebula_virtual_network":
+				vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
+				vnc := controller.VirtualNetwork(int(vnID))
+				// Get Virtual Network Info
+				// TODO: fix it after 5.10 release
+				// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+				vn, _ := vnc.Info(false)
+				if vn == nil {
+					return fmt.Errorf("Expected virtual_network %s to exist when checking permissions", rs.Primary.ID)
+				}
 
-			if !reflect.DeepEqual(vn.Permissions, expected) {
-				return fmt.Errorf(
-					"Permissions for virtual_network %s were expected to be %s. Instead, they were %s",
-					rs.Primary.ID,
-					permissionsUnixString(*expected),
-					permissionsUnixString(*vn.Permissions),
-				)
+				if !reflect.DeepEqual(vn.Permissions, expected) {
+					return fmt.Errorf(
+						"Permissions for virtual_network %s were expected to be %s. Instead, they were %s",
+						rs.Primary.ID,
+						permissionsUnixString(*expected),
+						permissionsUnixString(*vn.Permissions),
+					)
+				}
+			default:
 			}
 		}
 
@@ -224,33 +218,38 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
-			vnc := controller.VirtualNetwork(int(vnID))
-			// Get Virtual Network Info
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vn, _ := vnc.Info(false)
-			if vn == nil {
-				return fmt.Errorf("Expected virtual network %s to exist when checking permissions", rs.Primary.ID)
-			}
-			secgrouplist, err := vn.Template.Get("SECURITY_GROUPS")
-			if err != nil {
-				return err
-			}
-			secgroups_str := strings.Split(secgrouplist, ",")
-			secgroups_int := []int{}
-
-			for _, i := range secgroups_str {
-				if i != "" {
-					j, err := strconv.Atoi(i)
-					if err != nil {
-						return err
-					}
-					secgroups_int = append(secgroups_int, j)
+			switch rs.Type {
+			case "opennebula_virtual_network":
+				vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
+				vnc := controller.VirtualNetwork(int(vnID))
+				// Get Virtual Network Info
+				// TODO: fix it after 5.10 release
+				// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+				vn, err := vnc.Info(false)
+				if err != nil {
+					return fmt.Errorf("Virtual network (ID: %s): failed to retrieve informations: %s", rs.Primary.ID, err)
 				}
-			}
-			if !reflect.DeepEqual(secgroups_int, slice) {
-				return fmt.Errorf("Securty Groups for Virtual Network %s are not the expected ones", rs.Primary.ID)
+
+				secgrouplist, err := vn.Template.Get("SECURITY_GROUPS")
+				if err != nil {
+					return err
+				}
+				secgroups_str := strings.Split(secgrouplist, ",")
+				secgroups_int := []int{}
+
+				for _, i := range secgroups_str {
+					if i != "" {
+						j, err := strconv.Atoi(i)
+						if err != nil {
+							return err
+						}
+						secgroups_int = append(secgroups_int, j)
+					}
+				}
+				if !reflect.DeepEqual(secgroups_int, slice) {
+					return fmt.Errorf("Securty Groups for Virtual Network %s are not the expected ones", rs.Primary.ID)
+				}
+			default:
 			}
 		}
 		return nil
@@ -270,20 +269,9 @@ resource "opennebula_virtual_network" "test" {
   search_domain   = "example.com"
   ar {
     ar_type = "IP4"
-    size    = 16
-    ip4     = "172.16.100.110"
+    size    = 5
+    ip4     = "172.16.100.1"
   }
-  ar {
-    ar_type = "IP4"
-    size    = 15
-    ip4     = "172.16.100.170"
-  }
-  ar {
-    ar_type = "IP4"
-    size    = 12
-    ip4     = "172.16.100.130"
-  }
-  hold_ips = ["172.16.100.112", "172.16.100.131"]
   permissions = "642"
   group = "oneadmin"
   security_groups = [0]
@@ -292,6 +280,33 @@ resource "opennebula_virtual_network" "test" {
     env = "prod"
     customer = "test"
   }
+
+  lifecycle {
+    ignore_changes = [ar, hold_ips]
+  }
+}
+
+resource "opennebula_virtual_network_address_range" "test" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 16
+	ip4                = "172.16.100.110"
+	hold_ips           = ["172.16.100.112"]
+}
+
+resource "opennebula_virtual_network_address_range" "test2" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 15
+	ip4                = "172.16.100.170"
+}
+
+resource "opennebula_virtual_network_address_range" "test3" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 12
+	ip4                = "172.16.100.130"
+	hold_ips           = ["172.16.100.131"]
 }
 `
 
@@ -308,24 +323,9 @@ resource "opennebula_virtual_network" "test" {
   search_domain   = "example.com"
   ar {
     ar_type = "IP4"
-    size    = 15
-    ip4     = "172.16.100.170"
+    size    = 5
+    ip4     = "172.16.100.1"
   }
-  ar {
-    ar_type = "IP4"
-    size    = 17
-    ip4     = "172.16.100.110"
-  }
-  ar {
-    ar_type = "IP4"
-    size    = 13
-    ip4     = "172.16.100.140"
-  }
-  ar {
-    ar_type = "IP6"
-    size    = 2
-  }
-  hold_ips = ["172.16.100.112", "172.16.100.141"]
   security_groups = [0]
   clusters = [0]
   permissions = "660"
@@ -335,6 +335,39 @@ resource "opennebula_virtual_network" "test" {
     customer = "test"
     version = "2"
   }
+
+  lifecycle {
+    ignore_changes = [ar, hold_ips]
+  }
+}
+
+resource "opennebula_virtual_network_address_range" "test" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 17
+	ip4                = "172.16.100.110"
+	hold_ips = ["172.16.100.112"]
+}
+
+resource "opennebula_virtual_network_address_range" "test2" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 15
+	ip4                = "172.16.100.170"
+}
+
+resource "opennebula_virtual_network_address_range" "test3" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 13
+	ip4                = "172.16.100.140"
+	hold_ips           = ["172.16.100.141"]
+}
+
+resource "opennebula_virtual_network_address_range" "test4" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP6"
+	size               = 2
 }
 `
 
@@ -349,27 +382,46 @@ resource "opennebula_virtual_network" "test" {
   network_mask    = "255.255.0.0"
   ar {
     ar_type = "IP4"
-    size    = 16
-    ip4     = "172.16.100.110"
-  }
-  ar {
-    ar_type = "IP4"
-    size    = 15
-    ip4     = "172.16.100.170"
-  }
-  ar {
-    ar_type = "IP4"
-    size    = 13
-    ip4     = "172.16.100.140"
-  }
-  ar {
-    ar_type = "IP6"
-    size    = 2
+    size    = 5
+    ip4     = "172.16.100.1"
   }
   security_groups = [0]
   clusters = [0]
   permissions = "660"
   group = "users"
+
+  lifecycle {
+    ignore_changes = [ar, hold_ips]
+  }
+}
+
+resource "opennebula_virtual_network_address_range" "test" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 16
+	ip4                = "172.16.100.110"
+	hold_ips           = ["172.16.100.112"]
+}
+
+resource "opennebula_virtual_network_address_range" "test2" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 15
+	ip4                = "172.16.100.170"
+}
+
+resource "opennebula_virtual_network_address_range" "test3" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 13
+	ip4                = "172.16.100.140"
+	hold_ips           = ["172.16.100.141"]
+}
+
+resource "opennebula_virtual_network_address_range" "test4" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP6"
+	size               = 2
 }
 
 resource "opennebula_virtual_network" "reservation" {
