@@ -13,6 +13,7 @@ BUG FIXES:
 * provider: Fail on bad credentials (#288)
 * data/opennebula_template: Fix error when `cpu`, `vcpu` or `memory` undefined (#284)
 * resources/opennebula_virtual_machine: fix missing NIC generation (#289)
+* resources/opennebula_virtual_machine: fix VM state management failures (#132)
 
 ## 0.5.0 (June 7th, 2022)
 
