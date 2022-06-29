@@ -206,6 +206,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: ARFields(),
 				},
+				Deprecated: "use virtual network address range resource instead",
 			},
 			"hold_ips": {
 				Type:          schema.TypeList,
@@ -215,6 +216,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Deprecated: "hold ips in the related virtual network address range resource instead",
 			},
 			"reservation_vnet": {
 				Type:          schema.TypeInt,
@@ -494,7 +496,8 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 
 		if config.OneVersion.GreaterThanOrEqual(requiredVersion) {
 			timeout := d.Timeout(schema.TimeoutCreate)
-			_, err = waitForVNetworkState(ctx, vnc, timeout, "READY")
+			transient := []string{vn.Init.String(), vn.LockCreate.String()}
+			_, err = waitForVNetworkState(ctx, vnc, timeout, transient, []string{vn.Ready.String()})
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -532,7 +535,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 
 		for _, arinterface := range ars {
 			armap := arinterface.(map[string]interface{})
-			arstr := generateAR(armap).String()
+			arstr := vnetGenerateAR(armap).String()
 			err := vnc.AddAR(arstr)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
@@ -640,7 +643,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 	return resourceOpennebulaVirtualNetworkRead(ctx, d, meta)
 }
 
-func generateAR(armap map[string]interface{}) *vn.AddressRange {
+func vnetGenerateAR(armap map[string]interface{}) *vn.AddressRange {
 
 	ar := vn.NewAddressRange()
 
@@ -1305,7 +1308,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		for _, ARIf := range ARToAdd {
 			ARConfig := ARIf.(map[string]interface{})
 
-			ARTemplateStr := generateAR(ARConfig).String()
+			ARTemplateStr := vnetGenerateAR(ARConfig).String()
 
 			err = vnc.AddAR(ARTemplateStr)
 			if err != nil {
@@ -1409,11 +1412,11 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 	return nil
 }
 
-func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkController, timeout time.Duration, state ...string) (interface{}, error) {
+func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkController, timeout time.Duration, transient, final []string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"anythingelse"},
-		Target:  state,
+		Pending: transient,
+		Target:  final,
 		Refresh: func() (interface{}, string, error) {
 
 			log.Println("Refreshing virtual network state...")
@@ -1433,18 +1436,15 @@ func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkControlle
 
 			log.Printf("virtual network (ID:%d, name:%s) is currently in state %v", vNetInfos.ID, vNetInfos.Name, state.String())
 
-			switch state {
-			case vn.Ready, vn.LockCreate, vn.LockDelete:
-				return vNetInfos, state.String(), nil
-			case vn.Error:
+			if state == vn.Error {
 				return vNetInfos, state.String(), fmt.Errorf("virtual network (ID:%d) entered error state.", vNetInfos.ID)
-			default:
-				return vNetInfos, "anythingelse", nil
 			}
+
+			return vNetInfos, state.String(), nil
 		},
 		Timeout:    timeout,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		Delay:      5 * time.Second,
+		MinTimeout: 2 * time.Second,
 	}
 
 	return stateConf.WaitForStateContext(ctx)
