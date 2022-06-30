@@ -1445,7 +1445,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkController, timeout time.Duration, state ...string) (interface{}, error) {
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"anythingelse"},
+		Pending: []string{vn.LockCreate.String(), vn.LockDelete.String(), vn.Ready.String(), vn.Init.String()},
 		Target:  state,
 		Refresh: func() (interface{}, string, error) {
 
@@ -1466,14 +1466,11 @@ func waitForVNetworkState(ctx context.Context, vnc *goca.VirtualNetworkControlle
 
 			log.Printf("virtual network (ID:%d, name:%s) is currently in state %v", vNetInfos.ID, vNetInfos.Name, state.String())
 
-			switch state {
-			case vn.Ready, vn.LockCreate, vn.LockDelete:
-				return vNetInfos, state.String(), nil
-			case vn.Error:
+			if state == vn.Error {
 				return vNetInfos, state.String(), fmt.Errorf("virtual network (ID:%d) entered error state.", vNetInfos.ID)
-			default:
-				return vNetInfos, "anythingelse", nil
 			}
+
+			return vNetInfos, state.String(), nil
 		},
 		Timeout:    timeout,
 		Delay:      5 * time.Second,

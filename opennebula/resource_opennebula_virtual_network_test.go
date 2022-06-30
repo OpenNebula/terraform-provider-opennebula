@@ -176,23 +176,28 @@ func testAccCheckVirtualNetworkPermissions(expected *shared.Permissions) resourc
 		controller := config.Controller
 
 		for _, rs := range s.RootModule().Resources {
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
-			vnc := controller.VirtualNetwork(int(vnID))
-			// Get Virtual Network Info
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vn, _ := vnc.Info(false)
-			if vn == nil {
-				return fmt.Errorf("Expected virtual_network %s to exist when checking permissions", rs.Primary.ID)
-			}
 
-			if !reflect.DeepEqual(vn.Permissions, expected) {
-				return fmt.Errorf(
-					"Permissions for virtual_network %s were expected to be %s. Instead, they were %s",
-					rs.Primary.ID,
-					permissionsUnixString(*expected),
-					permissionsUnixString(*vn.Permissions),
-				)
+			switch rs.Type {
+			case "opennebula_virtual_network":
+				vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
+				vnc := controller.VirtualNetwork(int(vnID))
+				// Get Virtual Network Info
+				// TODO: fix it after 5.10 release
+				// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+				vn, _ := vnc.Info(false)
+				if vn == nil {
+					return fmt.Errorf("Expected virtual_network %s to exist when checking permissions", rs.Primary.ID)
+				}
+
+				if !reflect.DeepEqual(vn.Permissions, expected) {
+					return fmt.Errorf(
+						"Permissions for virtual_network %s were expected to be %s. Instead, they were %s",
+						rs.Primary.ID,
+						permissionsUnixString(*expected),
+						permissionsUnixString(*vn.Permissions),
+					)
+				}
+			default:
 			}
 		}
 
@@ -207,38 +212,39 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 
 		for _, rs := range s.RootModule().Resources {
 
-			if rs.Type != "opennebula_network" {
-				continue
-			}
+			switch rs.Type {
+			case "opennebula_virtual_network":
 
-			vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
-			vnc := controller.VirtualNetwork(int(vnID))
-			// Get Virtual Network Info
-			// TODO: fix it after 5.10 release
-			// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-			vn, err := vnc.Info(false)
-			if err != nil {
-				return fmt.Errorf("Virtual network (ID: %s): failed to retrieve informations: %s", rs.Primary.ID, err)
-			}
-
-			secgrouplist, err := vn.Template.Get("SECURITY_GROUPS")
-			if err != nil {
-				return err
-			}
-			secgroups_str := strings.Split(secgrouplist, ",")
-			secgroups_int := []int{}
-
-			for _, i := range secgroups_str {
-				if i != "" {
-					j, err := strconv.Atoi(i)
-					if err != nil {
-						return err
-					}
-					secgroups_int = append(secgroups_int, j)
+				vnID, _ := strconv.ParseUint(rs.Primary.ID, 10, 0)
+				vnc := controller.VirtualNetwork(int(vnID))
+				// Get Virtual Network Info
+				// TODO: fix it after 5.10 release
+				// Force the "decrypt" bool to false to keep ONE 5.8 behavior
+				vn, err := vnc.Info(false)
+				if err != nil {
+					return fmt.Errorf("Virtual network (ID: %s): failed to retrieve informations: %s", rs.Primary.ID, err)
 				}
-			}
-			if !reflect.DeepEqual(secgroups_int, slice) {
-				return fmt.Errorf("Securty Groups for Virtual Network %s are not the expected ones", rs.Primary.ID)
+
+				secgrouplist, err := vn.Template.Get("SECURITY_GROUPS")
+				if err != nil {
+					return err
+				}
+				secgroups_str := strings.Split(secgrouplist, ",")
+				secgroups_int := []int{}
+
+				for _, i := range secgroups_str {
+					if i != "" {
+						j, err := strconv.Atoi(i)
+						if err != nil {
+							return err
+						}
+						secgroups_int = append(secgroups_int, j)
+					}
+				}
+				if !reflect.DeepEqual(secgroups_int, slice) {
+					return fmt.Errorf("Securty Groups for Virtual Network %s are not the expected ones", rs.Primary.ID)
+				}
+			default:
 			}
 		}
 		return nil
