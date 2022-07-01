@@ -629,7 +629,11 @@ func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) 
 	if len(diskConfig["driver"].(string)) > 0 {
 		diskMap["driver"] = diskMap["computed_driver"]
 	}
-	if len(diskConfig["volatile_format"].(string)) > 0 {
+
+	// This can only be set, if image_id is not defined, otherwise it may conflict
+	// with older terraform state.
+	// It sets volatile_format even if this is not allowed to be set if there is an image_id set.
+	if len(diskConfig["volatile_format"].(string)) > 0 && diskConfig["image_id"].(int) == -1 {
 		diskMap["volatile_format"] = diskMap["computed_volatile_format"]
 	}
 
