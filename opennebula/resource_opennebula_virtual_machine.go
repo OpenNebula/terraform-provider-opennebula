@@ -383,7 +383,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", final.ToStrings()),
+			Summary:  fmt.Sprintf("Failed to wait virtual machine to be in %s state", strings.Join(finalStrs, ",")),
 			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags

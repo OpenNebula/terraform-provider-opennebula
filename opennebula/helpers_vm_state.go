@@ -24,7 +24,7 @@ var (
 	// Creation
 	vmCreateTransientStates = VMStates{
 		States: []vm.State{vm.Pending},
-		LCMs:   []vm.LCMState{vm.Prolog, vm.Boot},
+		LCMs:   []vm.LCMState{vm.LcmInit, vm.Prolog, vm.Boot},
 	}
 
 	// Deletion: terminate the VM
