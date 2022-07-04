@@ -69,8 +69,6 @@ resource "opennebula_virtual_machine" "example" {
   tags = {
     environment = "example"
   }
-
-  timeout = 5
 }
 ```
 

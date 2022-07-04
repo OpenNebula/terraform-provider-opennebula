@@ -1,17 +1,17 @@
-## 0.5.1 (Unreleased)
+## 0.5.1 (July 4th, 2022)
 
 ENHANCEMENTS:
 
-* Replace several deprecated SDK functions (#269)
-* resources/opennebula_virtual_machine: deprecate custom timeout attribute in favor of the SDK timeout facilities (#267)
-* resources/opennebula_virtual_router_instance: deprecate custom timeout attribute in favor of the SDK timeout facilities (#267)
-* resources/opennebula_image: deprecate custom timeout attribute in favor of the SDK timeout facilities (#267)
+* provider: replace several deprecated SDK functions (#269)
+* resources/opennebula_virtual_machine: deprecate custom `timeout` attribute in favor of the SDK timeout facilities (#267)
+* resources/opennebula_virtual_router_instance: deprecate custom `timeout` attribute in favor of the SDK timeout facilities (#267)
+* resources/opennebula_image: deprecate custom `timeout` attribute in favor of the SDK timeout facilities (#267)
 
 BUG FIXES:
 
-* provider: Fix incorrect conversions between integer types (#278)
-* provider: Fail on bad credentials (#288)
-* data/opennebula_template: Fix error when `cpu`, `vcpu` or `memory` undefined (#284)
+* provider: fix incorrect conversions between integer types (#278)
+* provider: fail on bad credentials (#288)
+* data/opennebula_template: fix an error where `cpu`, `vcpu` or `memory` are undefined (#284)
 * resources/opennebula_virtual_machine: fix missing NIC generation (#289)
 * resources/opennebula_virtual_machine: fix VM state management failures (#132)
 
@@ -50,7 +50,7 @@ ENHANCEMENTS:
 DEPRECATION:
 
 * data/opennebula_group: deprecate `quotas`, `template`, remove `users` (#251, #229)
-* data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true` (@frousselet, #253)
+* data/opennebula_group: deprecate `delete_on_destruction` and set its default value to `true` (#253)
 * data/opennebula_template: deprecate `context`, `graphics` and `os`. Make `disk`, `nic` and `vmgroup` computed. Remove `template` (#229)
 * data/opennebula_user: deprecate `quotas` and `auth_driver` (#229)
 * data/opennebula_virtual_network: deprecate `description`. Make `mtu` computed (#229)

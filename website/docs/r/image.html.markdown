@@ -42,7 +42,6 @@ resource "opennebula_image" "example" {
   driver       = "qcow2"
   permissions  = "660"
   group        = "terraform"
-  timeout      = 15
 
   tags = {
     environment = "example"
