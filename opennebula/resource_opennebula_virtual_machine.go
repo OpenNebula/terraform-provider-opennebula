@@ -765,11 +765,9 @@ diskLoop:
 
 	}
 
-	if len(diskList) > 0 {
-		err := d.Set("disk", diskList)
-		if err != nil {
-			return err
-		}
+	err := d.Set("disk", diskList)
+	if err != nil {
+		return err
 	}
 
 	return nil
