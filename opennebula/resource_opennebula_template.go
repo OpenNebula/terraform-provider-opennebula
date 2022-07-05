@@ -524,11 +524,9 @@ func flattenTemplateNICs(d *schema.ResourceData, tpl *vm.Template) error {
 		nicList = append(nicList, flattenNIC(nic))
 	}
 
-	if len(nicList) > 0 {
-		err := d.Set("nic", nicList)
-		if err != nil {
-			return err
-		}
+	err := d.Set("nic", nicList)
+	if err != nil {
+		return err
 	}
 
 	return nil
