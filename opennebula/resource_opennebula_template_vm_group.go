@@ -317,7 +317,8 @@ func flattenVMGroupTags(d *schema.ResourceData, t *dyn.Template) error {
 	tags := make(map[string]interface{})
 	var err error
 	// Get only tags from userTemplate
-	if tagsInterface, ok := d.GetOk("tags"); ok {
+	tagsInterface, ok := d.GetOk("tags")
+	if ok {
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tags[k], err = t.GetStr(strings.ToUpper(k))
 			if err != nil {
@@ -326,7 +327,7 @@ func flattenVMGroupTags(d *schema.ResourceData, t *dyn.Template) error {
 		}
 	}
 
-	if len(tags) > 0 {
+	if ok {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err

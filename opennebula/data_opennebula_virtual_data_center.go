@@ -83,16 +83,14 @@ func datasourceOpennebulaVirtualDataCenterRead(ctx context.Context, d *schema.Re
 	d.SetId(strconv.FormatInt(int64(vdc.ID), 10))
 	d.Set("name", vdc.Name)
 
-	if len(tplPairs) > 0 {
-		err := d.Set("tags", tplPairs)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "setting attribute failed",
-				Detail:   fmt.Sprintf("Virtual data center (ID: %d): %s", vdc.ID, err),
-			})
-			return diags
-		}
+	err = d.Set("tags", tplPairs)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "setting attribute failed",
+			Detail:   fmt.Sprintf("Virtual data center (ID: %d): %s", vdc.ID, err),
+		})
+		return diags
 	}
 
 	return nil
