@@ -39,7 +39,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
@@ -78,7 +78,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
@@ -117,7 +117,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
@@ -156,7 +156,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\"123\""),
@@ -193,7 +193,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
@@ -233,7 +233,7 @@ func TestAccVirtualMachine(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test2"),
@@ -268,7 +268,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 				),
 			},
 			{
@@ -707,7 +707,7 @@ func TestAccVirtualMachineCPUModel(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpumodel.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpumodel.0.model", "host-passthrough"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.customer", "test"),
@@ -750,8 +750,6 @@ resource "opennebula_virtual_machine" "test" {
     keymap = "en-us"
   }
 
-  disk {}
-
   os {
     arch = "x86_64"
     boot = ""
@@ -786,8 +784,6 @@ resource "opennebula_virtual_machine" "test" {
     listen = "0.0.0.0"
     keymap = "en-us"
   }
-
-  disk {}
 
   os {
     arch = "x86_64"
@@ -829,8 +825,6 @@ resource "opennebula_virtual_machine" "test" {
     keymap = "en-us"
   }
 
-  disk {}
-
   os {
     arch = "x86_64"
     boot = ""
@@ -869,8 +863,6 @@ resource "opennebula_virtual_machine" "test" {
     keymap = "en-us"
   }
 
-  disk {}
-
   os {
     arch = "x86_64"
     boot = ""
@@ -908,8 +900,6 @@ resource "opennebula_virtual_machine" "test" {
     keymap = "en-us"
   }
 
-  disk {}
-
   os {
     arch = "x86_64"
     boot = ""
@@ -945,8 +935,6 @@ resource "opennebula_virtual_machine" "test" {
     listen = "0.0.0.0"
     keymap = "en-us"
   }
-
-  disk {}
 
   os {
     arch = "x86_64"
@@ -985,8 +973,6 @@ resource "opennebula_virtual_machine" "test" {
     listen = "0.0.0.0"
     keymap = "en-us"
   }
-
-  disk {}
 
   os {
     arch = "x86_64"
@@ -1827,8 +1813,6 @@ resource "opennebula_virtual_machine" "test" {
     keymap = "en-us"
   }
 
-  disk {}
-
   os {
     arch = "x86_64"
     boot = ""
@@ -1865,8 +1849,6 @@ resource "opennebula_virtual_machine" "test" {
     listen = "0.0.0.0"
     keymap = "en-us"
   }
-
-  disk {}
 
   os {
     arch = "x86_64"
@@ -1906,8 +1888,6 @@ resource "opennebula_virtual_machine" "test" {
     keymap = "en-us"
   }
 
-  disk {}
-
   os {
     arch = "x86_64"
     boot = ""
@@ -1944,8 +1924,6 @@ resource "opennebula_virtual_machine" "test" {
     listen = "0.0.0.0"
     keymap = "en-us"
   }
-
-  disk {}
 
   os {
     arch = "x86_64"
@@ -1985,8 +1963,6 @@ resource "opennebula_virtual_machine" "test" {
     listen = "0.0.0.0"
     keymap = "en-us"
   }
-
-  disk {}
 
   os {
     arch = "x86_64"
