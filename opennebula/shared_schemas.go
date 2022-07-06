@@ -853,24 +853,24 @@ func flattenVMUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template)
 		}
 	}
 
-	schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
-	if len(schedReq) > 0 {
+	schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+	if err == nil {
 		err = d.Set("sched_requirements", schedReq)
 		if err != nil {
 			return err
 		}
 	}
 
-	schedDSReq, _ := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
-	if len(schedDSReq) > 0 {
+	schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+	if err == nil {
 		err = d.Set("sched_ds_requirements", schedDSReq)
 		if err != nil {
 			return err
 		}
 	}
 
-	desc, _ := vmTemplate.GetStr("DESCRIPTION")
-	if len(desc) > 0 {
+	desc, err := vmTemplate.GetStr("DESCRIPTION")
+	if err == nil {
 		err = d.Set("description", desc)
 		if err != nil {
 			return err
