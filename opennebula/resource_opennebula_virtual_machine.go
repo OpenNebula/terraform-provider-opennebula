@@ -998,11 +998,9 @@ func flattenTags(d *schema.ResourceData, vmUserTpl *vm.UserTemplate) error {
 	tagsInterface := d.Get("tags").(map[string]interface{})
 
 	tags := pairsToMapFilter(vmUserTpl.Template, tagsInterface)
-	if len(tags) > 0 {
-		err := d.Set("tags", tags)
-		if err != nil {
-			return err
-		}
+	err := d.Set("tags", tags)
+	if err != nil {
+		return err
 	}
 
 	return nil

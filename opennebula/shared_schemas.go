@@ -846,9 +846,7 @@ func flattenVMUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template)
 				return err
 			}
 		}
-	}
 
-	if len(tags) > 0 {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err

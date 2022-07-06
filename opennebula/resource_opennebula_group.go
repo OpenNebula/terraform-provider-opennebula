@@ -379,13 +379,14 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 func flattenGroupTemplate(d *schema.ResourceData, groupTpl *dyn.Template) error {
 
 	tags := make(map[string]interface{})
+	tagsInterface, tagsOk := d.GetOk("tags")
 	for i, _ := range groupTpl.Elements {
 
 		switch e := groupTpl.Elements[i].(type) {
 		case *dyn.Pair:
 
 			// Get only tags described in the configuration
-			if tagsInterface, ok := d.GetOk("tags"); ok {
+			if tagsOk {
 				var err error
 				for k, _ := range tagsInterface.(map[string]interface{}) {
 					tags[k], err = groupTpl.GetStr(strings.ToUpper(k))
@@ -424,7 +425,7 @@ func flattenGroupTemplate(d *schema.ResourceData, groupTpl *dyn.Template) error 
 
 	}
 
-	if len(tags) > 0 {
+	if tagsOk {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err

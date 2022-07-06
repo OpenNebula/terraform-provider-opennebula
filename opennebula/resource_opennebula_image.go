@@ -518,6 +518,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	tags := make(map[string]interface{})
+	tagsInterface, tagsOk := d.GetOk("tags")
 	for i, _ := range image.Template.Elements {
 		pair, ok := image.Template.Elements[i].(*dyn.Pair)
 		if !ok {
@@ -550,7 +551,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 			}
 
 		default:
-			if tagsInterface, ok := d.GetOk("tags"); ok {
+			if tagsOk {
 				for k, _ := range tagsInterface.(map[string]interface{}) {
 					if strings.ToUpper(k) == pair.Key() {
 						tags[k] = pair.Value
@@ -560,7 +561,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	if len(tags) > 0 {
+	if tagsOk {
 		err := d.Set("tags", tags)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{

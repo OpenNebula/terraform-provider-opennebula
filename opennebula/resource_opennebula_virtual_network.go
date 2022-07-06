@@ -982,6 +982,7 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
 
 	tags := make(map[string]interface{})
+	tagsInterface, tagsOk := d.GetOk("tags")
 	for i, _ := range vnTpl.Elements {
 		pair, ok := vnTpl.Elements[i].(*dyn.Pair)
 		if !ok {
@@ -1033,7 +1034,7 @@ func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
 			}
 		default:
 			// Get only tags from userTemplate
-			if tagsInterface, ok := d.GetOk("tags"); ok {
+			if tagsOk {
 				var err error
 				for k, _ := range tagsInterface.(map[string]interface{}) {
 					tags[k], err = vnTpl.GetStr(strings.ToUpper(k))
@@ -1045,7 +1046,7 @@ func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
 		}
 	}
 
-	if len(tags) > 0 {
+	if _, ok := d.GetOk("tags"); ok {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err

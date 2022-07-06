@@ -273,6 +273,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 	}
 
 	tags := make(map[string]interface{})
+	tagsInterface, tagsOk := d.GetOk("tags")
 	vrTpl := vr.Template
 	for i, _ := range vrTpl.Elements {
 		pair, ok := vrTpl.Elements[i].(*dyn.Pair)
@@ -296,7 +297,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 			}
 		default:
 			// Get only tags from userTemplate
-			if tagsInterface, ok := d.GetOk("tags"); ok {
+			if tagsOk {
 				var err error
 				for k, _ := range tagsInterface.(map[string]interface{}) {
 					tags[k], err = vrTpl.GetStr(strings.ToUpper(k))
@@ -313,7 +314,7 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 		}
 	}
 
-	if len(tags) > 0 {
+	if tagsOk {
 		err := d.Set("tags", tags)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{

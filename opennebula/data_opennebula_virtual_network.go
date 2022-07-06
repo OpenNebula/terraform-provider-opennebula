@@ -106,16 +106,14 @@ func datasourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resou
 	}
 	d.Set("mtu", mtu)
 
-	if len(tplPairs) > 0 {
-		err := d.Set("tags", tplPairs)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "setting attribute failed",
-				Detail:   fmt.Sprintf("Virtual network (ID: %d): %s", vnet.ID, err),
-			})
-			return diags
-		}
+	err = d.Set("tags", tplPairs)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "setting attribute failed",
+			Detail:   fmt.Sprintf("Virtual network (ID: %d): %s", vnet.ID, err),
+		})
+		return diags
 	}
 
 	return nil

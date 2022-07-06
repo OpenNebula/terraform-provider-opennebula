@@ -300,23 +300,22 @@ func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
 func flattenUserTemplate(d *schema.ResourceData, userTpl *dyn.Template) error {
 
 	tags := make(map[string]interface{})
+	tagsInterface, tagsOk := d.GetOk("tags")
 	for i, _ := range userTpl.Elements {
 		pair, ok := userTpl.Elements[i].(*dyn.Pair)
-		if !ok {
+		if !ok || !tagsOk {
 			continue
 		}
 
-		if tagsInterface, ok := d.GetOk("tags"); ok {
-			for k, _ := range tagsInterface.(map[string]interface{}) {
-				if strings.ToUpper(k) == pair.Key() {
-					tags[k] = pair.Value
-				}
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			if strings.ToUpper(k) == pair.Key() {
+				tags[k] = pair.Value
 			}
 		}
 
 	}
 
-	if len(tags) > 0 {
+	if tagsOk {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
