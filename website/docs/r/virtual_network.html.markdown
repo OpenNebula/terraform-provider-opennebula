@@ -77,7 +77,7 @@ The following arguments are supported:
 * `guest_mtu` - (Optional) MTU of the network caord on the virtual machine. **Cannot be greater than `mtu`**. Defaults to `1500`. Conflicts with `reservation_vnet` and `reservation_size`.
 * `gateway` - (Optional) IP of the gateway. Conflicts with `reservation_vnet` and `reservation_size`.
 * `network_mask` - (Optional) Network mask. Conflicts with `reservation_vnet` and `reservation_size`.
-* `dns` - (Optional) Text String containing a comma separated list of DNS IPs. Conflicts with `reservation_vnet` and `reservation_size`.
+* `dns` - (Optional) Text String containing a space separated list of DNS IPs. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ar` - (Optional) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
 * `hold_ips` - (Optional) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with`reservation_vnet` and `reservation_size`.
 * `hold_size` - (Deprecated) Carve a network reservation of this size from the reservation starting from `ip_hold`. Conflicts with `reservation_vnet` and `reservation_size`.
