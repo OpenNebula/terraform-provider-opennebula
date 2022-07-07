@@ -1379,7 +1379,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 						continue
 					}
 
-					contextVec.AddPair(keyUp, value)
+					contextVec.AddPair(keyUp, strings.ReplaceAll(fmt.Sprint(value), "\\n", "\n"))
 				}
 
 			} else {
@@ -2074,7 +2074,7 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, e
 		for key, value := range context {
 			keyUp := strings.ToUpper(key)
 			tplContext.Del(keyUp)
-			tplContext.AddPair(keyUp, value)
+			tplContext.AddPair(keyUp, strings.ReplaceAll(fmt.Sprint(value), "\\n", "\n"))
 		}
 
 		tpl.Elements = append(tpl.Elements, tplContext)
@@ -2083,7 +2083,7 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, e
 		// Add new context elements to the template
 		for key, value := range context {
 			keyUp := strings.ToUpper(key)
-			tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
+			tpl.AddCtx(vmk.Context(keyUp), strings.ReplaceAll(fmt.Sprint(value), "\\n", "\n"))
 		}
 	}
 
