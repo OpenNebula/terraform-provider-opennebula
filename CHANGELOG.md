@@ -1,3 +1,9 @@
+## 0.5.1 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_machine: allow to delete a VM in PENDING state
+
 ## 0.5.1 (July 4th, 2022)
 
 ENHANCEMENTS:
