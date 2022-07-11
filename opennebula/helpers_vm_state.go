@@ -29,7 +29,7 @@ var (
 
 	// Deletion: terminate the VM
 	vmDeleteReadyStates = VMStates{
-		States: []vm.State{vm.Hold, vm.Poweroff, vm.Stopped, vm.Undeployed, vm.Suspended, vm.Done},
+		States: []vm.State{vm.Hold, vm.Poweroff, vm.Stopped, vm.Undeployed, vm.Suspended, vm.Done, vm.Pending},
 		LCMs:   []vm.LCMState{vm.Running},
 	}
 
