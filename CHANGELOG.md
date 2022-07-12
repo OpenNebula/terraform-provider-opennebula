@@ -1,8 +1,22 @@
-## 0.5.1 (Unreleased)
+## 0.5.2 (Unreleased)
 
 BUG FIXES:
 
-* resources/opennebula_virtual_machine: allow to delete a VM in PENDING state
+* resources/opennebula_virtual_machine: allow to delete a VM in PENDING state (#315)
+* resources/opennebula_virtual_machine: read disk, description and sched_requirements even if empty (#304)
+* resources/opennebula_template: read disk, nic, description and sched_requirements even if empty (#304)
+* resources/opennebula_virtual_machine: read disk even if empty (#304)
+* data/opennebula_virtual_data_center: read tags even if emtpy (#304)
+* data/opennebula_virtual_network: read tags even if emtpy (#304)
+* resources/opennebula_group: read tags even if emtpy (#304)
+* resources/opennebula_image: read tags even if emtpy (#304)
+* resources/opennebula_security_group: read tags even if emtpy (#304)
+* resources/opennebula_template_vm_group: read tags even if emtpy (#304)
+* resources/opennebula_user: read tags even if emtpy (#304)
+* resources/opennebula_virtual_machine: read tags even if emtpy (#304)
+* resources/opennebula_template: read tags even if emtpy (#304)
+* resources/opennebula_virtual_network: read tags even if emtpy (#304)
+* resources/opennebula_virtual_router: read tags even if emtpy (#304)
 
 ## 0.5.1 (July 4th, 2022)
 
