@@ -96,15 +96,9 @@ func datasourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resou
 	d.Set("name", vnet.Name)
 
 	mtu, err := vnet.Template.GetI("MTU")
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "failed to get MTU attribute",
-			Detail:   fmt.Sprintf("Virtual network (ID: %d): %s", vnet.ID, err),
-		})
-		return diags
+	if err == nil {
+		d.Set("mtu", mtu)
 	}
-	d.Set("mtu", mtu)
 
 	err = d.Set("tags", tplPairs)
 	if err != nil {
