@@ -5,6 +5,10 @@ ENHANCEMENTS:
 * resources/opennebula_virtual_machine: add `dev_prefix`, `cache`, `discard` and `io` to `disk` (#291)
 * resources/opennebula_virtual_network: add `network_address` and `search_domain` attributes (#292)
 
+DEPRECATION:
+
+* resource/opennebula_virtual_network: remove deprecated attributes `hold_size` and `ip_hold`
+
 ## 0.5.2 (August 10th, 2022)
 
 BUG FIXES:
