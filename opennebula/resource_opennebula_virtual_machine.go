@@ -46,12 +46,6 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 		Schema: mergeSchemas(
 			commonVMSchemas(),
 			map[string]*schema.Schema{
-				"instance": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "Final name of the VM instance",
-					Deprecated:  "use 'name' instead",
-				},
 				"ip": {
 					Type:        schema.TypeString,
 					Computed:    true,
