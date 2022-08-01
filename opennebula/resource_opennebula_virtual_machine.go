@@ -152,24 +152,29 @@ func nicVMSchema() *schema.Schema {
 func diskComputedVMFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"disk_id": {
-			Type:     schema.TypeInt,
-			Computed: true,
+			Type:       schema.TypeInt,
+			Computed:   true,
+			Deprecated: "Use opennebula_disk resource instead of disk section",
 		},
 		"computed_size": {
-			Type:     schema.TypeInt,
-			Computed: true,
+			Type:       schema.TypeInt,
+			Computed:   true,
+			Deprecated: "Use opennebula_disk resource instead of disk section",
 		},
 		"computed_target": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_disk resource instead of disk section",
 		},
 		"computed_driver": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_disk resource instead of disk section",
 		},
 		"computed_volatile_format": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_disk resource instead of disk section",
 		},
 	}
 }
@@ -202,6 +207,7 @@ func diskVMSchema() *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: diskVMFields(),
 		},
+		Deprecated: "Use opennebula_disk resource instead of disk section",
 	}
 }
 
@@ -2106,36 +2112,39 @@ func generateVMNIC(d *schema.ResourceData, tpl *vm.Template) {
 
 func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 
-	onChange := diff.Get("on_disk_change").(string)
+	onChangeIf := diff.Get("on_disk_change")
+	if onChangeIf != nil {
+		onChange := onChangeIf.(string)
 
-	if strings.ToUpper(onChange) == "RECREATE" {
+		if strings.ToUpper(onChange) == "RECREATE" {
 
-		oldDisk, newDisk := diff.GetChange("disk")
-		oldDiskList := oldDisk.([]interface{})
-		newDiskList := newDisk.([]interface{})
-		toDetach, _ := diffListConfig(newDiskList, oldDiskList,
-			&schema.Resource{
-				Schema: diskFields(),
-			},
-			"image_id",
-			"target",
-			"driver")
+			oldDisk, newDisk := diff.GetChange("disk")
+			oldDiskList := oldDisk.([]interface{})
+			newDiskList := newDisk.([]interface{})
+			toDetach, _ := diffListConfig(newDiskList, oldDiskList,
+				&schema.Resource{
+					Schema: diskFields(),
+				},
+				"image_id",
+				"target",
+				"driver")
 
-		if len(toDetach) > 0 {
-			for i := range oldDiskList {
-				diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
+			if len(toDetach) > 0 {
+				for i := range oldDiskList {
+					diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
+					diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
+					diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
+				}
 			}
 		}
-	}
 
-	// If the VM is in error state, force the VM to be recreated
-	if diff.Get("lcmstate") == 36 {
-		log.Printf("[INFO] VM is in error state, forcing recreate.")
-		diff.SetNew("lcmstate", 3)
-		if err := diff.ForceNew("lcmstate"); err != nil {
-			return err
+		// If the VM is in error state, force the VM to be recreated
+		if diff.Get("lcmstate") == 36 {
+			log.Printf("[INFO] VM is in error state, forcing recreate.")
+			diff.SetNew("lcmstate", 3)
+			if err := diff.ForceNew("lcmstate"); err != nil {
+				return err
+			}
 		}
 	}
 
