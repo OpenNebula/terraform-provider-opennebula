@@ -18,6 +18,7 @@ BUG FIXES:
 * resources/opennebula_virtual_network: read tags even if emtpy (#304)
 * resources/opennebula_virtual_router: read tags even if emtpy (#304)
 * data/opennebula_virtual_network: MTU is optional (#284)
+* resources/opennebula_virtual_machine: fix multiline regression (#309)
 
 ## 0.5.1 (July 4th, 2022)
 
