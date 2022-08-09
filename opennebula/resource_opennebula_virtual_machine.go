@@ -62,6 +62,7 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Description: "Force the provider to keep nics order at update.",
+					Deprecated:  "With opennebula_nic resource order should be enforced via depends_on",
 				},
 				"template_id": {
 					Type:        schema.TypeInt,
@@ -80,28 +81,34 @@ func nicComputedVMFields() map[string]*schema.Schema {
 
 	return map[string]*schema.Schema{
 		"nic_id": {
-			Type:     schema.TypeInt,
-			Computed: true,
+			Type:       schema.TypeInt,
+			Computed:   true,
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 		"computed_ip": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 		"computed_mac": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 		"computed_model": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 		"computed_virtio_queues": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 		"computed_physical_device": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:       schema.TypeString,
+			Computed:   true,
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 		"computed_security_groups": {
 			Type:     schema.TypeList,
@@ -109,6 +116,7 @@ func nicComputedVMFields() map[string]*schema.Schema {
 			Elem: &schema.Schema{
 				Type: schema.TypeInt,
 			},
+			Deprecated: "Use opennebula_nic resource instead of nic section",
 		},
 	}
 
@@ -146,6 +154,7 @@ func nicVMSchema() *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: nicVMFields(),
 		},
+		Deprecated: "Use opennebula_nic resource instead of nic section",
 	}
 }
 
@@ -2106,26 +2115,29 @@ func generateVMNIC(d *schema.ResourceData, tpl *vm.Template) {
 
 func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 
-	onChange := diff.Get("on_disk_change").(string)
+	onChangeIf := diff.Get("on_disk_change")
+	if onChangeIf != nil {
+		onChange := onChangeIf.(string)
 
-	if strings.ToUpper(onChange) == "RECREATE" {
+		if strings.ToUpper(onChange) == "RECREATE" {
 
-		oldDisk, newDisk := diff.GetChange("disk")
-		oldDiskList := oldDisk.([]interface{})
-		newDiskList := newDisk.([]interface{})
-		toDetach, _ := diffListConfig(newDiskList, oldDiskList,
-			&schema.Resource{
-				Schema: diskFields(),
-			},
-			"image_id",
-			"target",
-			"driver")
+			oldDisk, newDisk := diff.GetChange("disk")
+			oldDiskList := oldDisk.([]interface{})
+			newDiskList := newDisk.([]interface{})
+			toDetach, _ := diffListConfig(newDiskList, oldDiskList,
+				&schema.Resource{
+					Schema: diskFields(),
+				},
+				"image_id",
+				"target",
+				"driver")
 
-		if len(toDetach) > 0 {
-			for i := range oldDiskList {
-				diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
+			if len(toDetach) > 0 {
+				for i := range oldDiskList {
+					diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
+					diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
+					diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
+				}
 			}
 		}
 	}
