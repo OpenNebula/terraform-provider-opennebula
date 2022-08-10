@@ -1,4 +1,4 @@
-## 0.5.2 (Unreleased)
+## 0.5.2 (August 10th, 2022)
 
 BUG FIXES:
 
