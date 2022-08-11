@@ -1,3 +1,14 @@
+## 1.0.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `opennebula_nic` (#320)
+
+DEPRECATION:
+
+* resources/opennebula_virtual_machine: keep_nic_order (#320)
+
+
 ## 0.5.2 (August 10th, 2022)
 
 BUG FIXES:
