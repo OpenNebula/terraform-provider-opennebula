@@ -2,7 +2,9 @@ package opennebula
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
+	"net/http"
 
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -37,6 +39,12 @@ func Provider() *schema.Provider {
 				Required:    true,
 				Description: "The password for the user",
 				DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_PASSWORD", nil),
+			},
+			"insecure": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Disable TLS validation",
+				DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_INSECURE", false),
 			},
 		},
 
@@ -113,9 +121,20 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		return nil, diags
 	}
 
-	oneClient := goca.NewDefaultClient(goca.NewConfig(username.(string),
+	tr := &http.Transport{}
+	insecure := d.Get("insecure")
+	if insecure.(bool) {
+		// goca allows for passing in a custom http.client,
+		// which allows us to conditionaly disable TLS verification for self-signed certs
+		tr = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	oneClient := goca.NewClient(goca.NewConfig(username.(string),
 		password.(string),
-		endpoint.(string)))
+		endpoint.(string)),
+		&http.Client{Transport: tr})
 
 	versionStr, err := goca.NewController(oneClient).SystemVersion()
 	if err != nil {
