@@ -1,5 +1,9 @@
 ## 1.0.0 (Unreleased)
 
+FEATURES:
+
+* **New Resource**: `opennebula_virtual_network_address_range` (#279)
+
 ENHANCEMENTS:
 
 * resources/opennebula_virtual_machine: add `dev_prefix`, `cache`, `discard` and `io` to `disk` (#291)
@@ -10,6 +14,7 @@ DEPRECATION:
 
 * resource/opennebula_virtual_network: remove deprecated attributes `hold_size` and `ip_hold`
 * resource/opennebula_virtual_machine: remove deprecated attribute `instance`
+* resources/opennebula_virtual_network: deprecated `ar` and `hold_ips` (#279)
 
 ## 0.5.2 (August 10th, 2022)
 
