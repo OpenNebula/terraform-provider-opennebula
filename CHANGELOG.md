@@ -1,3 +1,12 @@
+## 1.0.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `opennebula_disk` (#318)
+
+DEPRECATION:
+* resources/opennebula_virtual_machine: deprecate `on_disk_change` (#318)
+
 ## 0.5.2 (August 10th, 2022)
 
 BUG FIXES:
