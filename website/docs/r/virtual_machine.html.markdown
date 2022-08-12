@@ -51,8 +51,6 @@ resource "opennebula_virtual_machine" "example" {
     driver   = "qcow2"
   }
 
-  on_disk_change = "RECREATE"
-
   nic {
     model           = "virtio"
     network_id      = var.vnetid
@@ -87,7 +85,7 @@ The following arguments are supported:
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
-* `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
+* `disk` - (Optional) Can be specified multiple times to attach several static disks at VM creation. Disk described here won't be updated. See `opennebula_disk` resource for flexible disk management. See [Disk parameters](#disk-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
 * `keep_nic_order` - (Optional) Indicates if the provider should keep NIC list ordering at update.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
@@ -97,7 +95,7 @@ The following arguments are supported:
 * `tags` - (Optional) Virtual Machine tags (Key = Value).
 * `timeout` - (Deprecated) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
-* `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
+* `on_disk_change` - (Deprecated) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
 * `hard_shutdown` - (Optional) If the VM doesn't have ACPI support, it immediately poweroff/terminate/reboot/undeploy the VM. Defaults to false.
 
 ### Graphics parameters
@@ -128,8 +126,6 @@ The following arguments are supported:
 * `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id`.
 
 Minimum 1 item. Maximum 8 items.
-
-A disk update will be triggered in adding or removing a `disk` section, or by a modification of any of these parameters: `image_id`, `target`, `driver`
 
 ### NIC parameters
 

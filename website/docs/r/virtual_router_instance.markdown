@@ -87,14 +87,14 @@ The following arguments are supported:
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
-* `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
+* `disk` - (Optional) Can be specified multiple times to attach several static disks at VM creation. Disk described here won't be updated. See `opennebula_disk` resource for flexible disk management. See [Disk parameters](#disk-parameters) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual router instance. Defaults to the caller primary group.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule.
 * `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
 * `tags` - (Optional) virtual router instance tags (Key = Value).
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
-* `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
+* `on_disk_change` - (Deprecated) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
 
 ### Graphics parameters
 
@@ -124,8 +124,6 @@ The following arguments are supported:
 * `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id`.
 
 Minimum 1 item. Maximum 8 items.
-
-A disk update will be triggered in adding or removing a `disk` section, or by a modification of any of these parameters: `image_id`, `target`, `driver`
 
 ### VM group parameters
 
