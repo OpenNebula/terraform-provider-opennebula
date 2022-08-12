@@ -89,7 +89,7 @@ The following arguments are supported:
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
-* `keep_nic_order` - (Optional) Indicates if the provider should keep NIC list ordering at update.
+* `keep_nic_order` - (Deprecated) Indicates if the provider should keep NIC list ordering at update.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule.
