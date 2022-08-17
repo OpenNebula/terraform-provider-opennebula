@@ -59,6 +59,7 @@ func commonVMSchemas() map[string]*schema.Schema {
 					}
 					return
 				},
+				Deprecated: "This attribute don't works anymore with opennebula_disk resource.",
 			},
 			"template_disk": templateDiskVMSchema(),
 			"disk":          diskVMSchema(),
