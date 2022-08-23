@@ -15,6 +15,8 @@ FEATURES:
 * resources/opennebula_virtual_router: add `template_section` to manage vectors with an unique key (#359)
 * resources/opennebula_virtual_router_instance: add `template_section` to manage vectors with an unique key (#359)
 * resources/opennebula_virtual_router_instance_template: add `template_section` to manage vectors with an unique key (#359)
+* **New Resource**: `opennebula_host` (#300)
+* **New Data source**: `opennebula_host` (#300)
 
 DEPRECATION:
 
