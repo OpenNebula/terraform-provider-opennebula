@@ -216,7 +216,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Deprecated: "hold ips in the related virtual network address range resource instead",
+				Deprecated: "use 'hold ips' in the related virtual network address range resource instead",
 			},
 			"reservation_vnet": {
 				Type:          schema.TypeInt,
