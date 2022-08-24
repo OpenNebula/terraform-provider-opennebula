@@ -80,8 +80,8 @@ The following arguments are supported:
 * `dns` - (Optional) Text String containing a space separated list of DNS IPs. Conflicts with `reservation_vnet` and `reservation_size`.
 * `network_address` - (Optional) Base network address. Conflicts with `reservation_vnet` and `reservation_size`.
 * `search_domain` - (Optional) Default search domains for DNS resolution. Conflicts with `reservation_vnet` and `reservation_size`.
-* `ar` - (Optional) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
-* `hold_ips` - (Optional) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with`reservation_vnet` and `reservation_size`.
+* `ar` - (Deprecated) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
+* `hold_ips` - (Deprecated) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with`reservation_vnet` and `reservation_size`.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Network tags (Key = Value).
 * `lock` - (Optional) Lock the virtual network with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
