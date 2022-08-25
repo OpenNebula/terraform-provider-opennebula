@@ -159,7 +159,6 @@ A NIC update will be triggered in adding or removing a `nic` section, or by a mo
 The following attribute are exported:
 
 * `id` - ID of the virtual machine.
-* `instance` - (Deprecated) Name of the virtual machine instance created on the cluster.
 * `uid` - User ID whom owns the virtual machine.
 * `gid` - Group ID which owns the virtual machine.
 * `uname` - User Name whom owns the virtual machine.
