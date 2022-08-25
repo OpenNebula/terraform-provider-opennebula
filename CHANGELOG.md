@@ -9,6 +9,7 @@ ENHANCEMENTS:
 DEPRECATION:
 
 * resource/opennebula_virtual_network: remove deprecated attributes `hold_size` and `ip_hold`
+* resource/opennebula_virtual_machine: remove deprecated attribute `instance`
 
 ## 0.5.2 (August 10th, 2022)
 
