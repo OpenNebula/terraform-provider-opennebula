@@ -121,14 +121,9 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		return nil, diags
 	}
 
-	tr := &http.Transport{}
 	insecure := d.Get("insecure")
-	if insecure.(bool) {
-		// goca allows for passing in a custom http.client,
-		// which allows us to conditionaly disable TLS verification for self-signed certs
-		tr = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure.(bool)},
 	}
 
 	oneClient := goca.NewClient(goca.NewConfig(username.(string),
