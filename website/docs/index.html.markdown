@@ -38,7 +38,8 @@ resource "opennebula_group" "group" {
 
 The following arguments are mandatory in the `provider` block:
 
-* `endpoint` - (Required) This is the URL of OpenNebula XML-RPC Endpoint API (for example, `http://example.com:2633/RPC2`).
-* `flow_endpoint` - (Optional) This is the OneFlow HTTP Endpoint API (for example, `http://example.com:2474/RPC2`).
-* `username` - (Required) This is the OpenNebula Username.
-* `password` - (Required) This is the Opennebula Password of the username.
+* `endpoint` - (Required) The URL of OpenNebula XML-RPC Endpoint API (for example, `http://example.com:2633/RPC2`).
+* `flow_endpoint` - (Optional) The OneFlow HTTP Endpoint API (for example, `http://example.com:2474/RPC2`).
+* `username` - (Required) The OpenNebula Username.
+* `password` - (Required) The Opennebula Password of the username.
+* `insecure` - (Optional) Allow insecure connexion (skip TLS verification).
