@@ -35,7 +35,7 @@ resource "opennebula_user" "example" {
       memory         = 2048
       running_memory = 2048
     }
-    network_quotas = {
+    network_quotas {
       id     = 10
       leases = 6
     }

@@ -15,31 +15,86 @@ It needs to be configured with proper credentials before it can be used.
 
 ## Example Usage
 
-Configure the OpenNebula Provider:
-
 ```hcl
-provider "opennebula" {
-  endpoint      = "<ENDPOINT URL>"
-  flow_endpoint = "<FLOW ENDPOINT URL>"
-  username      = "<USERNAME>"
-  password      = "<PASSWORD OR TOKEN>"
+terraform {
+  required_providers {
+    opennebula = {
+      source = "OpenNebula/opennebula"
+      version = "~> 1.0"
+    }
+  }
 }
-```
 
-Create a new group of users to the OpenNebula cluster:
+provider "opennebula" {
+  endpoint      = "https://example.com:2633/RPC2"
+  username      = "me"
+  password      = "p@s5w0rD"
+}
 
-```hcl
 resource "opennebula_group" "group" {
   # ...
 }
 ```
 
-## Argument Reference
+## Authentication and Configuration
 
-The following arguments are mandatory in the `provider` block:
+The configuration of the OpenNebula Provider can be set by the `provider` block attributes or by the environment variables.
+
+### Provider configuration
 
 * `endpoint` - (Required) The URL of OpenNebula XML-RPC Endpoint API (for example, `http://example.com:2633/RPC2`).
 * `flow_endpoint` - (Optional) The OneFlow HTTP Endpoint API (for example, `http://example.com:2474/RPC2`).
-* `username` - (Required) The OpenNebula Username.
-* `password` - (Required) The Opennebula Password of the username.
+* `username` - (Required) The OpenNebula username.
+* `password` - (Required) The Opennebula password matching the username.
 * `insecure` - (Optional) Allow insecure connexion (skip TLS verification).
+
+Example:
+
+```hcl
+provider "opennebula" {
+  endpoint      = "https://example.com:2633/RPC2"
+  flow_endpoint = "https://example.com:2474/RPC2"
+  username      = "me"
+  password      = "p@s5w0rD"
+  insecure      = true
+}
+
+resource "opennebula_group" "group" {
+  # ...
+}
+```
+
+```bash
+terraform init
+terraform plan
+```
+
+!> **Warning:** Hard-coded credentials are not recommended in any Terraform configuration file and should not be commited in a public repository.
+
+### Environment variables
+
+The provider can also read the following environment variables if no value are set in the the `provider` block attributes:
+
+* `OPENNEBULA_ENDPOINT`
+* `OPENNEBULA_FLOW_ENDPOINT`
+* `OPENNEBULA_USERNAME`
+* `OPENNEBULA_PASSWORD`
+* `OPENNEBULA_INSECURE`
+
+Example:
+
+```bash
+export OPENNEBULA_ENDPOINT="https://example.com:2633/RPC2"
+export OPENNEBULA_FLOW_ENDPOINT="https://example.com:2474/RPC2"
+export OPENNEBULA_USERNAME="me"
+export OPENNEBULA_PASSWORD="p@s5w0rD"
+export OPENNEBULA_INSECURE="true"
+```
+
+```hcl
+provider "opennebula" {}
+
+resource "opennebula_group" "group" {
+  # ...
+}
+```
