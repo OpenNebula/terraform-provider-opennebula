@@ -597,6 +597,36 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 	})
 }
 
+func TestAccVirtualMachineTemplate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVirtualMachineTemplateInstantiate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "768"),
+					resource.TestCheckNoResourceAttr("opennebula_virtual_machine.test", "sched_requirements"),
+				),
+			},
+			{
+				Config: testAccVirtualMachineTemplateOverrideKeys,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "768"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "sched_requirements", "CLUSTER_ID!=\"123\""),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVirtualMachineDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Configuration)
 	controller := config.Controller
@@ -1977,5 +2007,68 @@ resource "opennebula_virtual_machine" "test" {
   sched_requirements = "FREE_CPU > 50"
 
   timeout = 5
+}
+`
+
+var testAccVirtualMachineTemplate = `
+resource "opennebula_template" "template" {
+  name = "terratplupdate"
+  permissions = "642"
+  group = "oneadmin"
+  description = "Template created for provider acceptance tests - updated"
+
+  cpu = "1"
+  vcpu = "1"
+  memory = "768"
+
+  features {
+    virtio_scsi_queues = 1
+    acpi = "YES"
+  }
+
+  context = {
+	dns_hostname = "yes"
+	network = "YES"
+  }
+
+  graphics {
+	keymap = "en-us"
+	listen = "0.0.0.0"
+	type = "VNC"
+  }
+
+  os {
+	arch = "x86_64"
+	boot = ""
+  }
+
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
+  }
+
+  sched_requirements = "CLUSTER_ID!=\"123\""
+
+}
+`
+
+var testAccVirtualMachineTemplateInstantiate = testAccVirtualMachineTemplate + `
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	group       = "oneadmin"
+
+	template_id = opennebula_template.template.id
+}
+`
+
+var testAccVirtualMachineTemplateOverrideKeys = testAccVirtualMachineTemplate + `
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	group       = "oneadmin"
+
+	template_id = opennebula_template.template.id
+
+	sched_requirements = "CLUSTER_ID!=\"123\""
 }
 `
