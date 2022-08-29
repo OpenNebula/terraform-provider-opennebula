@@ -1,5 +1,9 @@
 ## 1.0.0 (Unreleased)
 
+BUG FIXES:
+
+* resource/opennebula_virtual_machine: Fix diff on template inherited attributes `sched_requirements` and `sched_ds_requirements`
+
 FEATURES:
 
 * **New Resource**: `opennebula_virtual_network_address_range` (#279)
