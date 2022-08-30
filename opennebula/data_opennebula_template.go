@@ -21,6 +21,21 @@ func dataOpennebulaTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Template",
 			},
+			"has_cpu": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Indicate if template has CPU defined",
+			},
+			"has_vcpu": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Indicate if template has VCPU defined",
+			},
+			"has_memory": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Indicate if template has memory defined",
+			},
 			"cpu": func() *schema.Schema {
 				s := cpuSchema()
 
@@ -39,7 +54,7 @@ func dataOpennebulaTemplate() *schema.Resource {
 				s := vcpuSchema()
 
 				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
-					value := v.(float64)
+					value := v.(int)
 
 					if value == 0 {
 						errs = append(errs, errors.New("vcpu should be strictly greater than 0"))
@@ -53,7 +68,7 @@ func dataOpennebulaTemplate() *schema.Resource {
 				s := memorySchema()
 
 				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
-					value := v.(float64)
+					value := v.(int)
 
 					if value == 0 {
 						errs = append(errs, errors.New("memory should be strictly greater than 0"))
@@ -115,6 +130,9 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 
 	// filter templates with user defined criterias
 	name, nameOk := d.GetOk("name")
+	hasCPU := d.Get("has_cpu").(bool)
+	hasVCPU := d.Get("has_vcpu").(bool)
+	hasMemory := d.Get("has_memory").(bool)
 	cpu, cpuOk := d.GetOk("cpu")
 	vcpu, vcpuOk := d.GetOk("vcpu")
 	memory, memoryOk := d.GetOk("memory")
@@ -128,35 +146,59 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 			continue
 		}
 
-		if cpuOk {
+		if hasCPU {
 			tplCPU, err := template.Template.GetCPU()
 			if err != nil {
 				continue
 			}
 
-			if tplCPU != cpu.(float64) {
+			if cpuOk && tplCPU != cpu.(float64) {
+				continue
+			}
+		} else {
+			if !cpuOk {
+				continue
+			}
+			_, err := template.Template.GetCPU()
+			if err == nil {
 				continue
 			}
 		}
 
-		if vcpuOk {
+		if hasVCPU {
 			tplVCPU, err := template.Template.GetVCPU()
 			if err != nil {
 				continue
 			}
 
-			if tplVCPU != vcpu.(int) {
+			if vcpuOk && tplVCPU != vcpu.(int) {
+				continue
+			}
+		} else {
+			if !vcpuOk {
+				continue
+			}
+			_, err := template.Template.GetVCPU()
+			if err == nil {
 				continue
 			}
 		}
 
-		if memoryOk {
+		if hasMemory {
 			tplMemory, err := template.Template.GetMemory()
 			if err != nil {
 				continue
 			}
 
-			if tplMemory != memory.(int) {
+			if memoryOk && tplMemory != memory.(int) {
+				continue
+			}
+		} else {
+			if !memoryOk {
+				continue
+			}
+			_, err := template.Template.GetMemory()
+			if err == nil {
 				continue
 			}
 		}
@@ -172,7 +214,7 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 	if len(match) == 0 {
 		return nil, fmt.Errorf("no template match the constraints")
 	} else if len(match) > 1 {
-		return nil, fmt.Errorf("==several templates match the constraints")
+		return nil, fmt.Errorf("several templates match the constraints")
 	}
 
 	return match[0], nil
