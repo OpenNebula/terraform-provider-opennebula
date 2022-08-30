@@ -278,7 +278,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 
 	var diags diag.Diagnostics
 
-	tpl, err := generateTemplate(d)
+	tpl, err := generateTemplate(d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -889,7 +889,7 @@ func resourceOpennebulaTemplateDelete(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func generateTemplate(d *schema.ResourceData) (*vm.Template, error) {
+func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, error) {
 	name := d.Get("name").(string)
 
 	tpl := vm.NewTemplate()
@@ -943,6 +943,20 @@ func generateTemplate(d *schema.ResourceData) (*vm.Template, error) {
 		rawVec := tpl.AddVector("RAW")
 		rawVec.AddPair("TYPE", rawConfig["type"].(string))
 		rawVec.AddPair("DATA", rawConfig["data"].(string))
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
 	}
 
 	return tpl, nil

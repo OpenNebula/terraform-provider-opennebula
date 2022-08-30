@@ -233,6 +233,18 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 		tpl.AddPair(strings.ToUpper(k), v)
 	}
 
+	// add default tags if they aren't overriden
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
+	}
+
 	if len(tpl.Elements) > 0 {
 		err = gc.Update(tpl.String(), parameters.Merge)
 		if err != nil {

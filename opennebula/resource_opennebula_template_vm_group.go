@@ -197,7 +197,7 @@ func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData
 
 	var diags diag.Diagnostics
 
-	vmg, err := generateVMGroup(d)
+	vmg, err := generateVMGroup(d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -483,7 +483,7 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 	if d.HasChange("role") && d.Get("role") != "" {
 		var err error
 
-		vmg, err := generateVMGroup(d)
+		vmg, err := generateVMGroup(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -537,7 +537,7 @@ func resourceOpennebulaVMGroupDelete(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-func generateVMGroup(d *schema.ResourceData) (string, error) {
+func generateVMGroup(d *schema.ResourceData, meta interface{}) (string, error) {
 
 	tpl := dyn.NewTemplate()
 
@@ -562,6 +562,20 @@ func generateVMGroup(d *schema.ResourceData) (string, error) {
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
 	}
 
 	tplStr := tpl.String()

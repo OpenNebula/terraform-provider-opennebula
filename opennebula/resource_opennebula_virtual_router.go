@@ -158,7 +158,7 @@ func resourceOpennebulaVirtualRouterCreate(ctx context.Context, d *schema.Resour
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	vrDef := generateVirtualRouter(d)
+	vrDef := generateVirtualRouter(d, meta)
 
 	vrID, err := controller.VirtualRouters().Create(vrDef)
 	if err != nil {
@@ -534,7 +534,7 @@ func resourceOpennebulaVirtualRouterDelete(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func generateVirtualRouter(d *schema.ResourceData) string {
+func generateVirtualRouter(d *schema.ResourceData, meta interface{}) string {
 	name := d.Get("name").(string)
 
 	tpl := vr.NewTemplate()
@@ -552,6 +552,20 @@ func generateVirtualRouter(d *schema.ResourceData) string {
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
 	}
 
 	tplStr := tpl.String()

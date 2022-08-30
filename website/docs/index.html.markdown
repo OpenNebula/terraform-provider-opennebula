@@ -47,6 +47,7 @@ The configuration of the OpenNebula Provider can be set by the `provider` block 
 * `username` - (Required) The OpenNebula username.
 * `password` - (Required) The Opennebula password matching the username.
 * `insecure` - (Optional) Allow insecure connexion (skip TLS verification).
+* `default_tags` - (Optional) Apply default custom tags to created resources: group, image, security_group, template, vm_group, user, virtual_machine, virtual_network, virtual_router, virtual_router_instance. Theses tags could be overriden in the tag section of the resource.
 
 Example:
 
@@ -57,6 +58,9 @@ provider "opennebula" {
   username      = "me"
   password      = "p@s5w0rD"
   insecure      = true
+  default_tags  = {
+    environment = "default"
+  }
 }
 
 resource "opennebula_group" "group" {
