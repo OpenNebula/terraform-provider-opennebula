@@ -9,6 +9,7 @@ ENHANCEMENTS:
 * resources/opennebula_virtual_machine: add `dev_prefix`, `cache`, `discard` and `io` to `disk` (#291)
 * resources/opennebula_virtual_network: add `network_address` and `search_domain` attributes (#292)
 * provider: add attribute `insecure` to allow skipping TLS verification (#328)
+* data/opennebula_template: add `has_cpu`, `has_vcpu`, `has_memory`
 
 DEPRECATION:
 
