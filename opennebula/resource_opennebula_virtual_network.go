@@ -535,7 +535,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		d.SetId(fmt.Sprintf("%v", vnetID))
 
 		// Call API once
-		update, err := generateVnTemplate(d)
+		update, err := generateVnTemplate(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -729,7 +729,7 @@ func vnetGenerateAR(armap map[string]interface{}) *vn.AddressRange {
 	return ar
 }
 
-func generateVnTemplate(d *schema.ResourceData) (string, error) {
+func generateVnTemplate(d *schema.ResourceData, meta interface{}) (string, error) {
 
 	tpl := vn.NewTemplate()
 
@@ -765,6 +765,20 @@ func generateVnTemplate(d *schema.ResourceData) (string, error) {
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
 	}
 
 	tplStr := tpl.String()

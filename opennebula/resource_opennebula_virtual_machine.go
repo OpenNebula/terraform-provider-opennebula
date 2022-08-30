@@ -302,10 +302,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
-		tplContext, _ := tpl.Template.GetVector(vmk.ContextVec)
-
 		// customize template except for memory and cpu.
-		vmTpl, err := generateVm(d, tplContext)
+		vmTpl, err := generateVm(d, config, &tpl.Template)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -316,6 +314,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		}
 
 		generateVMNIC(d, vmTpl)
+
+		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
 
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
@@ -347,7 +347,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
-		vmTpl, err := generateVm(d, nil)
+		vmTpl, err := generateVm(d, config, nil)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -358,6 +358,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		}
 
 		generateVMNIC(d, vmTpl)
+
+		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
 
 		// Create VM not in pending state
 		vmID, err = controller.VMs().Create(vmTpl.String(), d.Get("pending").(bool))
@@ -2105,7 +2107,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 	return nil
 }
 
-func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, error) {
+func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Template) (*vm.Template, error) {
 
 	tpl := vm.NewTemplate()
 
@@ -2118,7 +2120,8 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, e
 	log.Printf("Number of CONTEXT vars: %d", len(context))
 	log.Printf("CONTEXT Map: %s", context)
 
-	if tplContext != nil {
+	if templateContent != nil {
+		tplContext, _ := templateContent.GetVector(vmk.ContextVec)
 
 		// Update existing context:
 		// - add new pairs
@@ -2143,6 +2146,30 @@ func generateVm(d *schema.ResourceData, tplContext *dyn.Vector) (*vm.Template, e
 	err := generateVMTemplate(d, tpl)
 	if err != nil {
 		return tpl, err
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+
+			// keep the tag from the template
+			if templateContent != nil {
+				p, _ := templateContent.GetPair(key)
+				if p != nil {
+					continue
+				}
+			}
+
+			tpl.AddPair(key, v)
+		}
 	}
 
 	return tpl, nil

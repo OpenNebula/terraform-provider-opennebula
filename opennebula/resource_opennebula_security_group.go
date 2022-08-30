@@ -369,7 +369,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 
 	sgc := controller.SecurityGroup(secGroupID)
 
-	secGroupTpl := generateSecurityGroupTemplate(d)
+	secGroupTpl := generateSecurityGroupTemplate(d, meta)
 
 	// add template information into Security group
 	err = sgc.Update(secGroupTpl, 1)
@@ -623,7 +623,7 @@ func generateSecurityGroupRules(d *schema.ResourceData, tpl *securitygroup.Templ
 
 }
 
-func generateSecurityGroupTemplate(d *schema.ResourceData) string {
+func generateSecurityGroupTemplate(d *schema.ResourceData, meta interface{}) string {
 	tpl := securitygroup.NewTemplate()
 
 	generateSecurityGroupRules(d, tpl)
@@ -636,6 +636,20 @@ func generateSecurityGroupTemplate(d *schema.ResourceData) string {
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
 	}
 
 	tplStr := tpl.String()

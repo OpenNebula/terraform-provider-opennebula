@@ -293,7 +293,7 @@ func resourceOpennebulaImageCreate(ctx context.Context, d *schema.ResourceData, 
 
 	ic := controller.Image(imageID)
 
-	imgTpl, err := generateImageTemplate(d)
+	imgTpl, err := generateImageTemplate(d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -859,7 +859,7 @@ func generateImage(d *schema.ResourceData) (string, error) {
 	return tplStr, nil
 }
 
-func generateImageTemplate(d *schema.ResourceData) (string, error) {
+func generateImageTemplate(d *schema.ResourceData, meta interface{}) (string, error) {
 
 	tpl := image.NewTemplate()
 
@@ -886,6 +886,20 @@ func generateImageTemplate(d *schema.ResourceData) (string, error) {
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	// add default tags if they aren't overriden
+	config := meta.(*Configuration)
+
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
 	}
 
 	str := tpl.String()

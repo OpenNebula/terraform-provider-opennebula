@@ -15,6 +15,7 @@ ENHANCEMENTS:
 * resources/opennebula_virtual_network: add `network_address` and `search_domain` attributes (#292)
 * provider: add attribute `insecure` to allow skipping TLS verification (#328)
 * data/opennebula_template: add `has_cpu`, `has_vcpu`, `has_memory`
+* provider: add section `default_tags` for group, image, security_group, template, vm_group, user, virtual_machine, virtual_network, virtual_router, virtual_router_instance resources (#324)
 
 DEPRECATION:
 

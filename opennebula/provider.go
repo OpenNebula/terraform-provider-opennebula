@@ -46,6 +46,14 @@ func Provider() *schema.Provider {
 				Description: "Disable TLS validation",
 				DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_INSECURE", false),
 			},
+			"default_tags": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Add default tags to all resources",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -86,9 +94,10 @@ func Provider() *schema.Provider {
 }
 
 type Configuration struct {
-	OneVersion *ver.Version
-	Controller *goca.Controller
-	mutex      MutexKV
+	OneVersion  *ver.Version
+	Controller  *goca.Controller
+	mutex       MutexKV
+	defaultTags map[string]interface{}
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -153,6 +162,16 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	log.Printf("[INFO] OpenNebula version: %s", versionStr)
 
+	cfg := &Configuration{
+		OneVersion: version,
+		mutex:      *NewMutexKV(),
+	}
+
+	defaultTagsIf := d.Get("default_tags")
+	if defaultTagsIf != nil {
+		cfg.defaultTags = defaultTagsIf.(map[string]interface{})
+	}
+
 	flowEndpoint, ok := d.GetOk("flow_endpoint")
 	if ok {
 		flowClient := goca.NewDefaultFlowClient(
@@ -160,17 +179,12 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 				password.(string),
 				flowEndpoint.(string)))
 
-		return &Configuration{
-			OneVersion: version,
-			Controller: goca.NewGenericController(oneClient, flowClient),
-			mutex:      *NewMutexKV(),
-		}, nil
+		cfg.Controller = goca.NewGenericController(oneClient, flowClient)
+		return cfg, nil
 
 	}
 
-	return &Configuration{
-		OneVersion: version,
-		Controller: goca.NewController(oneClient),
-		mutex:      *NewMutexKV(),
-	}, nil
+	cfg.Controller = goca.NewController(oneClient)
+
+	return cfg, nil
 }

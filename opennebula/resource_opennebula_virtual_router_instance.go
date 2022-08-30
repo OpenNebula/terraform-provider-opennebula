@@ -15,7 +15,6 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
-	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
 )
 
 var vrInstancePairingKey = "TMP_TF_RESOURCE_ID"
@@ -115,8 +114,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		return diags
 	}
 
-	tplContext, _ := tpl.Template.GetVector(vmk.ContextVec)
-	vmTpl, err := generateVm(d, tplContext)
+	vmTpl, err := generateVm(d, config, &tpl.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
