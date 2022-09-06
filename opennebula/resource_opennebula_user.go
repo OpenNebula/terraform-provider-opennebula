@@ -28,7 +28,7 @@ func resourceOpennebulaUser() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
+		CustomizeDiff: SetTagsDiff,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -69,8 +69,10 @@ func resourceOpennebulaUser() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"quotas": quotasSchema(),
-			"tags":   tagsSchema(),
+			"quotas":       quotasSchema(),
+			"tags":         tagsSchema(),
+			"default_tags": defaultTagsSchemaComputed(),
+			"tags_all":     tagsSchemaComputed(),
 		},
 	}
 }
@@ -277,7 +279,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 		return diags
 	}
 
-	err = flattenUserTemplate(d, &user.Template)
+	err = flattenUserTemplate(d, meta, &user.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -309,30 +311,41 @@ func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
 	return nil
 }
 
-func flattenUserTemplate(d *schema.ResourceData, userTpl *dyn.Template) error {
+func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.Template) error {
 
+	config := meta.(*Configuration)
 	tags := make(map[string]interface{})
-	tagsInterface, tagsOk := d.GetOk("tags")
-	for i, _ := range userTpl.Elements {
-		pair, ok := userTpl.Elements[i].(*dyn.Pair)
-		if !ok || !tagsOk {
-			continue
+	tagsAll := make(map[string]interface{})
+
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		tagValue, err := userTpl.GetStr(strings.ToUpper(k))
+		if err != nil {
+			return nil
 		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
+
+	// Get only tags described in the configuration
+	if tagsInterface, ok := d.GetOk("tags"); ok {
 
 		for k, _ := range tagsInterface.(map[string]interface{}) {
-			if strings.ToUpper(k) == pair.Key() {
-				tags[k] = pair.Value
+			tagValue, err := userTpl.GetStr(strings.ToUpper(k))
+			if err != nil {
+				return err
 			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
 		}
 
-	}
-
-	if tagsOk {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
 	}
+	d.Set("tags_all", tagsAll)
 
 	return nil
 }
@@ -480,8 +493,40 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 
 		// add/update tags
 		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
 			newTpl.Del(strings.ToUpper(k))
-			newTpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
 		}
 
 		update = true

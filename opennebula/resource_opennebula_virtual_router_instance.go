@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
@@ -43,6 +44,11 @@ func resourceOpennebulaVirtualRouterInstance() *schema.Resource {
 					Type:        schema.TypeInt,
 					Required:    true,
 					Description: "Identifier of the parent virtual router ressource",
+				},
+				"template_tags": {
+					Type:        schema.TypeMap,
+					Computed:    true,
+					Description: "When template_id was set this keeps the template tags.",
 				},
 			},
 		),
@@ -158,6 +164,16 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		})
 		return diags
 	}
+
+	// save inherited template content
+	inheritedTags := make(map[string]interface{})
+	for _, e := range tpl.Template.Elements {
+		if pair, ok := e.(*dyn.Pair); ok {
+			inheritedTags[pair.Key()] = pair.Value
+		}
+	}
+
+	d.Set("template_tags", inheritedTags)
 
 	vrInfos, err = vrc.Info(false)
 	if err != nil {

@@ -132,6 +132,8 @@ The following attributes are exported:
 * `gid` - Group ID which owns the image.
 * `uname` - User Name whom owns the image.
 * `gname` - Group Name which owns the image.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
 
 ## Import
 

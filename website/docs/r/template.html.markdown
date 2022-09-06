@@ -181,6 +181,8 @@ The following attribute are exported:
 * `uname` - User Name whom owns the template.
 * `gname` - Group Name which owns the template.
 * `reg_time` - Registration time of the template.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
 
 ## Import
 

@@ -167,6 +167,9 @@ The following attribute are exported:
 * `lcmstate` - LCM State of the virtual machine.
 * `template_disk` - when `template_id` is used and the template define some disks, this contains the template disks description.
 * `template_nic` - when `template_id` is used and the template define some NICs, this contains the template NICs description.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
+* `template_tags` - When template_id was set this keeps the template tags.
 
 ### Template NIC
 

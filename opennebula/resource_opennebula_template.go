@@ -29,6 +29,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: SetTagsDiff,
 		Schema: mergeSchemas(
 			commonTemplateSchemas(),
 			map[string]*schema.Schema{
@@ -472,7 +473,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		return diags
 	}
 
-	err = flattenVMUserTemplate(d, &tpl.Template.Template)
+	err = flattenVMUserTemplate(d, meta, &tpl.Template.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -803,8 +804,40 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 
 		// add/update tags
 		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
 			newTpl.Del(strings.ToUpper(k))
-			newTpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
 		}
 
 		update = true

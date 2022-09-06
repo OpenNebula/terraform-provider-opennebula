@@ -64,6 +64,11 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 					ForceNew:    true,
 					Description: "Id of the VM template to use. Defaults to -1: no template used.",
 				},
+				"template_tags": {
+					Type:        schema.TypeMap,
+					Computed:    true,
+					Description: "When template_id was set this keeps the template tags.",
+				},
 				"template_nic": templateNICVMSchema(),
 			},
 		),
@@ -328,7 +333,19 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			})
 			return diags
 		}
+
+		// save inherited template content
+		inheritedTags := make(map[string]interface{})
+		for _, e := range tpl.Template.Elements {
+			if pair, ok := e.(*dyn.Pair); ok {
+				inheritedTags[pair.Key()] = pair.Value
+			}
+		}
+
+		d.Set("template_tags", inheritedTags)
+
 	} else {
+
 		if _, ok := d.GetOk("cpu"); !ok {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -371,6 +388,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			})
 			return diags
 		}
+
+		d.Set("template_tags", nil)
 	}
 
 	d.SetId(fmt.Sprintf("%v", vmID))
@@ -573,21 +592,11 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		return diags
 	}
 
-	err = flattenVMUserTemplate(d, &vm.UserTemplate.Template)
+	err = flattenVMUserTemplate(d, meta, &vm.UserTemplate.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
-		})
-		return diags
-	}
-
-	err = flattenTags(d, &vm.UserTemplate)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten tags",
 			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
 		})
 		return diags
@@ -1040,19 +1049,6 @@ NICLoop:
 	return nil
 }
 
-func flattenTags(d *schema.ResourceData, vmUserTpl *vm.UserTemplate) error {
-
-	tagsInterface := d.Get("tags").(map[string]interface{})
-
-	tags := pairsToMapFilter(vmUserTpl.Template, tagsInterface)
-	err := d.Set("tags", tags)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 
 	config := meta.(*Configuration)
@@ -1252,8 +1248,40 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 
 		// add/update tags
 		for k, v := range newTags {
-			tpl.Template.Del(strings.ToUpper(k))
-			tpl.AddPair(strings.ToUpper(k), v)
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
+			tpl.Del(strings.ToUpper(k))
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
 		}
 
 		update = true
@@ -2226,6 +2254,8 @@ func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v i
 			return err
 		}
 	}
+
+	SetVMTagsDiff(ctx, diff, v)
 
 	return nil
 }

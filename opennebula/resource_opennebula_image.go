@@ -39,7 +39,7 @@ func resourceOpennebulaImage() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
+		CustomizeDiff: SetTagsDiff,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -185,7 +185,9 @@ func resourceOpennebulaImage() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Image, If empty, it uses caller group",
 			},
-			"tags": tagsSchema(),
+			"tags":         tagsSchema(),
+			"default_tags": defaultTagsSchemaComputed(),
+			"tags_all":     tagsSchemaComputed(),
 		},
 	}
 }
@@ -470,6 +472,7 @@ func waitForImageState(ctx context.Context, ic *goca.ImageController, timeout ti
 func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
+	config := meta.(*Configuration)
 
 	// Get all images
 	ic, err := getImageController(d, meta, -2, -1, -1)
@@ -518,7 +521,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	tags := make(map[string]interface{})
-	tagsInterface, tagsOk := d.GetOk("tags")
+	tagsAll := make(map[string]interface{})
 	for i, _ := range image.Template.Elements {
 		pair, ok := image.Template.Elements[i].(*dyn.Pair)
 		if !ok {
@@ -551,17 +554,42 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 			}
 
 		default:
-			if tagsOk {
-				for k, _ := range tagsInterface.(map[string]interface{}) {
-					if strings.ToUpper(k) == pair.Key() {
-						tags[k] = pair.Value
-					}
-				}
-			}
 		}
 	}
 
-	if tagsOk {
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		tagValue, err := image.Template.GetStr(strings.ToUpper(k))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
+
+	// Get only tags described in the configuration
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tagValue, err := image.Template.GetStr(strings.ToUpper(k))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to get tag from the image template",
+					Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+
+			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
+		}
+
 		err := d.Set("tags", tags)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -572,6 +600,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 			return diags
 		}
 	}
+	d.Set("tags_all", tagsAll)
 
 	if image.LockInfos != nil {
 		d.Set("lock", LockLevelToString(image.LockInfos.Locked))
@@ -601,7 +630,6 @@ func resourceOpennebulaImageExists(d *schema.ResourceData, meta interface{}) (bo
 func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
-
 	//Get Image
 	ic, err := getImageController(d, meta)
 	if err != nil {
@@ -740,8 +768,40 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 
 		// add/update tags
 		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
 			tpl.Del(strings.ToUpper(k))
-			tpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
 		}
 
 		update = true
@@ -861,6 +921,7 @@ func generateImage(d *schema.ResourceData) (string, error) {
 
 func generateImageTemplate(d *schema.ResourceData, meta interface{}) (string, error) {
 
+	config := meta.(*Configuration)
 	tpl := image.NewTemplate()
 
 	if val, ok := d.GetOk("description"); ok {
@@ -889,8 +950,6 @@ func generateImageTemplate(d *schema.ResourceData, meta interface{}) (string, er
 	}
 
 	// add default tags if they aren't overriden
-	config := meta.(*Configuration)
-
 	if len(config.defaultTags) > 0 {
 		for k, v := range config.defaultTags {
 			key := strings.ToUpper(k)

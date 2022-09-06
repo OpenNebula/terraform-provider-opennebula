@@ -25,7 +25,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
+		CustomizeDiff: SetTagsDiff,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -101,6 +101,8 @@ func resourceOpennebulaGroup() *schema.Resource {
 				s.ConflictsWith = []string{"template"}
 				return s
 			}(),
+			"default_tags": defaultTagsSchemaComputed(),
+			"tags_all":     tagsSchemaComputed(),
 		},
 	}
 }
@@ -375,7 +377,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	err = flattenGroupTemplate(d, &group.Template)
+	err = flattenGroupTemplate(d, meta, &group.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -388,26 +390,13 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 	return nil
 }
 
-func flattenGroupTemplate(d *schema.ResourceData, groupTpl *dyn.Template) error {
+func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dyn.Template) error {
+	config := meta.(*Configuration)
 
-	tags := make(map[string]interface{})
-	tagsInterface, tagsOk := d.GetOk("tags")
 	for i, _ := range groupTpl.Elements {
 
 		switch e := groupTpl.Elements[i].(type) {
-		case *dyn.Pair:
 
-			// Get only tags described in the configuration
-			if tagsOk {
-				var err error
-				for k, _ := range tagsInterface.(map[string]interface{}) {
-					tags[k], err = groupTpl.GetStr(strings.ToUpper(k))
-					if err != nil {
-						return err
-					}
-				}
-
-			}
 		case *dyn.Vector:
 			switch e.Key() {
 			case "SUNSTONE":
@@ -437,12 +426,38 @@ func flattenGroupTemplate(d *schema.ResourceData, groupTpl *dyn.Template) error 
 
 	}
 
-	if tagsOk {
+	tags := make(map[string]interface{})
+	tagsAll := make(map[string]interface{})
+
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		tagValue, err := groupTpl.GetStr(strings.ToUpper(k))
+		if err != nil {
+			return nil
+		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
+
+	// Get only tags described in the configuration
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tagValue, err := groupTpl.GetStr(strings.ToUpper(k))
+			if err != nil {
+				return err
+			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
+		}
+
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
 	}
+	d.Set("tags_all", tagsAll)
 
 	return nil
 }
@@ -544,8 +559,40 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 
 		// add/update tags
 		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
 			newTpl.Del(strings.ToUpper(k))
-			newTpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
 		}
 
 		update = true

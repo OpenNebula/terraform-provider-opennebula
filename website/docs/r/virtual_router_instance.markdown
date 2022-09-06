@@ -146,6 +146,9 @@ The following attribute are exported:
 * `state` - State of the virtual router instance.
 * `lcmstate` - LCM State of the virtual router instance.
 * `template_disk` - this contains the template disks description.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
+* `template_tags` - When `template_id` was set this keeps the template tags.
 
 ### Template disk
 

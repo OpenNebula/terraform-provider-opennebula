@@ -74,15 +74,17 @@ func commonVMSchemas() map[string]*schema.Schema {
 
 func commonInstanceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"cpu":      cpuSchema(),
-		"vcpu":     vcpuSchema(),
-		"memory":   memorySchema(),
-		"context":  contextSchema(),
-		"cpumodel": cpumodelSchema(),
-		"graphics": graphicsSchema(),
-		"os":       osSchema(),
-		"vmgroup":  vmGroupSchema(),
-		"tags":     tagsSchema(),
+		"cpu":          cpuSchema(),
+		"vcpu":         vcpuSchema(),
+		"memory":       memorySchema(),
+		"context":      contextSchema(),
+		"cpumodel":     cpumodelSchema(),
+		"graphics":     graphicsSchema(),
+		"os":           osSchema(),
+		"vmgroup":      vmGroupSchema(),
+		"tags":         tagsSchema(),
+		"default_tags": defaultTagsSchemaComputed(),
+		"tags_all":     tagsSchemaComputed(),
 		"permissions": {
 			Type:        schema.TypeString,
 			Optional:    true,
@@ -396,17 +398,6 @@ func vmGroupSchema() *schema.Schema {
 					Required: true,
 				},
 			},
-		},
-	}
-}
-
-func tagsSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:        schema.TypeMap,
-		Optional:    true,
-		Description: "Add custom tags to the resource",
-		Elem: &schema.Schema{
-			Type: schema.TypeString,
 		},
 	}
 }
@@ -865,28 +856,50 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	return nil
 }
 
-func flattenVMUserTemplate(d *schema.ResourceData, vmTemplate *dynamic.Template) error {
+func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate *dynamic.Template) error {
 
 	// We read attributes only if they are described in the VM description
 	// to avoid a diff due to template attribute inheritence
 
-	var err error
+	// add default_tags to tags_all
+	config := meta.(*Configuration)
 
+	tagsAll := make(map[string]interface{})
+
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
+		if err != nil {
+			return nil
+		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
 	tags := make(map[string]interface{})
-	// Get only tags from userTemplate
+
+	// Get only tags described in the configuration
 	if tagsInterface, ok := d.GetOk("tags"); ok {
 		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tags[k], err = vmTemplate.GetStr(strings.ToUpper(k))
+			tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
 			if err != nil {
 				return err
 			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
 		}
 
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
+		// append tags to tags_all
+		for k, v := range tags {
+			tagsAll[k] = v
+		}
 	}
+
+	d.Set("tags_all", tagsAll)
 
 	schedReqCfg := d.Get("sched_requirements").(string)
 
