@@ -47,11 +47,20 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_INSECURE", false),
 			},
 			"default_tags": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "Add default tags to all resources",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Description: "Add default tags to the resources",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tags": {
+							Type:        schema.TypeMap,
+							Optional:    true,
+							Description: "Default tags to apply",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
 				},
 			},
 		},
@@ -94,10 +103,12 @@ func Provider() *schema.Provider {
 }
 
 type Configuration struct {
-	OneVersion  *ver.Version
-	Controller  *goca.Controller
-	mutex       MutexKV
-	defaultTags map[string]interface{}
+	OneVersion     *ver.Version
+	Controller     *goca.Controller
+	mutex          MutexKV
+	defaultTags    map[string]interface{}
+	oldDefaultTags map[string]interface{}
+	newDefaultTags map[string]interface{}
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -167,9 +178,20 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		mutex:      *NewMutexKV(),
 	}
 
-	defaultTagsIf := d.Get("default_tags")
-	if defaultTagsIf != nil {
-		cfg.defaultTags = defaultTagsIf.(map[string]interface{})
+	defaultTagsOldIf, defaultTagsNewIf := d.GetChange("default_tags")
+	defaultTagsOld := defaultTagsOldIf.(*schema.Set).List()
+	defaultTagsNew := defaultTagsNewIf.(*schema.Set).List()
+
+	defaultTags := d.Get("default_tags").(*schema.Set).List()
+	if len(defaultTags) > 0 {
+		defaultTagsMap := defaultTags[0].(map[string]interface{})
+		cfg.defaultTags = defaultTagsMap["tags"].(map[string]interface{})
+		if len(defaultTagsOld) > 0 {
+			cfg.oldDefaultTags = defaultTagsOld[0].(map[string]interface{})
+		}
+		if len(defaultTagsNew) > 0 {
+			cfg.newDefaultTags = defaultTagsNew[0].(map[string]interface{})
+		}
 	}
 
 	flowEndpoint, ok := d.GetOk("flow_endpoint")

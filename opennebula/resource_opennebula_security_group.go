@@ -26,6 +26,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: SetTagsDiff,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -166,7 +167,9 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 				ConflictsWith: []string{"gid"},
 				Description:   "Name of the Group that onws the Security Group, If empty, it uses caller group",
 			},
-			"tags": tagsSchema(),
+			"tags":         tagsSchema(),
+			"default_tags": defaultTagsSchemaComputed(),
+			"tags_all":     tagsSchemaComputed(),
 		},
 	}
 }
@@ -272,7 +275,7 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 		log.Printf("[WARN] Error setting rule for Security Group %x, error: %s", securitygroup.ID, err)
 	}
 
-	err = flattenSecurityGroupTags(d, &securitygroup.Template)
+	err = flattenSecurityGroupTags(d, meta, &securitygroup.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -285,27 +288,42 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 	return nil
 }
 
-func flattenSecurityGroupTags(d *schema.ResourceData, sgTpl *securitygroup.Template) error {
+func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *securitygroup.Template) error {
+
+	config := meta.(*Configuration)
 
 	tags := make(map[string]interface{})
-	var err error
-	// Get only tags from userTemplate
-	tagsInterface, ok := d.GetOk("tags")
-	if ok {
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tags[k], err = sgTpl.GetStr(strings.ToUpper(k))
+	tagsAll := make(map[string]interface{})
+
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		key := strings.ToUpper(k)
+		tagValue, err := sgTpl.GetStr(key)
+		if err != nil {
+			return err
+		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
+
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+		tagsCfg := tagsInterface.(map[string]interface{})
+		for k, _ := range tagsCfg {
+			tagValue, err := sgTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
 				return err
 			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
 		}
-	}
 
-	if ok {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
 	}
+	d.Set("tags_all", tagsAll)
 
 	return nil
 }
@@ -415,6 +433,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
+	//config := meta.(*Configuration)
 
 	//Get Security Group
 	sgc, err := getSecurityGroupController(d, meta)
@@ -465,8 +484,40 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 
 		// add/update tags
 		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
 			tpl.Del(strings.ToUpper(k))
-			tpl.AddPair(strings.ToUpper(k), v)
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
 		}
 
 		update = true

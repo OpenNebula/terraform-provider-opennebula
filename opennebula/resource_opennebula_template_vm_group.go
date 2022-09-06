@@ -12,6 +12,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vmgroup"
 )
 
@@ -25,7 +26,7 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
+		CustomizeDiff: SetTagsDiff,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -134,7 +135,9 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template VM Group, If empty, it uses caller group",
 			},
-			"tags": tagsSchema(),
+			"tags":         tagsSchema(),
+			"default_tags": defaultTagsSchemaComputed(),
+			"tags_all":     tagsSchemaComputed(),
 		},
 	}
 }
@@ -197,7 +200,7 @@ func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData
 
 	var diags diag.Diagnostics
 
-	vmg, err := generateVMGroup(d, meta)
+	vmgTpl, err := generateVMGroup(d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -206,7 +209,11 @@ func resourceOpennebulaVMGroupCreate(ctx context.Context, d *schema.ResourceData
 		})
 		return diags
 	}
-	vmgID, err := controller.VMGroups().Create(vmg)
+
+	vmgTplStr := vmgTpl.String()
+	log.Printf("[INFO] VM group definition: %s", vmgTplStr)
+
+	vmgID, err := controller.VMGroups().Create(vmgTplStr)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -299,7 +306,7 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	err = flattenVMGroupTags(d, &vmg.Template)
+	err = flattenVMGroupTags(d, meta, &vmg.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -312,27 +319,41 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 	return nil
 }
 
-func flattenVMGroupTags(d *schema.ResourceData, t *dyn.Template) error {
+func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Template) error {
 
+	config := meta.(*Configuration)
 	tags := make(map[string]interface{})
-	var err error
-	// Get only tags from userTemplate
-	tagsInterface, ok := d.GetOk("tags")
-	if ok {
+	tagsAll := make(map[string]interface{})
+
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		tagValue, err := tpl.GetStr(strings.ToUpper(k))
+		if err != nil {
+			return nil
+		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
+
+	// Get only tags described in the configuration
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+
 		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tags[k], err = t.GetStr(strings.ToUpper(k))
+			tagValue, err := tpl.GetStr(strings.ToUpper(k))
 			if err != nil {
 				return err
 			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
 		}
-	}
 
-	if ok {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
 	}
+	d.Set("tags_all", tagsAll)
 
 	return nil
 }
@@ -462,38 +483,76 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 		log.Printf("[INFO] Successfully updated group for VMGroup %s\n", vmg.Name)
 	}
 
-	if d.HasChange("tags") {
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, v := range tagsInterface {
-			vmg.Template.Del(strings.ToUpper(k))
-			vmg.Template.AddPair(strings.ToUpper(k), v.(string))
-		}
-
-		err = vmgc.Update(vmg.Template.String(), 1)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update content",
-				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-	}
+	update := false
+	newTpl := vmg.Template
 
 	if d.HasChange("role") && d.Get("role") != "" {
-		var err error
 
-		vmg, err := generateVMGroup(d, meta)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to generate description",
-				Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
-			})
-			return diags
+		newTpl.Del("ROLE")
+		generateVMGroupRoles(d, &newTpl)
+
+		update = true
+	}
+
+	if d.HasChange("tags") {
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
+			newTpl.Del(strings.ToUpper(k))
 		}
 
-		err = vmgc.Update(vmg, 0)
+		// add/update tags
+		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
+			newTpl.Del(strings.ToUpper(k))
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			newTpl.Del(key)
+			newTpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+	log.Printf("[DEBUG] === 3 newTpl: %s", newTpl.String())
+
+	if update {
+		err = vmgc.Update(newTpl.String(), int(parameters.Replace))
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -502,9 +561,9 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 			})
 			return diags
 		}
-
-		log.Printf("[INFO] Successfully updated Virtual Machine Group %s\n", d.Id())
 	}
+
+	log.Printf("[INFO] Successfully updated Virtual Machine Group %s\n", d.Id())
 
 	return resourceOpennebulaVMGroupRead(ctx, d, meta)
 }
@@ -537,12 +596,36 @@ func resourceOpennebulaVMGroupDelete(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-func generateVMGroup(d *schema.ResourceData, meta interface{}) (string, error) {
+func generateVMGroup(d *schema.ResourceData, meta interface{}) (*dyn.Template, error) {
+	config := meta.(*Configuration)
 
 	tpl := dyn.NewTemplate()
 
 	tpl.AddPair("NAME", d.Get("name").(string))
 
+	generateVMGroupRoles(d, tpl)
+
+	tagsInterface := d.Get("tags").(map[string]interface{})
+	for k, v := range tagsInterface {
+		tpl.AddPair(strings.ToUpper(k), v)
+	}
+
+	// add default tags if they aren't overriden
+	if len(config.defaultTags) > 0 {
+		for k, v := range config.defaultTags {
+			key := strings.ToUpper(k)
+			p, _ := tpl.GetPair(key)
+			if p != nil {
+				continue
+			}
+			tpl.AddPair(key, v)
+		}
+	}
+
+	return tpl, nil
+}
+
+func generateVMGroupRoles(d *schema.ResourceData, tpl *dyn.Template) {
 	// Add Roles to the template
 	roles := d.Get("role").([]interface{})
 	for _, r := range roles {
@@ -558,28 +641,4 @@ func generateVMGroup(d *schema.ResourceData, meta interface{}) (string, error) {
 		roleTpl.AddPair("POLICY", role["policy"].(string))
 
 	}
-
-	tagsInterface := d.Get("tags").(map[string]interface{})
-	for k, v := range tagsInterface {
-		tpl.AddPair(strings.ToUpper(k), v)
-	}
-
-	// add default tags if they aren't overriden
-	config := meta.(*Configuration)
-
-	if len(config.defaultTags) > 0 {
-		for k, v := range config.defaultTags {
-			key := strings.ToUpper(k)
-			p, _ := tpl.GetPair(key)
-			if p != nil {
-				continue
-			}
-			tpl.AddPair(key, v)
-		}
-	}
-
-	tplStr := tpl.String()
-	log.Printf("[INFO] VM group definition: %s", tplStr)
-
-	return tplStr, nil
 }

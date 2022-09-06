@@ -78,6 +78,8 @@ The following attribute are exported:
 * `gid` - Group ID which owns the security group.
 * `uname` - User Name whom owns the security group.
 * `gname` - Group Name which owns the security group.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
 
 ## Import
 

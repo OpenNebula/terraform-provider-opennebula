@@ -122,6 +122,8 @@ The following arguments are supported:
 The following attribute is exported:
 
 * `id` - ID of the group.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
 
 ## Import
 

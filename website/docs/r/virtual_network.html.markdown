@@ -112,6 +112,8 @@ The following attribute are exported:
 * `gid` - Group ID which owns the virtual network.
 * `uname` - User Name whom owns the virtual network.
 * `gname` - Group Name which owns the virtual network.
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
 
 ### Address range computed attributes
 

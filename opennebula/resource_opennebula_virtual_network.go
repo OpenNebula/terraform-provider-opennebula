@@ -43,7 +43,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
+		CustomizeDiff: SetTagsDiff,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -266,8 +266,10 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
-			"tags": tagsSchema(),
-			"lock": lockSchema(),
+			"lock":         lockSchema(),
+			"tags":         tagsSchema(),
+			"default_tags": defaultTagsSchemaComputed(),
+			"tags_all":     tagsSchemaComputed(),
 		},
 	}
 }
@@ -730,6 +732,7 @@ func vnetGenerateAR(armap map[string]interface{}) *vn.AddressRange {
 }
 
 func generateVnTemplate(d *schema.ResourceData, meta interface{}) (string, error) {
+	config := meta.(*Configuration)
 
 	tpl := vn.NewTemplate()
 
@@ -768,8 +771,6 @@ func generateVnTemplate(d *schema.ResourceData, meta interface{}) (string, error
 	}
 
 	// add default tags if they aren't overriden
-	config := meta.(*Configuration)
-
 	if len(config.defaultTags) > 0 {
 		for k, v := range config.defaultTags {
 			key := strings.ToUpper(k)
@@ -920,7 +921,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	d.Set("type", vn.VNMad)
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
-	err = flattenVnetTemplate(d, &vn.Template)
+	err = flattenVnetTemplate(d, meta, &vn.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -1016,10 +1017,12 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 	return nil
 }
 
-func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
+func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) error {
 
+	config := meta.(*Configuration)
 	tags := make(map[string]interface{})
-	tagsInterface, tagsOk := d.GetOk("tags")
+	tagsAll := make(map[string]interface{})
+
 	for i, _ := range vnTpl.Elements {
 		pair, ok := vnTpl.Elements[i].(*dyn.Pair)
 		if !ok {
@@ -1070,25 +1073,40 @@ func flattenVnetTemplate(d *schema.ResourceData, vnTpl *vn.Template) error {
 				}
 			}
 		default:
-			// Get only tags from userTemplate
-			if tagsOk {
-				var err error
-				for k, _ := range tagsInterface.(map[string]interface{}) {
-					tags[k], err = vnTpl.GetStr(strings.ToUpper(k))
-					if err != nil {
-						return err
-					}
-				}
-			}
+
 		}
 	}
 
-	if _, ok := d.GetOk("tags"); ok {
+	// Get default tags
+	oldDefault := d.Get("default_tags").(map[string]interface{})
+	for k, _ := range oldDefault {
+		key := strings.ToUpper(k)
+		tagValue, err := vnTpl.GetStr(key)
+		if err != nil {
+			return err
+		}
+		tagsAll[k] = tagValue
+	}
+	d.Set("default_tags", config.defaultTags)
+
+	// Get only tags described in the configuration
+	if tagsInterface, ok := d.GetOk("tags"); ok {
+
+		for k, _ := range tagsInterface.(map[string]interface{}) {
+			tagValue, err := vnTpl.GetStr(strings.ToUpper(k))
+			if err != nil {
+				return err
+			}
+			tags[k] = tagValue
+			tagsAll[k] = tagValue
+		}
+
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
 		}
 	}
+	d.Set("tags_all", tagsAll)
 
 	return nil
 }

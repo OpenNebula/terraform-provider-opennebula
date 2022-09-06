@@ -62,6 +62,8 @@ The following attribute are exported:
 * `uname` - User Name whom owns the virtual machine.
 * `gname` - Group Name which owns the virtual machine.
 * `role` - See [Role Attribute Reference](#role-attribute-reference) below for details
+* `tags_all` - Result of the applied `default_tags` and then resource `tags`.
+* `default_tags` - Default tags defined in the provider configuration.
 
 ## Role Attribute Reference
 
