@@ -33,6 +33,7 @@ func resourceOpennebulaUser() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the User",
 			},
 			"password": {
