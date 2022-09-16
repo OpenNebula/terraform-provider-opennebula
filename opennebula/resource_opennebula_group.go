@@ -30,6 +30,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the Group",
 			},
 			"template": {

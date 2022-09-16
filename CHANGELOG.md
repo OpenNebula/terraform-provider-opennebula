@@ -1,3 +1,10 @@
+# 1.0.1 (unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_user: Fix ignored renaming (#343)
+* resources/opennebula_group: Fix ignored renaming (#343)
+
 ## 1.0.0 (September 19th, 2022)
 
 BUG FIXES:
