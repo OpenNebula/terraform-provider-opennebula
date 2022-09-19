@@ -1,8 +1,8 @@
-## 1.0.0 (Unreleased)
+## 1.0.0 (September 19th, 2022)
 
 BUG FIXES:
 
-* resource/opennebula_virtual_machine: Fix diff on template inherited attributes `sched_requirements` and `sched_ds_requirements`
+* resource/opennebula_virtual_machine: Fix diff on template inherited attributes `sched_requirements` and `sched_ds_requirements` (#330)
 
 FEATURES:
 
@@ -14,13 +14,13 @@ ENHANCEMENTS:
 * resources/opennebula_virtual_machine: add `dev_prefix`, `cache`, `discard` and `io` to `disk` (#291)
 * resources/opennebula_virtual_network: add `network_address` and `search_domain` attributes (#292)
 * provider: add attribute `insecure` to allow skipping TLS verification (#328)
-* data/opennebula_template: add `has_cpu`, `has_vcpu`, `has_memory`
+* data/opennebula_template: add `has_cpu`, `has_vcpu`, `has_memory` (#287)
 * provider: add section `default_tags` for group, image, security_group, template, vm_group, user, virtual_machine, virtual_network, virtual_router, virtual_router_instance, virtual_router_instance_template resources (#324)
 
 DEPRECATION:
 
-* resource/opennebula_virtual_network: remove deprecated attributes `hold_size` and `ip_hold`
-* resource/opennebula_virtual_machine: remove deprecated attribute `instance`
+* resource/opennebula_virtual_network: remove deprecated attributes `hold_size` and `ip_hold` (#296)
+* resource/opennebula_virtual_machine: remove deprecated attribute `instance` (#296)
 * resources/opennebula_virtual_network: deprecated `ar` and `hold_ips` (#279)
 
 ## 0.5.2 (August 10th, 2022)

@@ -39,7 +39,7 @@ resource "opennebula_group" "example" {
       id     = 11
       leases = 4
     }
-    image_quotas = {
+    image_quotas {
       id          = 8
       running_vms = 1
     }
