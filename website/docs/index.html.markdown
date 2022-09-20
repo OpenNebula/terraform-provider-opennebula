@@ -27,8 +27,6 @@ terraform {
 
 provider "opennebula" {
   endpoint      = "https://example.com:2633/RPC2"
-  username      = "me"
-  password      = "p@s5w0rD"
 }
 
 resource "opennebula_group" "group" {
@@ -47,9 +45,15 @@ The configuration of the OpenNebula Provider can be set by the `provider` block 
 * `username` - (Required) The OpenNebula username.
 * `password` - (Required) The Opennebula password matching the username.
 * `insecure` - (Optional) Allow insecure connexion (skip TLS verification).
-* `default_tags` - (Optional) Apply default custom tags to created resources: group, image, security_group, template, vm_group, user, virtual_machine, virtual_network, virtual_router, virtual_router_instance. Theses tags could be overriden in the tag section of the resource.
+* `default_tags` - (Optional) Apply default custom tags to created resources: group, image, security_group, template, vm_group, user, virtual_machine, virtual_network, virtual_router, virtual_router_instance. Theses tags could be overriden in the tag section of the resource. See [Default Tags parameters](#default-tags-parameters) below for details.
 
-Example:
+#### Default Tags parameters
+
+`default_tags` supports the following arguments:
+
+* `tags` - (Optional) Map of tags.
+
+#### Example
 
 ```hcl
 provider "opennebula" {
@@ -59,7 +63,9 @@ provider "opennebula" {
   password      = "p@s5w0rD"
   insecure      = true
   default_tags  = {
-    environment = "default"
+    tags {
+      environment = "default"
+    }
   }
 }
 
@@ -77,7 +83,7 @@ terraform plan
 
 ### Environment variables
 
-The provider can also read the following environment variables if no value are set in the the `provider` block attributes:
+The provider can also read the following environment variables if no value is set in the the `provider` block attributes:
 
 * `OPENNEBULA_ENDPOINT`
 * `OPENNEBULA_FLOW_ENDPOINT`
@@ -85,7 +91,7 @@ The provider can also read the following environment variables if no value are s
 * `OPENNEBULA_PASSWORD`
 * `OPENNEBULA_INSECURE`
 
-Example:
+#### Example
 
 ```bash
 export OPENNEBULA_ENDPOINT="https://example.com:2633/RPC2"
