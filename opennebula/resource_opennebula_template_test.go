@@ -94,6 +94,11 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccTemplateConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
@@ -130,6 +135,11 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccTemplateConfigDelete,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
@@ -158,6 +168,11 @@ func TestAccTemplate(t *testing.T) {
 						OtherM: 1,
 					}),
 				),
+			},
+			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
