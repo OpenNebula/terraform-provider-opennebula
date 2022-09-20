@@ -424,8 +424,50 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	d.Set("gid", tpl.GID)
 	d.Set("uname", tpl.UName)
 	d.Set("gname", tpl.GName)
+	d.Set("group", tpl.GName)
 	d.Set("reg_time", tpl.RegTime)
 	d.Set("permissions", permissionsUnixString(*tpl.Permissions))
+
+	env, err := tpl.Template.Get("ENV")
+	customer, err := tpl.Template.Get("CUSTOMER")
+	getTags := make(map[string]interface{}, 0)
+	getTags["env"] = env
+	getTags["customer"] = customer
+	d.Set("tags", getTags)
+
+	arch, err := tpl.Template.GetOS("ARCH")
+	boot, err := tpl.Template.GetOS("BOOT")
+	getOS := make([]interface{}, 0)
+	getOS0 := make(map[string]interface{}, 0)
+	getOS0["arch"] = arch
+	getOS0["boot"] = boot
+	getOS = append(getOS, getOS0)
+	d.Set("os", getOS)
+
+	acpi, err := tpl.Template.GetFeature("ACPI")
+	getFeature := make([]interface{}, 0)
+	getFeature0 := make(map[string]interface{}, 0)
+	getFeature0["acpi"] = acpi
+	getFeature = append(getFeature, getFeature0)
+	d.Set("features", getFeature)
+
+	keymap, err := tpl.Template.GetIOGraphic("KEYMAP")
+	listen, err := tpl.Template.GetIOGraphic("LISTEN")
+	typee, err := tpl.Template.GetIOGraphic("TYPE")
+	getIOGraphic := make([]interface{}, 0)
+	getIOGraphic0 := make(map[string]interface{}, 0)
+	getIOGraphic0["keymap"] = keymap
+	getIOGraphic0["listen"] = listen
+	getIOGraphic0["type"] = typee
+	getIOGraphic = append(getIOGraphic, getIOGraphic0)
+	d.Set("graphics", getIOGraphic)
+
+	network, err := tpl.Template.GetCtx("NETWORK")
+	dnshostname, err := tpl.Template.GetCtx("DNS_HOSTNAME")
+	getCtx := make(map[string]interface{}, 0)
+	getCtx["network"] = network
+	getCtx["dns_hostname"] = dnshostname
+	d.Set("context", getCtx)
 
 	err = flattenTemplateDisks(d, &tpl.Template)
 	if err != nil {

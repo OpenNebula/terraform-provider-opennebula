@@ -56,6 +56,11 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccTemplateCPUModel,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl-cpumodel"),
