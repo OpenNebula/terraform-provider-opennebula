@@ -27,7 +27,6 @@ func dataOpennebulaTemplate() *schema.Resource {
 				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
 					value := v.(float64)
 
-
 					if value == 0 {
 						errs = append(errs, errors.New("cpu should be strictly greater than 0"))
 					}
