@@ -132,7 +132,18 @@ func resourceOpennebulaGroupAdminsUpdate(ctx context.Context, d *schema.Resource
 	remUsers := oldUsers.Difference(newUsers)
 
 	for _, id := range remUsers.List() {
-		err := gc.DelAdmin(id.(int))
+
+		// we need to check is the ID is not an old ID
+		// i.e. the ID of an user deleted/replaced
+		_, err := controller.User(id.(int)).Info(false)
+		if err != nil {
+			if NoExists(err) {
+				continue
+			}
+		}
+
+		// delete the user from group admin
+		err = gc.DelAdmin(id.(int))
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
