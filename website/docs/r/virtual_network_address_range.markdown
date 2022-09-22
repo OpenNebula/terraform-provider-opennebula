@@ -39,7 +39,7 @@ resource "opennebula_virtual_network" "test" {
   }
 
   lifecycle {
-    ignore_changes = [ar, hold_ips]
+    ignore_changes = [ar]
   }
 }
 
@@ -51,6 +51,10 @@ resource "opennebula_virtual_network_address_range" "test" {
   ip4                = "172.16.100.110"
 
   hold_ips = ["172.16.100.112", "172.16.100.114"]
+
+  lifecycle {
+    ignore_changes = [hold_ips]
+  }
 }
 ```
 
