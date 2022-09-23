@@ -352,6 +352,8 @@ func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.
 }
 
 func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	var diags diag.Diagnostics
 
@@ -413,6 +415,20 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 			if g.(int) == d.Get("primary_group").(int) {
 				continue
 			}
+			// check if the group still exists
+			_, err := controller.Group(g.(int)).Info(false)
+			if err != nil {
+				if NoExists(err) {
+					continue
+				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to retrieve informations",
+					Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+
 			err = uc.DelGroup(g.(int))
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{

@@ -616,6 +616,8 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	var diags diag.Diagnostics
 
@@ -627,6 +629,54 @@ func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, 
 			Detail:   err.Error(),
 		})
 		return diags
+	}
+
+	// Group should be empty to be removed
+	groupInfos, err := gc.Info(false)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed retrieve group informations",
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	for _, userID := range groupInfos.Users.ID {
+
+		userInfos, err := controller.User(userID).Info(false)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get user informations",
+				Detail:   fmt.Sprintf("group (ID: %d) user (ID: %d): %s", gc.ID, userID, err),
+			})
+			return diags
+		}
+
+		if userInfos.GID == gc.ID {
+			// It's a primary group: we need to move the user to a default group, here we move to "users"
+			err := controller.User(userID).Chgrp(1)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add user to users group",
+					Detail:   fmt.Sprintf("group (ID: %d) user (ID: %d): %s", gc.ID, userID, err),
+				})
+				return diags
+			}
+		} else {
+			// It's a secondary group, we just remove it
+			err := controller.User(userID).DelGroup(gc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add user to users group",
+					Detail:   fmt.Sprintf("group (ID: %d) user (ID: %d): %s", gc.ID, userID, err),
+				})
+				return diags
+			}
+		}
 	}
 
 	if d.Get("delete_on_destruction") == true {
