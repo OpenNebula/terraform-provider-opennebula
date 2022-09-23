@@ -23,6 +23,7 @@ func resourceOpennebulaGroupAdmins() *schema.Resource {
 			"group_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Name of the group",
 			},
 			"users_ids": {
