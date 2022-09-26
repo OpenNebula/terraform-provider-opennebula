@@ -21,10 +21,8 @@ data "opennebula_user" "example" {
 ## Argument Reference
 
 * `name` - (Optional) The OpenNebula user to retrieve information for.
-* `auth_driver` - (Deprecated) Authentication Driver for user management
 * `primary_group` - (Optional) Primary group ID of the user.
 * `groups` - (Optional) List of secondary groups ID of the user.
-* `quotas` - (Deprecated) User's quotas
 
 ## Attribute Reference
 

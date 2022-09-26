@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	userSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/user"
 
@@ -22,22 +21,6 @@ func dataOpennebulaUser() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the User",
 			},
-			"auth_driver": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "core",
-				Deprecated:  "use 'tags' for selection instead",
-				Description: "Authentication driver. Select between: core, public, ssh, x509, ldap, server_cipher, server_x509 and custom. Defaults to 'core'.",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-
-					if inArray(value, authTypes) < 0 {
-						errors = append(errors, fmt.Errorf("Auth driver %q must be one of: %s", k, strings.Join(locktypes, ",")))
-					}
-
-					return
-				},
-			},
 			"primary_group": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -51,11 +34,6 @@ func dataOpennebulaUser() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"quotas": func() *schema.Schema {
-				s := quotasSchema()
-				s.Deprecated = "use 'tags' for selection instead"
-				return s
-			}(),
 			"tags": tagsSchema(),
 		},
 	}
@@ -125,9 +103,6 @@ userLoop:
 
 func datasourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	config := meta.(*Configuration)
-	controller := config.Controller
-
 	var diags diag.Diagnostics
 
 	user, err := userFilter(d, meta)
@@ -163,30 +138,6 @@ func datasourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, m
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "setting attribute failed",
-				Detail:   fmt.Sprintf("User (ID: %d): %s", user.ID, err),
-			})
-			return diags
-		}
-	}
-
-	// TODO: Remove this part in release 0.6.0, this additional request is only
-	// here to retrieve the quotas information
-	userInfo, err := controller.User(user.ID).Info(false)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "user info error",
-			Detail:   fmt.Sprintf("User (ID: %d): %s", user.ID, err),
-		})
-		return diags
-	}
-
-	if _, ok := d.GetOk("quotas"); ok {
-		err = flattenQuotasMapFromStructs(d, &userInfo.QuotasList)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "failed to flatten quotas",
 				Detail:   fmt.Sprintf("User (ID: %d): %s", user.ID, err),
 			})
 			return diags

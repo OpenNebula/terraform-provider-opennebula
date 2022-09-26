@@ -78,31 +78,16 @@ func dataOpennebulaTemplate() *schema.Resource {
 				}
 				return s
 			}(),
-			"context": func() *schema.Schema {
-				s := contextSchema()
-				s.Deprecated = "use 'tags' for selection instead"
-				return s
-			}(),
 			"disk": func() *schema.Schema {
 				s := diskSchema()
 				s.Computed = true
 				s.Optional = false
 				return s
 			}(),
-			"graphics": func() *schema.Schema {
-				s := graphicsSchema()
-				s.Deprecated = "use 'tags' for selection instead"
-				return s
-			}(),
 			"nic": func() *schema.Schema {
 				s := nicSchema()
 				s.Computed = true
 				s.Optional = false
-				return s
-			}(),
-			"os": func() *schema.Schema {
-				s := osSchema()
-				s.Deprecated = "use 'tags' for selection instead"
 				return s
 			}(),
 			"vmgroup": func() *schema.Schema {

@@ -21,7 +21,6 @@ data "opennebula_virtual_network" "example" {
 ## Argument Reference
 
 * `name` - (Optional) The OpenNebula virtual network to retrieve information for.
-* `description` - (Deprecated) Description of the virtual network.
 * `tags` - (Optional) Virtual network tags (Key = Value).
 
 ## Attribute Reference
