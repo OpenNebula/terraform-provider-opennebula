@@ -33,20 +33,6 @@ func resourceOpennebulaGroup() *schema.Resource {
 				ForceNew:    true,
 				Description: "Name of the Group",
 			},
-			"template": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Description:   "Group template content, in OpenNebula XML or String format",
-				Deprecated:    "use other schema sections",
-				ConflictsWith: []string{"sunstone", "tags"},
-			},
-			"delete_on_destruction": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Deprecated:  "use Terraform lifcycle Meta-Argument instead.",
-				Description: "Flag to delete group on destruction, by default it is set to true",
-			},
 			"users": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -95,13 +81,8 @@ func resourceOpennebulaGroup() *schema.Resource {
 						},
 					},
 				},
-				ConflictsWith: []string{"template"},
 			},
-			"tags": func() *schema.Schema {
-				s := tagsSchema()
-				s.ConflictsWith = []string{"template"}
-				return s
-			}(),
+			"tags":         tagsSchema(),
 			"default_tags": defaultTagsSchemaComputed(),
 			"tags_all":     tagsSchemaComputed(),
 		},
@@ -209,20 +190,6 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 
 	// template management
 
-	// add template description
-	if d.Get("template") != "" {
-		// Erase previous template
-		err = gc.Update(d.Get("template").(string), 0)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update the group content",
-				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
-			})
-			return diags
-		}
-	}
-
 	tpl := dyn.NewTemplate()
 
 	sunstone := d.Get("sunstone").(*schema.Set).List()
@@ -326,11 +293,6 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 
 	d.SetId(strconv.FormatUint(uint64(group.ID), 10))
 	d.Set("name", group.Name)
-	d.Set("template", group.Template.String())
-	deleteOnDestruction, ok := d.Get("delete_on_destruction").(bool)
-	if ok {
-		d.Set("delete_on_destruction", deleteOnDestruction)
-	}
 
 	// read only configured users in current group resource
 	appliedUserIDs := make([]int, 0)
@@ -514,20 +476,6 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	if d.HasChange("template") {
-		// Erase previous template
-		err = gc.Update(d.Get("template").(string), 0)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update group content",
-				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-
-	}
-
 	update := false
 	newTpl := group.Template
 
@@ -679,16 +627,14 @@ func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	if d.Get("delete_on_destruction") == true {
-		err = gc.Delete()
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to delete",
-				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
+	err = gc.Delete()
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+		})
+		return diags
 	}
 
 	return nil

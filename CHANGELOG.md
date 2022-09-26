@@ -4,6 +4,17 @@ FEATURES:
 
 * **New Resource**: `opennebula_cluster` (#227)
 
+DEPRECATION:
+
+* resources/opennebula_group: remove deprecated attribute `delete_on_destruction` (#297)
+* resources/opennebula_group: remove deprecated attribute `template` (#297)
+* data/opennebula_group: remove deprecated attribute `quotas` (#297)
+* data/opennebula_user remove deprecated attribute `quotas` (#297)
+* data/opennebula_template: remove deprecated attribute `context` (#297)
+* data/opennebula_template: remove deprecated attribute `graphics` (#297)
+* data/opennebula_template: remove deprecated attribute `os` (#297)
+* data/opennebula_virtual_network: remove deprecated attribute `description` (#297)
+
 # 1.0.1 (October 3rd, 2022)
 
 BUG FIXES:
@@ -23,6 +34,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * resource/opennebula_virtual_machine: Fix diff on template inherited attributes `sched_requirements` and `sched_ds_requirements` (#330)
+*
 
 FEATURES:
 

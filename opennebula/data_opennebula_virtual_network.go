@@ -21,12 +21,6 @@ func dataOpennebulaVirtualNetwork() *schema.Resource {
 				Required:    true,
 				Description: "Name of the Virtual Network",
 			},
-			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Deprecated:  "use 'tags' for selection instead",
-				Description: "Description of the vnet, in OpenNebula's XML or String format",
-			},
 			"mtu": {
 				Type:        schema.TypeInt,
 				Computed:    true,

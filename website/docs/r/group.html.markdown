@@ -60,8 +60,6 @@ resource "opennebula_group" "example" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the group.
-* `template` - (Deprecated) Group template content in OpenNebula XML or String format. Used to provide SUSNTONE arguments.
-* `delete_on_destruction` - (Deprecated) Flag to delete the group on destruction. Defaults to `true`. Use [Terraform lifecycle `prevent_destroy`](https://www.terraform.io/language/meta-arguments/lifecycle#prevent_destroy) instead.
 * `admins` - (Optional) List of Administrator user IDs part of the group.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
 * `sunstone` - (Optional) Allow users and group admins to access specific views. See [Sunstone parameters](#sunstone-parameters) below for details
