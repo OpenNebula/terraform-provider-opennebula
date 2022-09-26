@@ -27,9 +27,6 @@ data "opennebula_template" "example" {
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `has_memory` - (Optional) Indicate if a memory value has been defined.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB.
-* `context` - (Deprecated) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
-* `graphics` - (Deprecated) Graphics parameters.
-* `os` - (Deprecated) OS parameters
 * `tags` - (Optional) Template tags (Key = Value).
 
 ## Attribute Reference

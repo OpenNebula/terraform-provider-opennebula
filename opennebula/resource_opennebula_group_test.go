@@ -19,7 +19,6 @@ func TestAccGroup(t *testing.T) {
 				Config: testAccGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
-					resource.TestCheckResourceAttr("opennebula_group.group", "delete_on_destruction", "false"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "quotas.*", map[string]string{
 						"datastore_quotas.#":        "1",
@@ -52,7 +51,6 @@ func TestAccGroup(t *testing.T) {
 				Config: testAccGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
-					resource.TestCheckResourceAttr("opennebula_group.group", "delete_on_destruction", "true"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "quotas.*", map[string]string{
 						"datastore_quotas.#":        "1",
@@ -127,7 +125,6 @@ func TestAccGroup(t *testing.T) {
 				Config: testAccGroupLigh,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
-					resource.TestCheckResourceAttr("opennebula_group.group2", "delete_on_destruction", "true"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
 						"group_admin_default_view": "groupadmin",
@@ -191,7 +188,7 @@ resource "opennebula_group" "group" {
 	  default_image_persistent = "YES"
 	  api_list_order = "ASC"
 	}
-    delete_on_destruction = false
+
     quotas {
         datastore_quotas {
             id = 1
@@ -206,12 +203,6 @@ resource "opennebula_group" "group" {
 	tags = {
 		testkey1 = "testvalue1"
 		testkey2 = "testvalue2"
-	}
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
 	}
 }
 `
@@ -228,7 +219,7 @@ resource "opennebula_group" "group" {
 	opennebula {
 		api_list_order = "DESC"
 	}
-    delete_on_destruction = true
+
     quotas {
         datastore_quotas {
             id = 1
@@ -243,12 +234,6 @@ resource "opennebula_group" "group" {
 	tags = {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
-	}
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
 	}
 }
 `
@@ -262,7 +247,6 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    delete_on_destruction = true
     quotas {
         datastore_quotas {
             id = 1
@@ -277,12 +261,6 @@ resource "opennebula_group" "group" {
 	tags = {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
-	}
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
 	}
 }
 `
@@ -325,7 +303,6 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    delete_on_destruction = true
     quotas {
         datastore_quotas {
             id = 1
@@ -337,12 +314,6 @@ resource "opennebula_group" "group" {
             memory = 8192
         }
     }
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
-	}
 }
 
 resource "opennebula_group" "group2" {
@@ -352,13 +323,6 @@ resource "opennebula_group" "group2" {
 		group_admin_default_view = "groupadmin"
 		group_admin_views = "cloud"
 		views = "cloud"
-	}
-    delete_on_destruction = true
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
 	}
 }
 `
