@@ -90,6 +90,26 @@ func TestAccGroup(t *testing.T) {
 			{
 				Config: testAccGroupWithGroupAdmin,
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
+					resource.TestCheckResourceAttrSet("opennebula_group_admins.admins", "group_id"),
+					resource.TestCheckResourceAttr("opennebula_group_admins.admins", "users_ids.#", "1"),
+				),
+			},
+			{
+				Config: testAccGroupWithGroupAdminUserRenamed,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser_renamed"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
+					resource.TestCheckResourceAttrSet("opennebula_group_admins.admins", "group_id"),
+					resource.TestCheckResourceAttr("opennebula_group_admins.admins", "users_ids.#", "1"),
+				),
+			},
+			{
+				Config: testAccGroupWithGroupAdminGroupRenamed,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser_renamed"),
+					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup_renamed"),
 					resource.TestCheckResourceAttrSet("opennebula_group_admins.admins", "group_id"),
 					resource.TestCheckResourceAttr("opennebula_group_admins.admins", "users_ids.#", "1"),
 				),
@@ -134,6 +154,15 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 var testAccGroupUser = `
 resource "opennebula_user" "user" {
 	name          = "iamuser"
+	password      = "password"
+	auth_driver   = "core"
+	primary_group = opennebula_group.group.id
+  }
+`
+
+var testAccGroupUserRenamed = `
+resource "opennebula_user" "user" {
+	name          = "iamuser_renamed"
 	password      = "password"
 	auth_driver   = "core"
 	primary_group = opennebula_group.group.id
@@ -208,9 +237,61 @@ resource "opennebula_group" "group" {
 }
 `
 
+var testAccGroupConfigGroupRenamed = `
+resource "opennebula_group" "group" {
+    name = "iamgroup_renamed"
+	sunstone {
+		default_view = "cloud"
+		group_admin_default_view = "groupadmin"
+		group_admin_views = "cloud"
+		views = "cloud"
+	}
+    delete_on_destruction = true
+    quotas {
+        datastore_quotas {
+            id = 1
+            images = 4
+            size = 100
+        }
+        vm_quotas {
+            cpu = 4
+            memory = 8192
+        }
+    }
+	tags = {
+		testkey2 = "testvalue2"
+		testkey3 = "testvalue3"
+	}
+
+	lifecycle {
+		ignore_changes = [
+			template,
+		]
+	}
+}
+`
+
 var testAccGroupWithUser = testAccGroupConfigUpdate + testAccGroupUser
 
 var testAccGroupWithGroupAdmin = testAccGroupWithUser + `
+resource "opennebula_group_admins" "admins" {
+	group_id = opennebula_group.group.id
+	users_ids = [
+	  opennebula_user.user.id
+	]
+  }
+`
+
+var testAccGroupWithGroupAdminUserRenamed = testAccGroupConfigUpdate + testAccGroupUserRenamed + `
+resource "opennebula_group_admins" "admins" {
+	group_id = opennebula_group.group.id
+	users_ids = [
+	  opennebula_user.user.id
+	]
+  }
+`
+
+var testAccGroupWithGroupAdminGroupRenamed = testAccGroupConfigGroupRenamed + testAccGroupUserRenamed + `
 resource "opennebula_group_admins" "admins" {
 	group_id = opennebula_group.group.id
 	users_ids = [
