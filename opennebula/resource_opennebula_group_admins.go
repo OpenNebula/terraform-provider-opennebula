@@ -27,7 +27,7 @@ func resourceOpennebulaGroupAdmins() *schema.Resource {
 				Description: "Name of the group",
 			},
 			"users_ids": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "List of user IDs admins of the group",
 				Elem: &schema.Schema{
@@ -48,7 +48,7 @@ func resourceOpennebulaGroupAdminsCreate(ctx context.Context, d *schema.Resource
 	gc := controller.Group(groupID)
 
 	// add admins users_ids if list provided
-	adminsIDs := d.Get("users_ids").([]interface{})
+	adminsIDs := d.Get("users_ids").(*schema.Set).List()
 	for _, id := range adminsIDs {
 		err := gc.AddAdmin(id.(int))
 		if err != nil {
@@ -126,8 +126,8 @@ func resourceOpennebulaGroupAdminsUpdate(ctx context.Context, d *schema.Resource
 
 	oldUsersIf, newUsersIf := d.GetChange("users_ids")
 
-	oldUsers := schema.NewSet(schema.HashInt, oldUsersIf.([]interface{}))
-	newUsers := schema.NewSet(schema.HashInt, newUsersIf.([]interface{}))
+	oldUsers := schema.NewSet(schema.HashInt, oldUsersIf.(*schema.Set).List())
+	newUsers := schema.NewSet(schema.HashInt, newUsersIf.(*schema.Set).List())
 
 	// delete admins
 	remUsers := oldUsers.Difference(newUsers)
@@ -192,7 +192,7 @@ func resourceOpennebulaGroupAdminsDelete(ctx context.Context, d *schema.Resource
 	gc := controller.Group(int(groupID))
 
 	// add admins users_ids if list provided
-	adminsIDs := d.Get("users_ids").([]interface{})
+	adminsIDs := d.Get("users_ids").(*schema.Set).List()
 	for _, id := range adminsIDs {
 		err := gc.DelAdmin(id.(int))
 		if err != nil {

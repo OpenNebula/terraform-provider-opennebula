@@ -63,7 +63,7 @@ func resourceOpennebulaUser() *schema.Resource {
 				Description: "Primary (Default) Group ID of the user. Defaults to 0",
 			},
 			"groups": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "List of group IDs to add to the user",
 				Elem: &schema.Schema{
@@ -125,7 +125,7 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 		}
 		userPassword = userPassword_interface.(string)
 	}
-	userGroupLists := d.Get("groups").([]interface{})
+	userGroupLists := d.Get("groups").(*schema.Set).List()
 	userGroups := make([]int, 0, 1+len(userGroupLists))
 
 	// Start Group array with Primary group
@@ -409,8 +409,8 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 	if d.HasChange("groups") {
 		// Update secondary group list
 		oGroupsInterface, nGroupsInterface := d.GetChange("groups")
-		oGroups := oGroupsInterface.([]interface{})
-		nGroups := nGroupsInterface.([]interface{})
+		oGroups := oGroupsInterface.(*schema.Set).List()
+		nGroups := nGroupsInterface.(*schema.Set).List()
 		for _, g := range oGroups {
 			if g.(int) == d.Get("primary_group").(int) {
 				continue

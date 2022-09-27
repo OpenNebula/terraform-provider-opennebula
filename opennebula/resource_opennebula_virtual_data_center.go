@@ -38,7 +38,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 				Description: "Name of the VDC",
 			},
 			"group_ids": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Computed:    true,
 				Description: "List of Group IDs to be added into the VDC",
@@ -59,7 +59,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 							Description: "Resources Zone ID (default: 0)",
 						},
 						"host_ids": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Computed:    true,
 							Description: "List of Host IDs from the Zone to add in the VDC",
@@ -68,7 +68,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 							},
 						},
 						"datastore_ids": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Computed:    true,
 							Description: "List of Datastore IDs from the Zone to add in the VDC",
@@ -77,7 +77,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 							},
 						},
 						"vnet_ids": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Computed:    true,
 							Description: "List of VNET IDs from the Zone to add in the VDC",
@@ -86,7 +86,7 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 							},
 						},
 						"cluster_ids": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Computed:    true,
 							Description: "List of cluster IDs from the Zone to add in the VDC",
@@ -160,10 +160,10 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 	for i := 0; i < len(zones); i++ {
 		zMap := zones[i].(map[string]interface{})
 		zone_id := zMap["id"].(int)
-		hosts := zMap["host_ids"].([]interface{})
-		datastores := zMap["datastore_ids"].([]interface{})
-		clusters := zMap["cluster_ids"].([]interface{})
-		vnets := zMap["vnet_ids"].([]interface{})
+		hosts := zMap["host_ids"].(*schema.Set).List()
+		datastores := zMap["datastore_ids"].(*schema.Set).List()
+		clusters := zMap["cluster_ids"].(*schema.Set).List()
+		vnets := zMap["vnet_ids"].(*schema.Set).List()
 
 		// Add Hosts from the zone
 		for j := 0; j < len(hosts); j++ {
@@ -217,7 +217,7 @@ func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.Re
 
 	// add groups if list provided
 	if groupids, ok := d.GetOk("group_ids"); ok {
-		grouplist := groupids.([]interface{})
+		grouplist := groupids.(*schema.Set).List()
 		for i := 0; i < len(grouplist); i++ {
 			err = vdcc.AddGroup(grouplist[i].(int))
 			if err != nil {
@@ -336,8 +336,8 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 
 	if d.HasChange("group_ids") {
 		ogroups, ngroups := d.GetChange("group_ids")
-		ogrouplist := ogroups.([]interface{})
-		ngrouplist := ngroups.([]interface{})
+		ogrouplist := ogroups.(*schema.Set).List()
+		ngrouplist := ngroups.(*schema.Set).List()
 
 		addgroup, delgroup := getAddDelIntList(ngrouplist, ogrouplist)
 
@@ -378,10 +378,10 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 			ozMap := ozone.(map[string]interface{})
 			// This is an old zone id to delete
 			zone_id := ozMap["id"].(int)
-			hosts := ozMap["host_ids"].([]interface{})
-			datastores := ozMap["datastore_ids"].([]interface{})
-			clusters := ozMap["cluster_ids"].([]interface{})
-			vnets := ozMap["vnet_ids"].([]interface{})
+			hosts := ozMap["host_ids"].(*schema.Set).List()
+			datastores := ozMap["datastore_ids"].(*schema.Set).List()
+			clusters := ozMap["cluster_ids"].(*schema.Set).List()
+			vnets := ozMap["vnet_ids"].(*schema.Set).List()
 
 			// Delete Hosts for the zone
 			for j := 0; j < len(hosts); j++ {
@@ -438,10 +438,10 @@ func resourceOpennebulaVirtualDataCenterUpdate(ctx context.Context, d *schema.Re
 			nzMap := nzone.(map[string]interface{})
 			// This is a new zone id
 			zone_id := nzMap["id"].(int)
-			hosts := nzMap["host_ids"].([]interface{})
-			datastores := nzMap["datastore_ids"].([]interface{})
-			clusters := nzMap["cluster_ids"].([]interface{})
-			vnets := nzMap["vnet_ids"].([]interface{})
+			hosts := nzMap["host_ids"].(*schema.Set).List()
+			datastores := nzMap["datastore_ids"].(*schema.Set).List()
+			clusters := nzMap["cluster_ids"].(*schema.Set).List()
+			vnets := nzMap["vnet_ids"].(*schema.Set).List()
 
 			// Add Hosts from the zone
 			for j := 0; j < len(hosts); j++ {

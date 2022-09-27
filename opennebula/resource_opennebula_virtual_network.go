@@ -133,7 +133,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				},
 			},
 			"clusters": {
-				Type:          schema.TypeList,
+				Type:          schema.TypeSet,
 				Optional:      true,
 				Computed:      true,
 				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
@@ -253,7 +253,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
 			},
 			"security_groups": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Computed:    true,
 				Description: "List of Security Group IDs to be applied to the VNET",
@@ -605,7 +605,7 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 
 	// Set Security Groups
 	if securitygroups, ok := d.GetOk("security_groups"); ok {
-		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
+		secgrouplist := ArrayToString(securitygroups.(*schema.Set).List(), ",")
 
 		err := vnc.Update(fmt.Sprintf("SECURITY_GROUPS=\"%s\"", secgrouplist), 1)
 		if err != nil {
@@ -827,7 +827,7 @@ func getVnetClustersValue(d *schema.ResourceData) []int {
 	var result = make([]int, 0)
 
 	if clusters, ok := d.GetOk("clusters"); ok {
-		clusterList := clusters.([]interface{})
+		clusterList := clusters.(*schema.Set).List()
 		for i := 0; i < len(clusterList); i++ {
 			result = append(result, clusterList[i].(int))
 		}
