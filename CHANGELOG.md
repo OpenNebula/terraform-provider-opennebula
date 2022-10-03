@@ -1,3 +1,9 @@
+# 1.1.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `opennebula_cluster` (#227)
+
 # 1.0.1 (October 3rd, 2022)
 
 BUG FIXES:
