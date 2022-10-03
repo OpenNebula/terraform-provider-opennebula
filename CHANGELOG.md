@@ -1,4 +1,4 @@
-# 1.0.1 (unreleased)
+# 1.0.1 (October 3rd, 2022)
 
 BUG FIXES:
 
@@ -7,10 +7,10 @@ BUG FIXES:
 
 ENHANCEMENTS:
 
-* resources/opennebula_group_admins: Replace Typelist by Typeset on `users_ids`
-* resources/opennebula_user: Replace Typelist by Typeset on `groups`
-* resources/opennebula_virtual_data_center: Replace Typelist by Typeset on `group_ids`, `host_ids`, `datastore_ids`, `vnet_ids`, `cluster_ids`
-* resources/opennebula_network: Replace Typelist by Typeset on `clusters`, `security_groups`
+* resources/opennebula_group_admins: Replace Typelist by Typeset on `users_ids` (#352)
+* resources/opennebula_user: Replace Typelist by Typeset on `groups` (#352)
+* resources/opennebula_virtual_data_center: Replace Typelist by Typeset on `group_ids`, `host_ids`, `datastore_ids`, `vnet_ids`, `cluster_ids` (#352)
+* resources/opennebula_network: Replace Typelist by Typeset on `clusters`, `security_groups` (#352)
 
 ## 1.0.0 (September 19th, 2022)
 
