@@ -76,6 +76,7 @@ func Provider() *schema.Provider {
 			"opennebula_virtual_network":       dataOpennebulaVirtualNetwork(),
 			"opennebula_virtual_machine_group": dataOpennebulaVMGroup(),
 			"opennebula_host":                  dataOpennebulaHost(),
+			"opennebula_datastore":             dataOpennebulaDatastore(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -99,6 +100,7 @@ func Provider() *schema.Provider {
 			"opennebula_virtual_network_address_range":    resourceOpennebulaVirtualNetworkAddressRange(),
 			"opennebula_cluster":                          resourceOpennebulaCluster(),
 			"opennebula_host":                             resourceOpennebulaHost(),
+			"opennebula_datastore":                        resourceOpennebulaDatastore(),
 		},
 
 		ConfigureContextFunc: providerConfigure,

@@ -3,6 +3,8 @@
 FEATURES:
 
 * **New Resource**: `opennebula_cluster` (#227)
+* **New Resource**: `opennebula_datastore` (#299)
+* **New Data Source**: `opennebula_datastore` (#299)
 * resources/opennebula_cluster: add `template_section` to manage vectors with an unique key (#359)
 * resources/opennebula_group: add `template_section` to manage vectors with an unique key (#359)
 * resources/opennebula_image: add `template_section` to manage vectors with an unique key (#359)
