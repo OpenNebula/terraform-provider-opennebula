@@ -424,8 +424,48 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	d.Set("gid", tpl.GID)
 	d.Set("uname", tpl.UName)
 	d.Set("gname", tpl.GName)
+	d.Set("group", tpl.GName)
 	d.Set("reg_time", tpl.RegTime)
+	d.Set("description", "")
+	d.Set("sched_requirements", "")
 	d.Set("permissions", permissionsUnixString(*tpl.Permissions))
+
+	getTags := make(map[string]interface{}, 0)
+	for k, v := range pairsToMap(tpl.Template.Template) {
+		if k != "MEMORY" && k != "CPU" && k != "VCPU" && k != "VROUTER" && k != "DESCRIPTION" && k != "SCHED_REQUIREMENTS" {
+			getTags[strings.ToLower(k)] = v
+		}
+	}
+	d.Set("tags", getTags)
+
+	for _, value := range tpl.Template.Elements {
+		if pair, ok := value.(*dyn.Pair); ok {
+			switch pair.XMLName.Local {
+			case "DESCRIPTION", "SCHED_REQUIREMENTS":
+				d.Set(strings.ToLower(pair.XMLName.Local), pair.Value)
+			}
+		}
+		if vector, ok := value.(*dyn.Vector); ok {
+			getOS := make(map[string]interface{}, 0)
+			switch vector.XMLName.Local {
+			case "OS", "FEATURES", "GRAPHICS", "CPU_MODEL":
+				for _, pair := range vector.Pairs {
+					getOS[strings.ToLower(pair.XMLName.Local)] = pair.Value
+				}
+				d.Set(strings.Replace(strings.ToLower(vector.XMLName.Local), "_", "", -1), append(make([]interface{}, 0), getOS))
+			case "CONTEXT":
+				for _, pair := range vector.Pairs {
+					switch pair.XMLName.Local {
+					case "SET_HOSTNAME", "NETWORK":
+						getOS[pair.XMLName.Local] = pair.Value
+					default:
+						getOS[strings.ToLower(pair.XMLName.Local)] = pair.Value
+					}
+				}
+				d.Set(strings.ToLower(vector.XMLName.Local), getOS)
+			}
+		}
+	}
 
 	err = flattenTemplateDisks(d, &tpl.Template)
 	if err != nil {

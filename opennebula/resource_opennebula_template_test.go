@@ -25,6 +25,8 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "0.5"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "memory", "512"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
@@ -32,6 +34,9 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.dns_hostname", "yes"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.NETWORK", "YES"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -56,12 +61,19 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccTemplateCPUModel,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl-cpumodel"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "0.5"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "memory", "512"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
@@ -69,6 +81,9 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.dns_hostname", "yes"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.NETWORK", "YES"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
@@ -89,12 +104,19 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccTemplateConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "642"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "memory", "768"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
@@ -102,6 +124,9 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.dns_hostname", "yes"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.NETWORK", "YES"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -125,12 +150,19 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccTemplateConfigDelete,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terratplupdate"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "642"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "memory", "768"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
@@ -138,6 +170,9 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.dns_hostname", "yes"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "context.NETWORK", "YES"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -153,6 +188,11 @@ func TestAccTemplate(t *testing.T) {
 						OtherM: 1,
 					}),
 				),
+			},
+			{
+				ResourceName:      "opennebula_template.template",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -233,7 +273,7 @@ resource "opennebula_template" "template" {
 
   context = {
     dns_hostname = "yes"
-    network = "YES"
+    NETWORK = "YES"
   }
 
   graphics {
@@ -273,7 +313,7 @@ resource "opennebula_template" "template" {
 
   context = {
     dns_hostname = "yes"
-    network = "YES"
+    NETWORK = "YES"
   }
 
   graphics {
@@ -319,7 +359,7 @@ resource "opennebula_template" "template" {
 
   context = {
 	dns_hostname = "yes"
-	network = "YES"
+	NETWORK = "YES"
   }
 
   graphics {
@@ -356,7 +396,7 @@ resource "opennebula_template" "template" {
 
   context = {
 	dns_hostname = "yes"
-	network = "YES"
+	NETWORK = "YES"
   }
 
   graphics {

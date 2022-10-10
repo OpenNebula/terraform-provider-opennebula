@@ -231,7 +231,7 @@ resource "opennebula_virtual_router_instance_template" "test" {
 
 	context = {
 	  dns_hostname = "yes"
-	  network = "YES"
+	  NETWORK = "YES"
 	}
 
 	graphics {

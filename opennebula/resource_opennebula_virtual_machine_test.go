@@ -2028,7 +2028,7 @@ resource "opennebula_template" "template" {
 
   context = {
 	dns_hostname = "yes"
-	network = "YES"
+	NETWORK = "YES"
   }
 
   graphics {
