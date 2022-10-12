@@ -45,6 +45,12 @@ func TestAccGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey1", "testvalue1"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
+					}),
 				),
 			},
 			{
@@ -76,6 +82,12 @@ func TestAccGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey3", "testvalue3"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey2": "testvalue2",
+						"elements.testkey3": "testvalue3",
+					}),
 				),
 			},
 			{
@@ -92,6 +104,12 @@ func TestAccGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey3", "testvalue3"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey2": "testvalue2",
+						"elements.testkey3": "testvalue3",
+					}),
 				),
 			},
 			{
@@ -132,6 +150,7 @@ func TestAccGroup(t *testing.T) {
 						"views":                    "cloud",
 					}),
 					resource.TestCheckResourceAttr("opennebula_group.group2", "tags.%", "0"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "template_section.#", "0"),
 				),
 			},
 		},
@@ -204,6 +223,14 @@ resource "opennebula_group" "group" {
 		testkey1 = "testvalue1"
 		testkey2 = "testvalue2"
 	}
+
+	template_section {
+		name = "test_vec_key"
+		elements = {
+			testkey1 = "testvalue1"
+			testkey2 = "testvalue2"
+		}
+	}
 }
 `
 
@@ -235,6 +262,14 @@ resource "opennebula_group" "group" {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
 	}
+
+	template_section {
+		name = "test_vec_key"
+		elements = {
+			testkey2 = "testvalue2"
+			testkey3 = "testvalue3"
+		}
+	}
 }
 `
 
@@ -261,6 +296,14 @@ resource "opennebula_group" "group" {
 	tags = {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
+	}
+
+	template_section {
+		name = "test_vec_key"
+		elements = {
+			testkey2 = "testvalue2"
+			testkey3 = "testvalue3"
+		}
 	}
 }
 `

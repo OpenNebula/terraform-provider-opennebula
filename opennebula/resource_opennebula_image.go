@@ -185,9 +185,10 @@ func resourceOpennebulaImage() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Image, If empty, it uses caller group",
 			},
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -520,6 +521,16 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 		d.Set("type", image.Type)
 	}
 
+	err = flattenTemplateSection(d, meta, &image.Template.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 	for i, _ := range image.Template.Elements {
@@ -751,6 +762,13 @@ func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, 
 		update = true
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &tpl.Template)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")
@@ -942,6 +960,11 @@ func generateImageTemplate(d *schema.ResourceData, meta interface{}) (string, er
 
 	if val, ok := d.GetOk("target"); ok {
 		tpl.Add(imk.Target, val.(string))
+	}
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})

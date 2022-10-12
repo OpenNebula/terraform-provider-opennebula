@@ -56,6 +56,13 @@ resource "opennebula_virtual_network" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -89,6 +96,7 @@ The following arguments are supported:
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Network tags (Key = Value).
 * `lock` - (Optional) Lock the virtual network with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Address Range parameters
 
@@ -102,6 +110,13 @@ The following arguments are supported:
 * `global_prefix` - (Optional) Global prefix for `IP6` or `IP_4_6`.
 * `ula_prefix` - (Optional) ULA prefix for `IP6` or `IP_4_6`.
 * `prefix_length` - (Optional) Prefix length. Only needed for `IP6_STATIC` or `IP4_6_STATIC`
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

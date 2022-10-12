@@ -136,9 +136,10 @@ func resourceOpennebulaGroup() *schema.Resource {
 					},
 				},
 			},
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -256,6 +257,11 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 	if len(opennebula) > 0 {
 		opennebulaVec := makeOpenNebulaVec(opennebula[0].(map[string]interface{}))
 		tpl.Elements = append(tpl.Elements, opennebulaVec)
+	}
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
@@ -504,6 +510,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 
 	}
 
+	err := flattenTemplateSection(d, meta, groupTpl)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -614,6 +625,11 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 			opennebulaVec := makeOpenNebulaVec(opennebula[0].(map[string]interface{}))
 			newTpl.Elements = append(newTpl.Elements, opennebulaVec)
 		}
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl)
 
 		update = true
 	}

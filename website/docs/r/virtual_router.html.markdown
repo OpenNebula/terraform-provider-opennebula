@@ -26,6 +26,13 @@ resource "opennebula_virtual_router" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -39,6 +46,14 @@ The following arguments are supported:
 * `group` - (Optional) Name of the group which owns the virtual router. Defaults to the caller primary group.
 * `description` - (Optional) Description of the virtual router.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

@@ -3,6 +3,18 @@
 FEATURES:
 
 * **New Resource**: `opennebula_cluster` (#227)
+* resources/opennebula_cluster: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_group: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_image: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_security_group: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_template: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_vm_group: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_user: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_machine: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_network: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_router: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_router_instance: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_router_instance_template: add `template_section` to manage vectors with an unique key (#359)
 
 DEPRECATION:
 

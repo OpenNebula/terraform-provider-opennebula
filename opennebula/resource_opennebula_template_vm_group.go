@@ -135,9 +135,10 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template VM Group, If empty, it uses caller group",
 			},
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -322,6 +323,12 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, tpl)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -494,6 +501,13 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 		update = true
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")
@@ -604,6 +618,11 @@ func generateVMGroup(d *schema.ResourceData, meta interface{}) (*dyn.Template, e
 	tpl.AddPair("NAME", d.Get("name").(string))
 
 	generateVMGroupRoles(d, tpl)
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
+	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {

@@ -69,6 +69,13 @@ resource "opennebula_virtual_machine" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -99,6 +106,7 @@ The following arguments are supported:
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
 * `hard_shutdown` - (Optional) If the VM doesn't have ACPI support, it immediately poweroff/terminate/reboot/undeploy the VM. Defaults to false.
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Graphics parameters
 
@@ -153,6 +161,13 @@ A NIC update will be triggered in adding or removing a `nic` section, or by a mo
 
 * `vmgroup_id` - (Required) ID of the VM group to use.
 * `role` - (Required) role of the VM group to use.
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

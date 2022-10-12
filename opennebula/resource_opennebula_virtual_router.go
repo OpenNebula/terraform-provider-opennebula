@@ -95,10 +95,11 @@ func resourceOpennebulaVirtualRouter() *schema.Resource {
 				Optional:    true,
 				Description: "A description of the entity",
 			},
-			"lock":         lockSchema(),
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"lock":             lockSchema(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -275,6 +276,17 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 	}
 
 	config := meta.(*Configuration)
+
+	err = flattenTemplateSection(d, meta, &vr.Template.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -465,6 +477,13 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 		newTpl.Add("DESCRIPTION", d.Get("description").(string))
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl.Template)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")
@@ -570,6 +589,11 @@ func generateVirtualRouter(d *schema.ResourceData, meta interface{}) string {
 	descr, ok := d.GetOk("description")
 	if ok {
 		tpl.Add("DESCRIPTION", descr.(string))
+	}
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})

@@ -57,9 +57,10 @@ func resourceOpennebulaCluster() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -150,6 +151,11 @@ func resourceOpennebulaClusterCreate(ctx context.Context, d *schema.ResourceData
 	// template management
 
 	tpl := dyn.NewTemplate()
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
+	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
@@ -278,6 +284,11 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 
 func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl *cluster.Template) error {
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, &clusterTpl.Template)
+	if err != nil {
+		return err
+	}
 
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
@@ -490,6 +501,13 @@ func resourceOpennebulaClusterUpdate(ctx context.Context, d *schema.ResourceData
 				return diags
 			}
 		}
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl.Template)
+
+		update = true
 	}
 
 	if d.HasChange("tags") {
