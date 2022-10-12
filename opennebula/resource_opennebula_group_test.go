@@ -32,11 +32,16 @@ func TestAccGroup(t *testing.T) {
 						"vm_quotas.0.cpu":           "4",
 						"vm_quotas.0.memory":        "8192",
 					}),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.0.%", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
 						"group_admin_default_view": "groupadmin",
 						"group_admin_views":        "groupadmin",
 						"views":                    "cloud",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "opennebula.*", map[string]string{
+						"default_image_persistent": "YES",
+						"api_list_order":           "ASC",
 					}),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey1", "testvalue1"),
@@ -60,11 +65,15 @@ func TestAccGroup(t *testing.T) {
 						"vm_quotas.0.cpu":           "4",
 						"vm_quotas.0.memory":        "8192",
 					}),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.0.%", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
 						"group_admin_default_view": "groupadmin",
 						"group_admin_views":        "cloud",
 						"views":                    "cloud",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "opennebula.*", map[string]string{
+						"api_list_order": "DESC",
 					}),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
@@ -178,6 +187,10 @@ resource "opennebula_group" "group" {
       group_admin_views = "groupadmin"
       views = "cloud"
 	}
+	opennebula {
+	  default_image_persistent = "YES"
+	  api_list_order = "ASC"
+	}
     delete_on_destruction = false
     quotas {
         datastore_quotas {
@@ -211,6 +224,9 @@ resource "opennebula_group" "group" {
 		group_admin_default_view = "groupadmin"
 		group_admin_views = "cloud"
 		views = "cloud"
+	}
+	opennebula {
+		api_list_order = "DESC"
 	}
     delete_on_destruction = true
     quotas {

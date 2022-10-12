@@ -65,6 +65,7 @@ The following arguments are supported:
 * `admins` - (Optional) List of Administrator user IDs part of the group.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
 * `sunstone` - (Optional) Allow users and group admins to access specific views. See [Sunstone parameters](#sunstone-parameters) below for details
+* `opennebula` - (Optional) OpenNebula core configuration. See [Opennebula parameters](#opennebula-parameters) below for details
 * `tags` - (Optional) Group tags (Key = value)
 
 ### Quotas parameters
@@ -112,10 +113,16 @@ The following arguments are supported:
 
 #### Sunstone parameters
 
-* `default_view` - (Optional) Default Sunstone view for regular users
-* `views` - (Optional) List of available views for regular users
-* `group_admin_default_view` - (Optional) Default Sunstone view for group admin users
-* `group_admin_views` - (Optional) List of available views for the group admins
+* `default_view` - (Optional) Default Sunstone view for regular users.
+* `views` - (Optional) List of available views for regular users.
+* `group_admin_default_view` - (Optional) Default Sunstone view for group admin users.
+* `group_admin_views` - (Optional) List of available views for the group admins.
+
+#### Opennebula parameters
+
+* `default_image_persistent` - (Optional) Control the default value for the `persistent` attribute on image creation ( clone and disk save-as).
+* `default_image_persistent_new` - (Optional) Control the default value for the `persistent` attribute on image creation ( only new images).
+* `api_list_order` - (Optional) Sets order of elements by ID in list API calls: asc or desc respectively for ascending or descending order.
 
 ## Attribute Reference
 

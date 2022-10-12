@@ -16,6 +16,9 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 )
 
+var apiListOrder = []string{"ASC", "DESC"}
+var yesNo = []string{"YES", "NO"}
+
 func resourceOpennebulaGroup() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaGroupCreate,
@@ -92,6 +95,58 @@ func resourceOpennebulaGroup() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "List of available views for the group admins",
+						},
+					},
+				},
+				ConflictsWith: []string{"template"},
+			},
+			"opennebula": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "OpenNebula core configuration",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"default_image_persistent": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Control the default value for the PERSISTENT attribute on image creation ( clone and disk save-as): should be YES or NO",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+
+								if inArray(value, yesNo) < 0 {
+									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
+								}
+
+								return
+							},
+						},
+						"default_image_persistent_new": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Control the default value for the PERSISTENT attribute on image creation ( only new images): should be YES or NO",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+
+								if inArray(value, yesNo) < 0 {
+									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
+								}
+
+								return
+							},
+						},
+						"api_list_order": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Sets order of elements by ID in list API calls: ASC or DESC respectively for ascending or descending order",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+
+								if inArray(value, apiListOrder) < 0 {
+									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
+								}
+
+								return
+							},
 						},
 					},
 				},
@@ -231,6 +286,12 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 		tpl.Elements = append(tpl.Elements, sunstoneVec)
 	}
 
+	opennebula := d.Get("opennebula").(*schema.Set).List()
+	if len(opennebula) > 0 {
+		opennebulaVec := makeOpenNebulaVec(opennebula[0].(map[string]interface{}))
+		tpl.Elements = append(tpl.Elements, opennebulaVec)
+	}
+
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
@@ -287,6 +348,30 @@ func makeSunstoneVec(sunstoneConfig map[string]interface{}) *dyn.Vector {
 	groupAdminViews := sunstoneConfig["group_admin_views"].(string)
 	if len(groupAdminViews) > 0 {
 		vector.AddPair("GROUP_ADMIN_VIEWS", groupAdminViews)
+	}
+
+	return &vector
+}
+
+func makeOpenNebulaVec(openNebulaConfig map[string]interface{}) *dyn.Vector {
+
+	vector := dyn.Vector{
+		XMLName: xml.Name{Local: "OPENNEBULA"},
+	}
+
+	defaultImagePersistent := openNebulaConfig["default_image_persistent"].(string)
+	if len(defaultImagePersistent) > 0 {
+		vector.AddPair("DEFAULT_IMAGE_PERSISTENT", strings.ToUpper(defaultImagePersistent))
+	}
+
+	defaultImagePersistentNew := openNebulaConfig["default_image_persistent_new"].(string)
+	if len(defaultImagePersistentNew) > 0 {
+		vector.AddPair("DEFAULT_IMAGE_PERSISTENT_NEW", strings.ToUpper(defaultImagePersistentNew))
+	}
+
+	apiListOrder := openNebulaConfig["api_list_order"].(string)
+	if len(apiListOrder) > 0 {
+		vector.AddPair("API_LIST_ORDER", strings.ToUpper(apiListOrder))
 	}
 
 	return &vector
@@ -401,21 +486,52 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 		case *dyn.Vector:
 			switch e.Key() {
 			case "SUNSTONE":
-				defaultView, _ := e.GetStr("DEFAULT_VIEW")
-				views, _ := e.GetStr("VIEWS")
-				groupAdminDefaultView, _ := e.GetStr("GROUP_ADMIN_DEFAULT_VIEW")
-				groupAdminViews, _ := e.GetStr("GROUP_ADMIN_VIEWS")
+				sunstoneConfig := make(map[string]interface{})
 
-				sunstoneConfig := []map[string]interface{}{
-					{
-						"default_view":             defaultView,
-						"views":                    views,
-						"group_admin_default_view": groupAdminDefaultView,
-						"group_admin_views":        groupAdminViews,
-					},
+				defaultView, _ := e.GetStr("DEFAULT_VIEW")
+				if len(defaultView) > 0 {
+					sunstoneConfig["default_view"] = defaultView
 				}
 
-				err := d.Set("sunstone", sunstoneConfig)
+				views, _ := e.GetStr("VIEWS")
+				if len(views) > 0 {
+					sunstoneConfig["views"] = views
+				}
+
+				groupAdminDefaultView, _ := e.GetStr("GROUP_ADMIN_DEFAULT_VIEW")
+				if len(groupAdminDefaultView) > 0 {
+					sunstoneConfig["group_admin_default_view"] = groupAdminDefaultView
+				}
+
+				groupAdminViews, _ := e.GetStr("GROUP_ADMIN_VIEWS")
+				if len(groupAdminViews) > 0 {
+					sunstoneConfig["group_admin_views"] = groupAdminViews
+				}
+
+				err := d.Set("sunstone", []interface{}{sunstoneConfig})
+				if err != nil {
+					return err
+				}
+			case "OPENNEBULA":
+
+				opennebulaConfig := make(map[string]interface{})
+
+				defaultImagePersistent, _ := e.GetStr("DEFAULT_IMAGE_PERSISTENT")
+				if len(defaultImagePersistent) > 0 {
+					opennebulaConfig["default_image_persistent"] = defaultImagePersistent
+				}
+
+				defaultImagePersistentNew, _ := e.GetStr("DEFAULT_IMAGE_PERSISTENT_NEW")
+				if len(defaultImagePersistentNew) > 0 {
+					opennebulaConfig["default_image_persistent_new"] = defaultImagePersistentNew
+				}
+
+				APIListOrder, _ := e.GetStr("API_LIST_ORDER")
+				if len(APIListOrder) > 0 {
+					opennebulaConfig["api_list_order"] = APIListOrder
+				}
+
+				err := d.Set("opennebula", []interface{}{opennebulaConfig})
 				if err != nil {
 					return err
 				}
@@ -538,6 +654,18 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 		if len(sunstone) > 0 {
 			sunstoneVec := makeSunstoneVec(sunstone[0].(map[string]interface{}))
 			newTpl.Elements = append(newTpl.Elements, sunstoneVec)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("opennebula") {
+		newTpl.Del("OPENNEBULA")
+
+		opennebula := d.Get("opennebula").(*schema.Set).List()
+		if len(opennebula) > 0 {
+			opennebulaVec := makeOpenNebulaVec(opennebula[0].(map[string]interface{}))
+			newTpl.Elements = append(newTpl.Elements, opennebulaVec)
 		}
 
 		update = true

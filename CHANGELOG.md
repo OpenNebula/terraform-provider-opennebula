@@ -1,3 +1,9 @@
+# 1.0.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_group: Add `opennebula` section (#358)
+
 # 1.0.1 (October 3rd, 2022)
 
 BUG FIXES:
