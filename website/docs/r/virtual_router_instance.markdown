@@ -69,6 +69,13 @@ resource "opennebula_virtual_router_instance" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test1"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -133,6 +140,13 @@ A disk update will be triggered in adding or removing a `disk` section, or by a 
 
 * `vmgroup_id` - (Required) ID of the VM group to use.
 * `role` - (Required) role of the VM group to use.
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

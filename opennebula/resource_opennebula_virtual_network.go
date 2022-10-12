@@ -266,10 +266,11 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
-			"lock":         lockSchema(),
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"lock":             lockSchema(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -765,6 +766,11 @@ func generateVnTemplate(d *schema.ResourceData, meta interface{}) (string, error
 		tpl.Add("DESCRIPTION", desc.(string))
 	}
 
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
+	}
+
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
@@ -1020,6 +1026,12 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, &vnTpl.Template)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -1225,6 +1237,13 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		securitygroups := d.Get("security_groups")
 		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
 		tpl.Add(vnk.SecGroups, secgrouplist)
+		changes = true
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &tpl.Template)
+
 		changes = true
 	}
 

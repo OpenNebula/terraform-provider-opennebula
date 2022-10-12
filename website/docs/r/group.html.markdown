@@ -52,6 +52,14 @@ resource "opennebula_group" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
+
 }
 ```
 
@@ -65,6 +73,7 @@ The following arguments are supported:
 * `sunstone` - (Optional) Allow users and group admins to access specific views. See [Sunstone parameters](#sunstone-parameters) below for details
 * `opennebula` - (Optional) OpenNebula core configuration. See [Opennebula parameters](#opennebula-parameters) below for details
 * `tags` - (Optional) Group tags (Key = value)
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Quotas parameters
 
@@ -109,7 +118,7 @@ The following arguments are supported:
 * `running_vms` - (Optional) Number of Virtual Machines allowed in `RUNNING` state. Defaults to `default quota`.
 * `system_disk_size` - (Optional) Maximum disk global size (in MB) allowed on a `SYSTEM` datastore. Defaults to `default quota`.
 
-#### Sunstone parameters
+### Sunstone parameters
 
 * `default_view` - (Optional) Default Sunstone view for regular users.
 * `views` - (Optional) List of available views for regular users.
@@ -121,6 +130,13 @@ The following arguments are supported:
 * `default_image_persistent` - (Optional) Control the default value for the `persistent` attribute on image creation ( clone and disk save-as).
 * `default_image_persistent_new` - (Optional) Control the default value for the `persistent` attribute on image creation ( only new images).
 * `api_list_order` - (Optional) Sets order of elements by ID in list API calls: asc or desc respectively for ascending or descending order.
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

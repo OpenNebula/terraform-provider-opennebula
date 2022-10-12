@@ -53,6 +53,12 @@ func TestAccTemplate(t *testing.T) {
 						GroupU: 1,
 						GroupM: 1,
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_template.template", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
+					}),
 				),
 			},
 			{
@@ -85,6 +91,12 @@ func TestAccTemplate(t *testing.T) {
 						OwnerM: 1,
 						GroupU: 1,
 						GroupM: 1,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_template.template", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
 					}),
 				),
 			},
@@ -122,6 +134,12 @@ func TestAccTemplate(t *testing.T) {
 						GroupU: 1,
 						OtherM: 1,
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_template.template", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey2": "testvalue2",
+						"elements.testkey3": "testvalue3",
+					}),
 				),
 			},
 			{
@@ -151,6 +169,11 @@ func TestAccTemplate(t *testing.T) {
 						OwnerM: 1,
 						GroupU: 1,
 						OtherM: 1,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_template.template", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "1",
+						"elements.testkey3": "testvalue3",
 					}),
 				),
 			},
@@ -258,6 +281,14 @@ resource "opennebula_template" "template" {
 	BLOG_TITLE="M|text|Blog Title"
   }
 
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey1 = "testvalue1"
+		testkey2 = "testvalue2"
+	}
+  }
+
 }
 `
 
@@ -297,6 +328,14 @@ resource "opennebula_template" "template" {
   }
 
   sched_requirements = "FREE_CPU > 50"
+
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey1 = "testvalue1"
+		testkey2 = "testvalue2"
+	}
+  }
 
 }
 `
@@ -341,6 +380,14 @@ resource "opennebula_template" "template" {
 
   sched_requirements = "CLUSTER_ID!=\"123\""
 
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey2 = "testvalue2"
+		testkey3 = "testvalue3"
+	}
+  }
+
 }
 `
 
@@ -373,6 +420,13 @@ resource "opennebula_template" "template" {
   tags = {
     env = "dev"
     customer = "test"
+  }
+
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey3 = "testvalue3"
+	}
   }
 }
 `

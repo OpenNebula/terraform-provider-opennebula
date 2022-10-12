@@ -787,6 +787,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl.Template)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")

@@ -56,6 +56,13 @@ resource "opennebula_user" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -70,6 +77,7 @@ The following arguments are supported:
 * `groups` - (Optional) List of secondary groups ID of the user.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
 * `tags` - (Optional) Group tags (Key = value)
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Quotas parameters
 
@@ -113,6 +121,13 @@ The following arguments are supported:
 * `running_memory` - (Optional) Virtual Machine Memory (in MB) allowed in `RUNNING` state. Defaults to `default quota`.
 * `running_vms` - (Optional) Number of Virtual Machines allowed in `RUNNING` state. Defaults to `default quota`.
 * `system_disk_size` - (Optional) Maximum disk global size (in MB) allowed on a `SYSTEM` datastore. Defaults to `default quota`.
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

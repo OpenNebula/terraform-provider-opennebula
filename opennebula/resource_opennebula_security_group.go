@@ -167,9 +167,10 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 				ConflictsWith: []string{"gid"},
 				Description:   "Name of the Group that onws the Security Group, If empty, it uses caller group",
 			},
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -291,6 +292,11 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *securitygroup.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, &sgTpl.Template)
+	if err != nil {
+		return err
+	}
 
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
@@ -465,6 +471,13 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 		tpl.Del((string(sgk.RuleVec)))
 		generateSecurityGroupRules(d, tpl)
 		rulesUpdate = true
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &tpl.Template)
+
+		update = true
 	}
 
 	if d.HasChange("tags") {
@@ -682,6 +695,11 @@ func generateSecurityGroupTemplate(d *schema.ResourceData, meta interface{}) str
 	description := d.Get("description").(string)
 	if len(description) > 0 {
 		tpl.Add(sgk.Description, description)
+	}
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})

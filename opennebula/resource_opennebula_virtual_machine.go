@@ -1251,6 +1251,13 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		update = true
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &tpl.Template)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")

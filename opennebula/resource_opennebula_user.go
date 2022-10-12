@@ -70,10 +70,11 @@ func resourceOpennebulaUser() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"quotas":       quotasSchema(),
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"quotas":           quotasSchema(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -171,6 +172,11 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	tpl := dyn.NewTemplate()
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
+	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
@@ -315,6 +321,12 @@ func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
 func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, userTpl)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -492,6 +504,13 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 
 	update := false
 	newTpl := userInfos.Template
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl)
+
+		update = true
+	}
 
 	if d.HasChange("tags") {
 

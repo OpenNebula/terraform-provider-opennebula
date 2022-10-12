@@ -29,6 +29,14 @@ resource "opennebula_cluster" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    tag1 = "value1"
+	  }
+  }
+
 }
 ```
 
@@ -41,6 +49,14 @@ The following arguments are supported:
 * `datastores` - (Optional) List of hosts user IDs part of the cluster.
 * `virtual_networks` - (Optional) List of hosts user IDs part of the cluster.
 * `tags` - (Optional) Cluster tags (Key = value)
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 
