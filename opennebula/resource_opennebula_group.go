@@ -104,6 +104,26 @@ func resourceOpennebulaGroup() *schema.Resource {
 			}(),
 			"default_tags": defaultTagsSchemaComputed(),
 			"tags_all":     tagsSchemaComputed(),
+			"template_section": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Add custom section to the resource",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"tags": {
+							Type:     schema.TypeMap,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -229,6 +249,18 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 	if len(sunstone) > 0 {
 		sunstoneVec := makeSunstoneVec(sunstone[0].(map[string]interface{}))
 		tpl.Elements = append(tpl.Elements, sunstoneVec)
+	}
+
+	vectorsInterface := d.Get("template_section").([]interface{})
+	for _, vectorIf := range vectorsInterface {
+		vector := vectorIf.(map[string]interface{})
+		vecName := strings.ToUpper(vector["name"].(string))
+		vecTags := vector["tags"].(map[string]interface{})
+
+		vec := tpl.AddVector(strings.ToUpper(vecName))
+		for k, v := range vecTags {
+			vec.AddPair(k, v)
+		}
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
@@ -427,6 +459,33 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 
 	}
 
+	vectors := make([]interface{}, 0)
+	if vectorsInterface, ok := d.GetOk("template_section"); ok {
+		for _, vectorIf := range vectorsInterface.([]interface{}) {
+			vector := vectorIf.(map[string]interface{})
+			vecName := vector["name"].(string)
+			//vecTags := vector["tags"].(map[string]interface{})
+
+			// XXX expect only one vector here
+			vectorTpl, err := groupTpl.GetVector(vecName)
+			if err != nil {
+				continue
+			}
+
+			for _, pair := range vectorTpl.Pairs {
+				vector[pair.Key()] = pair.Value
+			}
+
+			vectors = append(vectors, vector)
+		}
+
+		err := d.Set("template_section", vectors)
+		if err != nil {
+			return err
+		}
+
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -541,6 +600,43 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 		}
 
 		update = true
+	}
+
+	if d.HasChange("template_section") {
+		oldVectorsIf, newVectorsIf := d.GetChange("template_section")
+		oldVectors := oldVectorsIf.([]interface{})
+		newVectors := newVectorsIf.([]interface{})
+
+		// XXX suppose vector unicity
+		// delete vectors
+		for _, oldVectorIf := range oldVectors {
+			oldVector := oldVectorIf.(map[string]interface{})
+			oldVectorName := oldVector["name"].(string)
+
+			// if a new vector has the same name, keep it
+			for _, newVectorIf := range newVectors {
+				newVector := newVectorIf.(map[string]interface{})
+
+				if oldVectorName == newVector["name"].(string) {
+					continue
+				}
+				newTpl.Del(strings.ToUpper(oldVectorName))
+			}
+
+		}
+
+		// add/update vectors
+		for _, newVectorIf := range newVectors {
+			newVector := newVectorIf.(map[string]interface{})
+			newVectorName := strings.ToUpper(newVector["name"].(string))
+
+			newTpl.Del(newVectorName)
+			newVec := newTpl.AddVector(newVectorName)
+			for k, v := range newVector["tags"].(map[string]interface{}) {
+				newVec.AddPair(k, v)
+			}
+
+		}
 	}
 
 	if d.HasChange("tags") {
