@@ -177,6 +177,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
 					resource.TestCheckNoResourceAttr("opennebula_template.template", "tags.version"),
+					resource.TestCheckNoResourceAttr("opennebula_template.template", "features"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_template.template", "uname"),
@@ -193,6 +194,11 @@ func TestAccTemplate(t *testing.T) {
 				ResourceName:      "opennebula_template.template",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// The fields 'description' and 'sched_requirements' unfortunately need to be ignored during state-verify.
+				// During the first teststeps, these fields are defined, and in the last teststp, these fields are deleted.
+				// However, these fields are still present in the Terraform-state. For troubleshooting, note that
+				// d.State().Attributes["description"] and d.GetOk("description") give different results, where this may be unexpected.
+				ImportStateVerifyIgnore: []string{"description", "sched_requirements"},
 			},
 		},
 	})

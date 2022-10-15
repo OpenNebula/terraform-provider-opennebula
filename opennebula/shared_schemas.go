@@ -860,6 +860,8 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 
 	// We read attributes only if they are described in the VM description
 	// to avoid a diff due to template attribute inheritence
+	// However, when importing a Terraform-managed template from Opennebula,
+	// not all parameters can be expected to present in d.
 
 	// add default_tags to tags_all
 	config := meta.(*Configuration)
@@ -878,17 +880,24 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 	d.Set("default_tags", config.defaultTags)
 	tags := make(map[string]interface{})
 
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
-			if err != nil {
-				return err
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
+	// Read all tags in the template, and add them to d.
+	for element, _ := range vmTemplate.Elements {
+		pair, ok := vmTemplate.Elements[element].(*dynamic.Pair)
+		if !ok {
+			continue
 		}
 
+		// The template 'vmTemplate' contains uppercase-keys, The
+		// common schema 'commonTemplateSchemas()' contains lowercase-keys.
+		// If a key in 'vmTemplate.Elements' is not contained in
+		// 'commonTemplateSchemas()', it is assumed the key is a tag.
+		if _, ok := commonTemplateSchemas()[strings.ToLower(pair.Key())]; !ok {
+			tags[strings.ToLower(pair.Key())] = pair.Value
+			tagsAll[strings.ToLower(pair.Key())] = pair.Value
+		}
+	}
+
+	if len(tags) > 0 {
 		err := d.Set("tags", tags)
 		if err != nil {
 			return err
@@ -901,10 +910,8 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 
 	d.Set("tags_all", tagsAll)
 
-	schedReqCfg := d.Get("sched_requirements").(string)
-
-	if len(schedReqCfg) > 0 {
-		schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+	schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+	if len(schedReq) > 0 {
 		if err == nil {
 			err = d.Set("sched_requirements", schedReq)
 			if err != nil {
@@ -913,10 +920,8 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 		}
 	}
 
-	schedDSReqCfg := d.Get("sched_ds_requirements").(string)
-
-	if len(schedDSReqCfg) > 0 {
-		schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+	schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+	if len(schedDSReq) > 0 {
 		if err == nil {
 			err = d.Set("sched_ds_requirements", schedDSReq)
 			if err != nil {
@@ -925,10 +930,8 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 		}
 	}
 
-	descriptionCfg := d.Get("description").(string)
-
-	if len(descriptionCfg) > 0 {
-		description, err := vmTemplate.GetStr("DESCRIPTION")
+	description, err := vmTemplate.GetStr("DESCRIPTION")
+	if len(description) > 0 {
 		if err == nil {
 			err = d.Set("description", description)
 			if err != nil {
