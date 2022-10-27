@@ -829,7 +829,7 @@ diskLoop:
 	return nil
 }
 
-func flattenNICComputed(nic shared.NIC) map[string]interface{} {
+func flattenNICComputed(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
 	nicID, _ := nic.ID()
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
@@ -844,6 +844,17 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 	sgString := strings.Split(securityGroupsArray, ",")
 	for _, s := range sgString {
 		sgInt, _ := strconv.ParseInt(s, 10, 32)
+
+		// OpenNebula adds default security group, we may want to avoid a diff
+		ignored := false
+		for _, id := range ignoreSGIDs {
+			if id == int(sgInt) {
+				ignored = true
+			}
+		}
+		if ignored {
+			continue
+		}
 		sg = append(sg, int(sgInt))
 	}
 
@@ -861,7 +872,7 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 
 func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[string]interface{} {
 
-	NICMap := flattenNICComputed(NIC)
+	NICMap := flattenNICComputed(NIC, []int{0})
 
 	if len(NICConfig["ip"].(string)) > 0 {
 		NICMap["ip"] = NICMap["computed_ip"]
@@ -895,7 +906,7 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 	for i, nic := range nics {
 
 		networkID, _ := nic.GetI(shared.NetworkID)
-		nicRead := flattenNICComputed(nic)
+		nicRead := flattenNICComputed(nic, nil)
 		nicRead["network_id"] = networkID
 		nicList = append(nicList, nicRead)
 
@@ -927,16 +938,25 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 		sg := strings.Split(securityGroupsArray, ",")
 		sgConfig := NICConfig["security_groups"].([]interface{})
 
-		if len(sg) != len(sgConfig) {
-			return false
-		}
+		// check that sgConfig is included in sg.
+		// equality is not possible since OpenNebula adds the default security group 0
+		for i := 0; i < len(sgConfig); i++ {
+			match := false
 
-		for i := 0; i < len(sg); i++ {
-			sgInt, err := strconv.ParseInt(sg[i], 10, 0)
-			if err != nil {
-				return false
+			for j := 0; j < len(sg); j++ {
+
+				sgInt, err := strconv.ParseInt(sg[j], 10, 0)
+				if err != nil {
+					return false
+				}
+
+				if int(sgInt) != sgConfig[i].(int) {
+					continue
+				}
+				match = true
+				break
 			}
-			if int(sgInt) != sgConfig[i].(int) {
+			if !match {
 				return false
 			}
 		}
