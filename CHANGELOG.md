@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * resources/opennebula_group: Add `opennebula` section (#358)
+* resource/opennebula_virtual_machine: Fix ignored NIC with `security_groups` configured (#342)
 
 # 1.0.1 (October 3rd, 2022)
 
