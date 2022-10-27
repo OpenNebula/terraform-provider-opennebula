@@ -1415,6 +1415,24 @@ resource "opennebula_virtual_machine" "test" {
 
 var testNICVNetResources = `
 
+resource "opennebula_security_group" "mysecgroup" {
+	name        = "secgroup"
+
+	rule {
+	  protocol  = "ALL"
+	  rule_type = "OUTBOUND"
+	}
+	rule {
+	  protocol  = "TCP"
+	  rule_type = "INBOUND"
+	  range     = "80"
+	}
+	rule {
+	  protocol  = "ICMP"
+	  rule_type = "INBOUND"
+	}
+  }
+
 resource "opennebula_virtual_network" "network1" {
 	name = "test-net1"
 	type            = "dummy"
@@ -1481,6 +1499,7 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	}
 
 	timeout = 5
@@ -1520,6 +1539,7 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	}
 	nic {
 		network_id = opennebula_virtual_network.network1.id
@@ -1563,6 +1583,7 @@ var testAccVirtualMachineTemplateConfigNICUpdate = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
@@ -1606,6 +1627,7 @@ var testAccVirtualMachineTemplateConfigNICIPUpdate = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
