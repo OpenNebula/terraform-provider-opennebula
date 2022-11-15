@@ -29,6 +29,11 @@ DEPRECATION:
 
 BUG FIXES:
 * data/opennebula_template: simplify `hasXXX` filter handling (#370)
+* data/opennebula_image: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_security_group: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_vm_group: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_template: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_virtual_network: goca dependency update: pool info method retrieve all (#331)
 
 # 1.0.2 (November 8th, 2022)
 
