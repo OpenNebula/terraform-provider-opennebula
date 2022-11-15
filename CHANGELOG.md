@@ -29,6 +29,9 @@ DEPRECATION:
 * data/opennebula_template: remove deprecated attribute `os` (#297)
 * data/opennebula_virtual_network: remove deprecated attribute `description` (#297)
 
+BUG FIXES:
+* data/opennebula_template: simplify `hasXXX` filter handling (#370)
+
 # 1.0.2 (November 8th, 2022)
 
 BUG FIXES:

@@ -130,62 +130,28 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 		if nameOk && template.Name != name {
 			continue
 		}
-
-		if hasCPU {
-			tplCPU, err := template.Template.GetCPU()
-			if err != nil {
-				continue
-			}
-
-			if cpuOk && tplCPU != cpu.(float64) {
-				continue
-			}
-		} else {
-			if !cpuOk {
-				continue
-			}
-			_, err := template.Template.GetCPU()
-			if err == nil {
-				continue
-			}
+		tplCPU, err := template.Template.GetCPU()
+		if hasCPU && err != nil {
+			continue
+		}
+		if cpuOk && tplCPU != cpu.(float64) {
+			continue
 		}
 
-		if hasVCPU {
-			tplVCPU, err := template.Template.GetVCPU()
-			if err != nil {
-				continue
-			}
-
-			if vcpuOk && tplVCPU != vcpu.(int) {
-				continue
-			}
-		} else {
-			if !vcpuOk {
-				continue
-			}
-			_, err := template.Template.GetVCPU()
-			if err == nil {
-				continue
-			}
+		tplVCPU, err := template.Template.GetVCPU()
+		if hasVCPU && err != nil {
+			continue
+		}
+		if vcpuOk && tplVCPU != vcpu.(int) {
+			continue
 		}
 
-		if hasMemory {
-			tplMemory, err := template.Template.GetMemory()
-			if err != nil {
-				continue
-			}
-
-			if memoryOk && tplMemory != memory.(int) {
-				continue
-			}
-		} else {
-			if !memoryOk {
-				continue
-			}
-			_, err := template.Template.GetMemory()
-			if err == nil {
-				continue
-			}
+		tplMemory, err := template.Template.GetMemory()
+		if hasMemory && err != nil {
+			continue
+		}
+		if memoryOk && tplMemory != memory.(int) {
+			continue
 		}
 
 		if tagsOk && !matchTags(template.Template.Template, tags) {
