@@ -64,7 +64,6 @@ The following arguments are supported:
 * `custom` - (Optional) If `type="custom"` this section should be defined, see [Custom](#custom) section for details.
 * `overcommit` - (Optional) This section allow to increase the allocatable capacity of the host. See [Overcommit](#overcommit)
 * `tags` - (Optional) Host tags (Key = value)
-* `timeout` - (Deprecated) Timeout (in Minutes) for Host availability. Defaults to 10 minutes.
 
 ### Custom
 
