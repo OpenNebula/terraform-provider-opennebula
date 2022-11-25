@@ -64,12 +64,12 @@ func resourceOpennebulaHost() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"virtualization": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "Virtualization driver",
 						},
 						"information": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "Information driver",
 						},
 					},
@@ -82,12 +82,12 @@ func resourceOpennebulaHost() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"cpu": {
 							Type:        schema.TypeInt,
-							Required:    true,
+							Optional:    true,
 							Description: "Maximum allocatable CPU capacity in number of cores multiplied by 100",
 						},
 						"memory": {
 							Type:        schema.TypeInt,
-							Required:    true,
+							Optional:    true,
 							Description: "Maximum allocatable memory capacity in KB",
 						},
 					},
@@ -317,7 +317,6 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	custom := d.Get("custom").(*schema.Set).List()
 	if len(custom) > 0 {
-		fmt.Printf("[INFO] custom configured, read...")
 
 		d.Set("custom", []map[string]interface{}{
 			{
