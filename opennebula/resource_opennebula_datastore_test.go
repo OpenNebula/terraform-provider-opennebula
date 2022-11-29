@@ -31,7 +31,7 @@ func TestAccDatastore(t *testing.T) {
 			{
 				Config: testAccDatastoreConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_datastore.example", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_datastore.example", "name", "test-updated"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_datastore.example", "custom.*", map[string]string{
 						"datastore": "dummy",
 						"transfer":  "dummy",
@@ -85,7 +85,7 @@ resource "opennebula_datastore" "example" {
 
 var testAccDatastoreConfigUpdate = `
 resource "opennebula_datastore" "example" {
-	name = "test"
+	name = "test-updated"
 	type = "image"
 
 	custom {

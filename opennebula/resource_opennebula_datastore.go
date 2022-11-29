@@ -629,6 +629,19 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		return diags
 	}
 
+	if d.HasChange("name") {
+		err := dc.Rename(d.Get("name").(string))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to rename",
+				Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		log.Printf("[INFO] Successfully updated name for datastore %s\n", datastoreInfos.Name)
+	}
+
 	update := false
 	newTpl := datastoreInfos.Template
 
