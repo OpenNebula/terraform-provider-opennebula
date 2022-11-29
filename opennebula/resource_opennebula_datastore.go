@@ -40,6 +40,7 @@ func resourceOpennebulaDatastore() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Type of the datastore: image, system, files",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := strings.ToUpper(v.(string))
@@ -186,10 +187,12 @@ func resourceOpennebulaDatastore() *schema.Resource {
 						"datastore": {
 							Type:        schema.TypeString,
 							Required:    true,
+							ForceNew:    true,
 							Description: "Datastore driver",
 						},
 						"transfer": {
 							Type:        schema.TypeString,
+							ForceNew:    true,
 							Required:    true,
 							Description: "Transfer driver",
 						},
@@ -303,49 +306,9 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 				tpl.Add("TM_MAD", "ceph")
 			}
 		}
-		tpl.Add("DS_MAD", "ceph")
-		tpl.Add("DISK_TYPE", "RBD")
 
-		poolName := cephAttrsMap["pool_name"].(string)
-		if len(poolName) > 0 {
-			tpl.Add("POOL_NAME", poolName)
-		}
-		user, ok := cephAttrsMap["user"]
-		if ok {
-			tpl.Add("CEPH_USER", user)
-		}
-		key, ok := cephAttrsMap["key"]
-		if ok {
-			tpl.Add("CEPH_KEY", key)
-		}
-		conf, ok := cephAttrsMap["config"]
-		if ok {
-			tpl.Add("CEPH_CONF", conf)
-		}
-		rbdFormat, ok := cephAttrsMap["rbd_format"]
-		if ok {
-			tpl.Add("RBD_FORMAT", rbdFormat)
-		}
-		cephSecret, ok := cephAttrsMap["secret"]
-		if ok {
-			tpl.Add("CEPH_SECRET", cephSecret)
-		}
-		trash, ok := cephAttrsMap["trash"]
-		if ok {
-			tpl.Add("CEPH_TRASH", trash)
-		}
+		addCephAttributes(cephAttrsMap, tpl)
 
-		hostsIf, ok := d.GetOk("host")
-		if ok {
-			hosts := hostsIf.(*schema.Set).List()
-
-			var hostsStr strings.Builder
-			for _, host := range hosts {
-				hostsStr.WriteString(host.(string))
-				hostsStr.WriteString(" ")
-			}
-			tpl.Add("CEPH_HOST", hostsStr.String())
-		}
 	} else if len(customAttrsList) > 0 {
 		customAttrsMap := customAttrsList[0].(map[string]interface{})
 		datastoreDriver, ok := customAttrsMap["datastore"]
@@ -390,6 +353,53 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 	d.SetId(fmt.Sprintf("%v", datastoreID))
 
 	return resourceOpennebulaDatastoreRead(ctx, d, meta)
+}
+
+func addCephAttributes(attrs map[string]interface{}, tpl *datastore.Template) {
+
+	tpl.Add("DS_MAD", "ceph")
+	tpl.Add("DISK_TYPE", "RBD")
+
+	poolName := attrs["pool_name"].(string)
+	if len(poolName) > 0 {
+		tpl.Add("POOL_NAME", poolName)
+	}
+	user, ok := attrs["user"]
+	if ok {
+		tpl.Add("CEPH_USER", user)
+	}
+	key, ok := attrs["key"]
+	if ok {
+		tpl.Add("CEPH_KEY", key)
+	}
+	conf, ok := attrs["config"]
+	if ok {
+		tpl.Add("CEPH_CONF", conf)
+	}
+	rbdFormat, ok := attrs["rbd_format"]
+	if ok {
+		tpl.Add("RBD_FORMAT", rbdFormat)
+	}
+	cephSecret, ok := attrs["secret"]
+	if ok {
+		tpl.Add("CEPH_SECRET", cephSecret)
+	}
+	trash, ok := attrs["trash"]
+	if ok {
+		tpl.Add("CEPH_TRASH", trash)
+	}
+
+	hostsIf, ok := attrs["host"]
+	if ok {
+		hosts := hostsIf.(*schema.Set).List()
+
+		var hostsStr strings.Builder
+		for _, host := range hosts {
+			hostsStr.WriteString(host.(string))
+			hostsStr.WriteString(" ")
+		}
+		tpl.Add("CEPH_HOST", hostsStr.String())
+	}
 }
 
 func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -643,6 +653,62 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 
 	update := false
 	newTpl := datastoreInfos.Template
+
+	if d.HasChange("restricted_directories") {
+		restrictedDirs := d.Get("restricted_directories")
+		newTpl.Del(string(dsKey.RestrictedDirs))
+		newTpl.Add(dsKey.RestrictedDirs, restrictedDirs)
+	}
+	if d.HasChange("safe_directories") {
+		safeDirs := d.Get("safe_directories")
+		newTpl.Del(string(dsKey.SafeDirs))
+		newTpl.Add(dsKey.SafeDirs, safeDirs)
+	}
+	if d.HasChange("no_decompress") {
+		noDecompress := d.Get("no_decompress")
+		newTpl.Del(string(dsKey.NoDecompress))
+		newTpl.Add(dsKey.NoDecompress, noDecompress)
+	}
+	if d.HasChange("storage_usage_limit") {
+		storageUsageLimit := d.Get("storage_usage_limit")
+		newTpl.Del(string(dsKey.LimitMB))
+		newTpl.Add(dsKey.LimitMB, storageUsageLimit)
+	}
+	if d.HasChange("transfer_bandwith_limit") {
+		transgerBandwithLimit := d.Get("transfer_bandwith_limit")
+		newTpl.Del(string(dsKey.LimitTransferBW))
+		newTpl.Add(dsKey.LimitTransferBW, transgerBandwithLimit)
+	}
+	if d.HasChange("check_available_capacity") {
+		checkAvailableCapacity := d.Get("check_available_capacity")
+		newTpl.Del(string(dsKey.DatastoreCapacityCheck))
+		newTpl.Add(dsKey.DatastoreCapacityCheck, checkAvailableCapacity)
+	}
+	if d.HasChange("bridge_list") {
+		brigeList := d.Get("bridge_list")
+		newTpl.Del(string(dsKey.BridgeList))
+		newTpl.Add(dsKey.BridgeList, brigeList)
+	}
+	if d.HasChange("staging_dir") {
+		stagingDir := d.Get("staging_dir")
+		newTpl.Del(string(dsKey.StagingDir))
+		newTpl.Add(dsKey.StagingDir, stagingDir)
+	}
+	if d.HasChange("driver") {
+		driver := d.Get("driver")
+		newTpl.Del(string(dsKey.Driver))
+		newTpl.Add(dsKey.Driver, driver)
+	}
+	if d.HasChange("compatible_system_datastore") {
+		compatibleSystemDS := d.Get("compatible_system_datastore")
+		newTpl.Del(string(dsKey.CompatibleSysDs))
+		newTpl.Add(dsKey.CompatibleSysDs, compatibleSystemDS)
+	}
+
+	if d.HasChange("ceph") {
+		cephAttrsList := d.Get("ceph").(*schema.Set).List()
+		addCephAttributes(cephAttrsList[0].(map[string]interface{}), &newTpl)
+	}
 
 	if d.HasChange("tags") {
 
