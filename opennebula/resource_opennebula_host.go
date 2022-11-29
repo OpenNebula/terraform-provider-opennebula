@@ -266,11 +266,11 @@ func generateHostOvercommit(d *schema.ResourceData, meta interface{}, hc *goca.H
 				return fmt.Errorf("No memory field found in the overcommit section")
 			}
 
-			reservedCPU := cpuIf.(int) - hostInfos.Share.TotalCPU
-			reservedMem := memoryIf.(int) - hostInfos.Share.TotalMem
+			reservedCPU := hostInfos.Share.TotalCPU - cpuIf.(int)
+			reservedMem := hostInfos.Share.TotalMem - memoryIf.(int)
 
 			tpl.AddPair("RESERVED_CPU", reservedCPU)
-			tpl.AddPair("RESERVED_MEMORY", reservedMem)
+			tpl.AddPair("RESERVED_MEM", reservedMem)
 		}
 	}
 
@@ -331,12 +331,12 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 		reservedCPU, err := hostInfos.Template.GetI(hostk.ReservedCPU)
 		if err == nil {
-			overcommitMap["cpu"] = reservedCPU + hostInfos.Share.TotalCPU
+			overcommitMap["cpu"] = hostInfos.Share.TotalCPU - reservedCPU
 		}
 
-		reservedMem, err := hostInfos.Template.GetInt("RESERVED_MEMORY")
+		reservedMem, err := hostInfos.Template.GetInt("RESERVED_MEM")
 		if err == nil {
-			overcommitMap["memory"] = reservedMem + hostInfos.Share.TotalMem
+			overcommitMap["memory"] = hostInfos.Share.TotalMem - reservedMem
 		}
 
 		d.Set("overcommit", []map[string]interface{}{overcommitMap})
@@ -432,7 +432,7 @@ func resourceOpennebulaHostUpdate(ctx context.Context, d *schema.ResourceData, m
 
 	if d.HasChange("overcommit") {
 		newTpl.Del("RESERVED_CPU")
-		newTpl.Del("RESERVED_MEMORY")
+		newTpl.Del("RESERVED_MEM")
 		err := generateHostOvercommit(d, meta, hc, &newTpl.Template)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
