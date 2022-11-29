@@ -208,12 +208,12 @@ func getDatastoreController(d *schema.ResourceData, meta interface{}) (*goca.Dat
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	gid, err := strconv.ParseUint(d.Id(), 10, 0)
+	dsID, err := strconv.ParseUint(d.Id(), 10, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	return controller.Datastore(int(gid)), nil
+	return controller.Datastore(int(dsID)), nil
 }
 
 func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -398,12 +398,6 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 
 	gc, err := getDatastoreController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing datastore %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the datastore controller",
@@ -414,6 +408,11 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 
 	datastoreInfos, err := gc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing datastore %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed retrieve datastore informations",
