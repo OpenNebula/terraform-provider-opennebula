@@ -38,6 +38,17 @@ BUG FIXES:
 * data/opennebula_vm_group: goca dependency update: pool info method retrieve all (#331)
 * data/opennebula_template: goca dependency update: pool info method retrieve all (#331)
 * data/opennebula_virtual_network: goca dependency update: pool info method retrieve all (#331)
+* resources/opennebula_cluster: fix resource existence test at read
+* resources/opennebula_group: fix resource existence test at read
+* resources/opennebula_image: fix resource existence test at read
+* resources/opennebula_security_group: fix resource existence test at read
+* resources/opennebula_template: fix resource existence test at read
+* resources/opennebula_vm_group: fix resource existence test at read
+* resources/opennebula_user: fix resource existence test at read
+* resources/opennebula_data_center: fix resource existence test at read
+* resources/opennebula_virtual_machine: fix resource existence test at read
+* resources/opennebula_virtual_network: fix resource existence test at read
+* resources/opennebula_virtual_router: fix resource existence test at read
 
 # 1.0.2 (November 8th, 2022)
 

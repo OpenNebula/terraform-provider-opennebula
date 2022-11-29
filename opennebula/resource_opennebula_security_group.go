@@ -175,30 +175,16 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 	}
 }
 
-func getSecurityGroupController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.SecurityGroupController, error) {
+func getSecurityGroupController(d *schema.ResourceData, meta interface{}) (*goca.SecurityGroupController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var sgc *goca.SecurityGroupController
 
-	// Try to find the Security Group by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		sgc = controller.SecurityGroup(int(gid))
+	secGroupID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the security Group by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.SecurityGroups().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		sgc = controller.SecurityGroup(gid)
-	}
-
-	return sgc, nil
+	return controller.SecurityGroup(int(secGroupID)), nil
 }
 
 func changeSecurityGroupGroup(d *schema.ResourceData, meta interface{}) error {
@@ -234,13 +220,8 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 	var diags diag.Diagnostics
 
 	// Get all Security Group
-	sgc, err := getSecurityGroupController(d, meta, -2, -1, -1)
+	sgc, err := getSecurityGroupController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing security group %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the security group controller",
@@ -253,6 +234,11 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	securitygroup, err := sgc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing security group %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",

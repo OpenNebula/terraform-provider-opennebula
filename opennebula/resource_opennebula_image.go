@@ -193,35 +193,16 @@ func resourceOpennebulaImage() *schema.Resource {
 	}
 }
 
-// getImagecontroller
-// * d: ResourceData. Terraform ResrouceData information
-// * meta: Interface. Interface use to interact with remote server via terraform core
-// * args: Viable arguments to manage ImagePool variable arguments
-//   see http://docs.opennebula.org/5.8/integration/system_interfaces/api.html#one-imagepool-info for details
-func getImageController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.ImageController, error) {
+func getImageController(d *schema.ResourceData, meta interface{}) (*goca.ImageController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var ic *goca.ImageController
 
-	// Try to find the Image by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		ic = controller.Image(int(gid))
+	imgID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the Image by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.Images().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		ic = controller.Image(gid)
-	}
-
-	return ic, nil
+	return controller.Image(int(imgID)), nil
 }
 
 // changeImageGroup: function to change Image Group ownership
@@ -476,14 +457,8 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 	config := meta.(*Configuration)
 
 	// Get all images
-	ic, err := getImageController(d, meta, -2, -1, -1)
+	ic, err := getImageController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing image %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the image controller",
@@ -497,6 +472,11 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	image, err := ic.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing image %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",

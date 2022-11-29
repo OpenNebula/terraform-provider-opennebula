@@ -195,12 +195,6 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 
 	cc, err := getClusterController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing cluster %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the cluster controller",
@@ -211,6 +205,11 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 
 	clusterInfos, err := cc.Info()
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing cluster %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed retrieve cluster informations",
