@@ -46,6 +46,7 @@ func resourceOpennebulaHost() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Type of the new host: kvm, qemu, lxd, lxc, firecracker, custom",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := strings.ToUpper(v.(string))
@@ -65,11 +66,13 @@ func resourceOpennebulaHost() *schema.Resource {
 						"virtualization": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							ForceNew:    true,
 							Description: "Virtualization driver",
 						},
 						"information": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							ForceNew:    true,
 							Description: "Information driver",
 						},
 					},
@@ -393,6 +396,8 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 func resourceOpennebulaHostUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
+	config := meta.(*Configuration)
+	controller := config.Controller
 
 	hc, err := getHostController(d, meta)
 	if err != nil {
@@ -425,6 +430,20 @@ func resourceOpennebulaHostUpdate(ctx context.Context, d *schema.ResourceData, m
 			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for host %s\n", hostInfos.Name)
+	}
+
+	if d.HasChange("cluster_id") {
+		clusterID := d.Get("cluster_id").(int)
+
+		err := controller.Cluster(clusterID).AddHost(hc.ID)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to add host to it's new cluster",
+				Detail:   fmt.Sprintf("host (ID: %s) cluster (ID: %d): %s", d.Id(), clusterID, err),
+			})
+			return diags
+		}
 	}
 
 	update := false

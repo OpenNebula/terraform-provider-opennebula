@@ -33,7 +33,7 @@ func TestAccHost(t *testing.T) {
 			{
 				Config: testAccHostConfigAddOvercommit,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_host.test1", "name", "test-custom"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "name", "test-updated"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "type", "custom"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "cluster_id", "0"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_host.test1", "custom.*", map[string]string{
@@ -43,6 +43,25 @@ func TestAccHost(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_host.test1", "overcommit.*", map[string]string{
 						"cpu":    "3200",
 						"memory": "1048576",
+					}),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.environment", "example-updated"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.customer", "test"),
+				),
+			},
+			{
+				Config: testAccHostConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_host.test1", "name", "test-updated"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "type", "custom"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "cluster_id", "0"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_host.test1", "custom.*", map[string]string{
+						"virtualization": "dummy",
+						"information":    "dummy",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_host.test1", "overcommit.*", map[string]string{
+						"cpu":    "3300",
+						"memory": "1148576",
 					}),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.environment", "example-updated"),
@@ -92,7 +111,7 @@ resource "opennebula_host" "test1" {
 
 var testAccHostConfigAddOvercommit = `
 resource "opennebula_host" "test1" {
-	name       = "test-custom"
+	name       = "test-updated"
 	type       = "custom"
 	cluster_id = 0
 
@@ -106,6 +125,29 @@ resource "opennebula_host" "test1" {
 	  memory = 1048576  # 1 Gb
 	}
   
+	tags = {
+	  environment = "example-updated"
+	  customer = "test"
+	}
+  }
+`
+
+var testAccHostConfigUpdate = `
+resource "opennebula_host" "test1" {
+	name       = "test-updated"
+	type       = "custom"
+	cluster_id = 0
+
+	custom {
+		virtualization = "dummy"
+		information = "dummy"
+	}
+
+	overcommit {
+	  cpu = 3300
+	  memory = 1148576
+	}
+
 	tags = {
 	  environment = "example-updated"
 	  customer = "test"
