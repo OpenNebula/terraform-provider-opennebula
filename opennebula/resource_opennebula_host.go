@@ -284,12 +284,6 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	hc, err := getHostController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing host %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the host controller",
@@ -301,6 +295,11 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	hostInfos, err := hc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing host %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
