@@ -147,27 +147,13 @@ func resourceOpennebulaGroup() *schema.Resource {
 func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var gc *goca.GroupController
 
-	// Try to find the Group by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		gc = controller.Group(int(gid))
+	gid, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the Group by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.Groups().ByName(d.Get("name").(string))
-		if err != nil {
-			return nil, err
-		}
-		gc = controller.Group(gid)
-	}
-
-	return gc, nil
+	return controller.Group(int(gid)), nil
 }
 
 func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -355,12 +341,6 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 
 	gc, err := getGroupController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the group controller",
@@ -369,10 +349,13 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		return diags
 	}
 
-	// TODO: fix it after 5.10 release
-	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	group, err := gc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed retrieve group informations",

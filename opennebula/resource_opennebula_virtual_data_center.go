@@ -104,27 +104,13 @@ func resourceOpennebulaVirtualDataCenter() *schema.Resource {
 func getVDCController(d *schema.ResourceData, meta interface{}) (*goca.VDCController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vdcc *goca.VDCController
 
-	// Try to find the VDC by ID, if specified
-	if d.Id() != "" {
-		vdcid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vdcc = controller.VDC(int(vdcid))
+	vdcID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the security Group by name as the de facto compound primary key
-	if d.Id() == "" {
-		vdcid, err := controller.VDCs().ByName(d.Get("name").(string))
-		if err != nil {
-			return nil, err
-		}
-		vdcc = controller.VDC(vdcid)
-	}
-
-	return vdcc, nil
+	return controller.VDC(int(vdcID)), nil
 }
 
 func resourceOpennebulaVirtualDataCenterCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -240,11 +226,6 @@ func resourceOpennebulaVirtualDataCenterRead(ctx context.Context, d *schema.Reso
 
 	vdcc, err := getVDCController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual data center %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the virtual data center controller",
@@ -258,6 +239,11 @@ func resourceOpennebulaVirtualDataCenterRead(ctx context.Context, d *schema.Reso
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vdc, err := vdcc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual data center %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",

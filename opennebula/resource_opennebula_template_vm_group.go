@@ -143,30 +143,16 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 	}
 }
 
-func getVMGroupController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VMGroupController, error) {
+func getVMGroupController(d *schema.ResourceData, meta interface{}) (*goca.VMGroupController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vmgc *goca.VMGroupController
 
-	// Try to find the vm group by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vmgc = controller.VMGroup(int(gid))
+	vmgID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the template by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.VMGroups().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vmgc = controller.VMGroup(gid)
-	}
-
-	return vmgc, nil
+	return controller.VMGroup(int(vmgID)), nil
 }
 
 func changeVMGroupGroup(d *schema.ResourceData, meta interface{}) error {
@@ -261,14 +247,8 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 	var diags diag.Diagnostics
 
 	// Get requested template from all templates
-	vmgc, err := getVMGroupController(d, meta, -2, -1, -1)
+	vmgc, err := getVMGroupController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual machine group template %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the VM group controller",
@@ -280,6 +260,11 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 
 	vmg, err := vmgc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual machine group template %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",

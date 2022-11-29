@@ -104,30 +104,16 @@ func resourceOpennebulaVirtualRouter() *schema.Resource {
 	}
 }
 
-func getVirtualRouterController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VirtualRouterController, error) {
+func getVirtualRouterController(d *schema.ResourceData, meta interface{}) (*goca.VirtualRouterController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vrc *goca.VirtualRouterController
 
-	// Try to find the virtual router by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vrc = controller.VirtualRouter(int(gid))
+	vrID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the virtual router by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.VirtualRouterByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vrc = controller.VirtualRouter(gid)
-	}
-
-	return vrc, nil
+	return controller.VirtualRouter(int(vrID)), nil
 }
 
 func changeVirtualRouterGroup(d *schema.ResourceData, meta interface{}) error {
@@ -233,14 +219,8 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 	var diags diag.Diagnostics
 
 	// Get requested virtual router from all virtual routers
-	vrc, err := getVirtualRouterController(d, meta, -2, -1, -1)
+	vrc, err := getVirtualRouterController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual router %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router error",
@@ -251,7 +231,11 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 
 	vr, err := vrc.Info(false)
 	if err != nil {
-
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual router %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router info error",

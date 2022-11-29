@@ -220,34 +220,16 @@ func diskVMSchema() *schema.Schema {
 	}
 }
 
-func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VMController, error) {
+func getVirtualMachineController(d *schema.ResourceData, meta interface{}) (*goca.VMController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vmc *goca.VMController
 
-	if d.Id() != "" {
-
-		// Try to find the VM by ID, if specified
-
-		id, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vmc = controller.VM(int(id))
-
-	} else {
-
-		// Try to find the VM by name as the de facto compound primary key
-
-		id, err := controller.VMs().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vmc = controller.VM(id)
-
+	vmID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	return vmc, nil
+	return controller.VM(int(vmID)), nil
 }
 
 func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
@@ -529,13 +511,8 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 
 	var diags diag.Diagnostics
 
-	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
+	vmc, err := getVirtualMachineController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the virtual machine controller",
@@ -549,6 +526,11 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vm, err := vmc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
