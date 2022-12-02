@@ -449,7 +449,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		}
 	}
 
-	err = flattenTemplate(d, &tpl.Template)
+	err = flattenTemplate(d, nil, &tpl.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -459,7 +459,7 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		return diags
 	}
 
-	err = flattenVMUserTemplate(d, meta, &tpl.Template.Template)
+	err = flattenVMUserTemplate(d, meta, nil, &tpl.Template.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

@@ -68,6 +68,16 @@ func commonVMSchemas() map[string]*schema.Schema {
 				Default:     false,
 				Description: "Immediately poweroff/terminate/reboot/undeploy the VM. (default: false)",
 			},
+			"template_tags": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "When template_id was set this keeps the template tags.",
+			},
+			"template_section_names": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "When template_id was set this keeps the template sections names.",
+			},
 		},
 	)
 }
@@ -740,7 +750,7 @@ func flattenTemplateVMGroup(d *schema.ResourceData, vmTemplate *vm.Template) err
 	return nil
 }
 
-func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
+func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interface{}, vmTemplate *vm.Template) error {
 
 	var err error
 
@@ -796,7 +806,8 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 		cpumodelMap = append(cpumodelMap, map[string]interface{}{
 			"model": cpumodel,
 		})
-		if _, ok := d.GetOk("cpumodel"); ok {
+		_, inherited := inheritedVectors["CPU_MODEL"]
+		if !inherited {
 			err = d.Set("cpumodel", cpumodelMap)
 			if err != nil {
 				return err
@@ -815,7 +826,8 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			"arch": arch,
 			"boot": boot,
 		})
-		if _, ok := d.GetOk("os"); ok {
+		_, inherited := inheritedVectors["OS"]
+		if !inherited {
 			err = d.Set("os", osMap)
 			if err != nil {
 				return err
@@ -831,7 +843,8 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			"type":   t,
 			"keymap": keymap,
 		})
-		if _, ok := d.GetOk("graphics"); ok {
+		_, inherited := inheritedVectors["GRAPHICS"]
+		if !inherited {
 			err = d.Set("graphics", graphMap)
 			if err != nil {
 				return err
@@ -851,7 +864,8 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 			"virtio_scsi_queues": virtio_scsi_queues,
 			"iothreads":          iothreads,
 		})
-		if _, ok := d.GetOk("features"); ok {
+		_, inherited := inheritedVectors["FEATURES"]
+		if !inherited {
 			err = d.Set("features", featuresMap)
 			if err != nil {
 				return err
@@ -862,7 +876,7 @@ func flattenTemplate(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	return nil
 }
 
-func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate *dynamic.Template) error {
+func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTags map[string]interface{}, vmTemplate *dynamic.Template) error {
 
 	// We read attributes only if they are described in the VM description
 	// to avoid a diff due to template attribute inheritence
@@ -912,39 +926,30 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 
 	d.Set("tags_all", tagsAll)
 
-	schedReqCfg := d.Get("sched_requirements").(string)
-
-	if len(schedReqCfg) > 0 {
-		schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
-		if err == nil {
-			err = d.Set("sched_requirements", schedReq)
-			if err != nil {
-				return err
-			}
+	schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+	_, inherited := inheritedTags["SCHED_REQUIREMENTS"]
+	if !inherited {
+		err = d.Set("sched_requirements", schedReq)
+		if err != nil {
+			return err
 		}
 	}
 
-	schedDSReqCfg := d.Get("sched_ds_requirements").(string)
-
-	if len(schedDSReqCfg) > 0 {
-		schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
-		if err == nil {
-			err = d.Set("sched_ds_requirements", schedDSReq)
-			if err != nil {
-				return err
-			}
+	schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+	_, inherited = inheritedTags["SCHED_DS_REQUIREMENTS"]
+	if !inherited {
+		err = d.Set("sched_ds_requirements", schedDSReq)
+		if err != nil {
+			return err
 		}
 	}
 
-	descriptionCfg := d.Get("description").(string)
-
-	if len(descriptionCfg) > 0 {
-		description, err := vmTemplate.GetStr("DESCRIPTION")
-		if err == nil {
-			err = d.Set("description", description)
-			if err != nil {
-				return err
-			}
+	description, _ := vmTemplate.GetStr("DESCRIPTION")
+	_, inherited = inheritedTags["DESCRIPTION"]
+	if !inherited {
+		err = d.Set("description", description)
+		if err != nil {
+			return err
 		}
 	}
 

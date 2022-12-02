@@ -548,7 +548,6 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 
 		update = true
 	}
-	log.Printf("[DEBUG] === 3 newTpl: %s", newTpl.String())
 
 	if update {
 		err = vmgc.Update(newTpl.String(), int(parameters.Replace))

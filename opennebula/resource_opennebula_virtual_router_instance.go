@@ -45,11 +45,6 @@ func resourceOpennebulaVirtualRouterInstance() *schema.Resource {
 					Required:    true,
 					Description: "Identifier of the parent virtual router ressource",
 				},
-				"template_tags": {
-					Type:        schema.TypeMap,
-					Computed:    true,
-					Description: "When template_id was set this keeps the template tags.",
-				},
 			},
 		),
 	}
@@ -174,6 +169,16 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	}
 
 	d.Set("template_tags", inheritedTags)
+
+	// save inherited template sections names
+	inheritedSectionsNames := make(map[string]interface{})
+	for _, e := range tpl.Template.Elements {
+		if vec, ok := e.(*dyn.Vector); ok {
+			inheritedSectionsNames[vec.Key()] = ""
+		}
+	}
+
+	d.Set("template_section_names", inheritedSectionsNames)
 
 	vrInfos, err = vrc.Info(false)
 	if err != nil {
