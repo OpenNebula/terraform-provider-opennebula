@@ -18,17 +18,17 @@ Create a custom datastore:
 
 ```hcl
 resource "opennebula_datastore" "example" {
-	name = "test"
-	type = "image"
+ name = "test"
+ type = "image"
 
-	custom {
-		datastore = "dummy"
-		transfer = "dummy"
-	}
+ custom {
+  datastore = "dummy"
+  transfer = "dummy"
+ }
 
-	tags = {
-		environment = "example"
-	  }
+ tags = {
+  environment = "example"
+   }
   }
 ```
 
@@ -40,7 +40,7 @@ The following arguments are supported:
 * `type` - (Required) Type of the new datastore: image, system, file.
 * `cluster_id` - (Optional) ID of the cluster the datastore is part of.
 * `restricted_directories` - (Optional) Paths that cannot be used to register images. A space separated list of paths.
-* `safe_directories` - (Optional) If you need to allow a directory listed under RESTRICTED_DIRS. A space separated list of paths
+* `safe_directories` - (Optional) If you need to allow a directory listed under RESTRICTED_DIRS. A space separated list of paths.
 * `no_decompress` - (Optional) Boolean, do not try to untar or decompress the file to be registered.
 * `storage_usage_limit` - (Optional) The maximum capacity allowed for the Datastore in MB.
 * `transfer_bandwith_limit` - (Optional) Specify the maximum transfer rate in bytes/second when downloading images from a http/https URL. Suffixes K, M or G can be used.
@@ -48,8 +48,8 @@ The following arguments are supported:
 * `bridge_list` - (Optional) List of hosts that have access to the storage to add new images to the datastore.
 * `staging_dir` - (Optional) Path in the storage bridge host to copy an Image before moving it to its final destination.
 * `driver` - (Optional) Specific image mapping driver enforcement. If present it overrides image DRIVER set in the image attributes and VM template.
-* `compatible_system_datastore` - (Optional) 
-* `ceph` - (Optional) See [Ceph](#Ceph) section for details.
+* `compatible_system_datastore` - (Optional) Specify the compatible system datastores.
+* `ceph` - (Optional) See [Ceph](#ceph) section for details.
 * `custom` - (Optional) See [Custom](#custom) section for details.
 * `tags` - (Optional) Datastore tags (Key = value).
 

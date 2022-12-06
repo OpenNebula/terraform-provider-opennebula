@@ -31,10 +31,10 @@ resource "opennebula_cluster" "example" {
   }
 
   template_section {
-	  name = "test"
-	  elements = {
-		    tag1 = "value1"
-	  }
+    name = "test"
+    elements = {
+      tag1 = "value1"
+    }
   }
 
 }

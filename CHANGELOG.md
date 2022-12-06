@@ -1,4 +1,4 @@
-# 1.1.0 (Unreleased)
+# 1.1.0 (December 6th, 2022)
 
 FEATURES:
 
@@ -32,23 +32,24 @@ DEPRECATION:
 * data/opennebula_virtual_network: remove deprecated attribute `description` (#297)
 
 BUG FIXES:
+
 * data/opennebula_template: simplify `hasXXX` filter handling (#370)
 * data/opennebula_image: goca dependency update: pool info method retrieve all (#331)
 * data/opennebula_security_group: goca dependency update: pool info method retrieve all (#331)
 * data/opennebula_vm_group: goca dependency update: pool info method retrieve all (#331)
 * data/opennebula_template: goca dependency update: pool info method retrieve all (#331)
 * data/opennebula_virtual_network: goca dependency update: pool info method retrieve all (#331)
-* resources/opennebula_cluster: fix resource existence test at read
-* resources/opennebula_group: fix resource existence test at read
-* resources/opennebula_image: fix resource existence test at read
-* resources/opennebula_security_group: fix resource existence test at read
-* resources/opennebula_template: fix resource existence test at read
-* resources/opennebula_vm_group: fix resource existence test at read
-* resources/opennebula_user: fix resource existence test at read
-* resources/opennebula_data_center: fix resource existence test at read
-* resources/opennebula_virtual_machine: fix resource existence test at read
-* resources/opennebula_virtual_network: fix resource existence test at read
-* resources/opennebula_virtual_router: fix resource existence test at read
+* resources/opennebula_cluster: fix resource existence test at read (#373)
+* resources/opennebula_group: fix resource existence test at read (#373)
+* resources/opennebula_image: fix resource existence test at read (#373)
+* resources/opennebula_security_group: fix resource existence test at read (#373)
+* resources/opennebula_template: fix resource existence test at read (#373)
+* resources/opennebula_vm_group: fix resource existence test at read (#373)
+* resources/opennebula_user: fix resource existence test at read (#373)
+* resources/opennebula_data_center: fix resource existence test at read (#373)
+* resources/opennebula_virtual_machine: fix resource existence test at read (#373)
+* resources/opennebula_virtual_network: fix resource existence test at read (#373)
+* resources/opennebula_virtual_router: fix resource existence test at read (#373)
 
 # 1.0.2 (November 8th, 2022)
 
