@@ -29,11 +29,6 @@ func dataOpennebulaGroup() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"quotas": func() *schema.Schema {
-				s := quotasSchema()
-				s.Deprecated = "use 'tags' for selection instead"
-				return s
-			}(),
 			"tags": tagsSchema(),
 		},
 	}
@@ -79,9 +74,6 @@ func groupFilter(d *schema.ResourceData, meta interface{}) (*groupSc.GroupShort,
 }
 
 func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
-	config := meta.(*Configuration)
-	controller := config.Controller
 
 	var diags diag.Diagnostics
 
@@ -148,30 +140,6 @@ func datasourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, 
 			Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
 		})
 		return diags
-	}
-
-	// TODO: Remove this part in release 0.6.0, this additional request is only
-	// here to retrieve the quotas information
-	groupInfo, err := controller.Group(group.ID).Info(false)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "group info error",
-			Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
-		})
-		return diags
-	}
-
-	if _, ok := d.GetOk("quotas"); ok {
-		err = flattenQuotasMapFromStructs(d, &groupInfo.QuotasList)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "failed to flatten quotas",
-				Detail:   fmt.Sprintf("Group (ID: %d): %s", group.ID, err),
-			})
-			return diags
-		}
 	}
 
 	return nil

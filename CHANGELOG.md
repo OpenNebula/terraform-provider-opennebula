@@ -1,3 +1,63 @@
+# 1.1.0 (December 6th, 2022)
+
+FEATURES:
+
+* **New Resource**: `opennebula_cluster` (#227)
+* **New Resource**: `opennebula_datastore` (#299)
+* **New Data Source**: `opennebula_datastore` (#299)
+* resources/opennebula_cluster: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_group: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_image: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_security_group: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_template: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_vm_group: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_user: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_machine: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_network: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_router: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_router_instance: add `template_section` to manage vectors with an unique key (#359)
+* resources/opennebula_virtual_router_instance_template: add `template_section` to manage vectors with an unique key (#359)
+* **New Resource**: `opennebula_host` (#300)
+* **New Data source**: `opennebula_host` (#300)
+
+DEPRECATION:
+
+* resources/opennebula_group: remove deprecated attribute `delete_on_destruction` (#297)
+* resources/opennebula_group: remove deprecated attribute `template` (#297)
+* data/opennebula_group: remove deprecated attribute `quotas` (#297)
+* data/opennebula_user remove deprecated attribute `quotas` (#297)
+* data/opennebula_template: remove deprecated attribute `context` (#297)
+* data/opennebula_template: remove deprecated attribute `graphics` (#297)
+* data/opennebula_template: remove deprecated attribute `os` (#297)
+* data/opennebula_virtual_network: remove deprecated attribute `description` (#297)
+
+BUG FIXES:
+
+* data/opennebula_template: simplify `hasXXX` filter handling (#370)
+* data/opennebula_image: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_security_group: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_vm_group: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_template: goca dependency update: pool info method retrieve all (#331)
+* data/opennebula_virtual_network: goca dependency update: pool info method retrieve all (#331)
+* resources/opennebula_cluster: fix resource existence test at read (#373)
+* resources/opennebula_group: fix resource existence test at read (#373)
+* resources/opennebula_image: fix resource existence test at read (#373)
+* resources/opennebula_security_group: fix resource existence test at read (#373)
+* resources/opennebula_template: fix resource existence test at read (#373)
+* resources/opennebula_vm_group: fix resource existence test at read (#373)
+* resources/opennebula_user: fix resource existence test at read (#373)
+* resources/opennebula_data_center: fix resource existence test at read (#373)
+* resources/opennebula_virtual_machine: fix resource existence test at read (#373)
+* resources/opennebula_virtual_network: fix resource existence test at read (#373)
+* resources/opennebula_virtual_router: fix resource existence test at read (#373)
+
+# 1.0.2 (November 8th, 2022)
+
+BUG FIXES:
+
+* resources/opennebula_group: Add `opennebula` section (#358)
+* resource/opennebula_virtual_machine: Fix ignored NIC with `security_groups` configured (#342)
+
 # 1.0.1 (October 3rd, 2022)
 
 BUG FIXES:

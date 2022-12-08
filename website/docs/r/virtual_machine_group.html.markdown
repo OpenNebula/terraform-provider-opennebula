@@ -30,6 +30,13 @@ resource "opennebula_virtual_machine_group" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -42,6 +49,7 @@ The following arguments are supported:
 * `role` - (Required) List of roles. See [Role parameters](#role-parameters) below for details.
 * `group` - (Optional) Name of the group which owns the virtual machine group. Defaults to the caller primary group.
 * `tags` - (Optional) Virtual Machine group tags.
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Role parameters
 
@@ -51,6 +59,13 @@ The following arguments are supported:
 * `host_affined` - (Optional) List of Hosts affined to Virtual Machines using this role.
 * `host_anti_affined` - (Optional) List of Hosts not-affined to Virtual Machines using this role.
 * `policy` - (Optional) Policy to apply between Virtual Machines using this role. Allowed Values: `NONE`, `AFFINED`, `ANTI_AFFINED`.
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

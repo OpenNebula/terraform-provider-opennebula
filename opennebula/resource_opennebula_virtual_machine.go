@@ -220,34 +220,16 @@ func diskVMSchema() *schema.Schema {
 	}
 }
 
-func getVirtualMachineController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VMController, error) {
+func getVirtualMachineController(d *schema.ResourceData, meta interface{}) (*goca.VMController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vmc *goca.VMController
 
-	if d.Id() != "" {
-
-		// Try to find the VM by ID, if specified
-
-		id, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vmc = controller.VM(int(id))
-
-	} else {
-
-		// Try to find the VM by name as the de facto compound primary key
-
-		id, err := controller.VMs().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vmc = controller.VM(id)
-
+	vmID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	return vmc, nil
+	return controller.VM(int(vmID)), nil
 }
 
 func changeVmGroup(d *schema.ResourceData, meta interface{}) error {
@@ -529,13 +511,8 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 
 	var diags diag.Diagnostics
 
-	vmc, err := getVirtualMachineController(d, meta, -2, -1, -1)
+	vmc, err := getVirtualMachineController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the virtual machine controller",
@@ -549,6 +526,11 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vm, err := vmc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
@@ -829,7 +811,7 @@ diskLoop:
 	return nil
 }
 
-func flattenNICComputed(nic shared.NIC) map[string]interface{} {
+func flattenNICComputed(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
 	nicID, _ := nic.ID()
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
@@ -844,6 +826,17 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 	sgString := strings.Split(securityGroupsArray, ",")
 	for _, s := range sgString {
 		sgInt, _ := strconv.ParseInt(s, 10, 32)
+
+		// OpenNebula adds default security group, we may want to avoid a diff
+		ignored := false
+		for _, id := range ignoreSGIDs {
+			if id == int(sgInt) {
+				ignored = true
+			}
+		}
+		if ignored {
+			continue
+		}
 		sg = append(sg, int(sgInt))
 	}
 
@@ -861,7 +854,7 @@ func flattenNICComputed(nic shared.NIC) map[string]interface{} {
 
 func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[string]interface{} {
 
-	NICMap := flattenNICComputed(NIC)
+	NICMap := flattenNICComputed(NIC, []int{0})
 
 	if len(NICConfig["ip"].(string)) > 0 {
 		NICMap["ip"] = NICMap["computed_ip"]
@@ -895,7 +888,7 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 	for i, nic := range nics {
 
 		networkID, _ := nic.GetI(shared.NetworkID)
-		nicRead := flattenNICComputed(nic)
+		nicRead := flattenNICComputed(nic, nil)
 		nicRead["network_id"] = networkID
 		nicList = append(nicList, nicRead)
 
@@ -927,16 +920,25 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 		sg := strings.Split(securityGroupsArray, ",")
 		sgConfig := NICConfig["security_groups"].([]interface{})
 
-		if len(sg) != len(sgConfig) {
-			return false
-		}
+		// check that sgConfig is included in sg.
+		// equality is not possible since OpenNebula adds the default security group 0
+		for i := 0; i < len(sgConfig); i++ {
+			match := false
 
-		for i := 0; i < len(sg); i++ {
-			sgInt, err := strconv.ParseInt(sg[i], 10, 0)
-			if err != nil {
-				return false
+			for j := 0; j < len(sg); j++ {
+
+				sgInt, err := strconv.ParseInt(sg[j], 10, 0)
+				if err != nil {
+					return false
+				}
+
+				if int(sgInt) != sgConfig[i].(int) {
+					continue
+				}
+				match = true
+				break
 			}
-			if int(sgInt) != sgConfig[i].(int) {
+			if !match {
 				return false
 			}
 		}
@@ -1227,6 +1229,13 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		if len(description) > 0 {
 			tpl.Add(vmk.Description, description)
 		}
+
+		update = true
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &tpl.Template)
 
 		update = true
 	}

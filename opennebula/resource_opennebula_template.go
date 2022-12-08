@@ -197,30 +197,16 @@ func FeaturesFields() map[string]*schema.Schema {
 	}
 }
 
-func getTemplateController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.TemplateController, error) {
+func getTemplateController(d *schema.ResourceData, meta interface{}) (*goca.TemplateController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var tc *goca.TemplateController
 
-	// Try to find the template by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		tc = controller.Template(int(gid))
+	tplID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the template by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.Templates().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		tc = controller.Template(gid)
-	}
-
-	return tc, nil
+	return controller.Template(int(tplID)), nil
 }
 
 func changeTemplateGroup(d *schema.ResourceData, meta interface{}) error {
@@ -390,13 +376,8 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	var diags diag.Diagnostics
 
 	// Get requested template from all templates
-	tc, err := getTemplateController(d, meta, -2, -1, -1)
+	tc, err := getTemplateController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual machine template %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the template controller",
@@ -410,6 +391,11 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	tpl, err := tc.Info(false, false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual machine template %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
@@ -819,6 +805,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 				}
 			}
 		}
+
+		update = true
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl.Template)
 
 		update = true
 	}

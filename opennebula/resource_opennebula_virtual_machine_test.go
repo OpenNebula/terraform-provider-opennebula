@@ -56,6 +56,12 @@ func TestAccVirtualMachine(t *testing.T) {
 						GroupU: 1,
 						OtherM: 1,
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_machine.test", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
+					}),
 				),
 			},
 			{
@@ -95,6 +101,12 @@ func TestAccVirtualMachine(t *testing.T) {
 						OwnerA: 0,
 						GroupU: 1,
 						GroupM: 1,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_machine.test", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue_updated",
+						"elements.testkey3": "testvalue3",
 					}),
 				),
 			},
@@ -172,6 +184,7 @@ func TestAccVirtualMachine(t *testing.T) {
 						GroupU: 1,
 						GroupM: 1,
 					}),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_section.#", "0"),
 				),
 			},
 			{
@@ -212,6 +225,11 @@ func TestAccVirtualMachine(t *testing.T) {
 						GroupU: 1,
 						GroupM: 1,
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_machine.test", "template_section.*", map[string]string{
+						"name":              "test_vec_key2",
+						"elements.%":        "1",
+						"elements.testkey1": "testvalue2",
+					}),
 				),
 			},
 			{
@@ -250,6 +268,13 @@ func TestAccVirtualMachine(t *testing.T) {
 						OwnerA: 0,
 						GroupU: 1,
 						GroupM: 1,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_machine.test", "template_section.*", map[string]string{
+						"name":              "test_vec_key3",
+						"elements.%":        "3",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
+						"elements.testkey3": "testvalue3",
 					}),
 				),
 			},
@@ -792,6 +817,14 @@ resource "opennebula_virtual_machine" "test" {
 
   sched_requirements = "FREE_CPU > 50"
 
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey1 = "testvalue1"
+		testkey2 = "testvalue2"
+	}
+  }
+
   timeout = 5
 }
 `
@@ -869,6 +902,14 @@ resource "opennebula_virtual_machine" "test" {
   sched_requirements = "FREE_CPU > 50"
 
   timeout = 4
+
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey1 = "testvalue_updated"
+		testkey3 = "testvalue3"
+	}
+  }
 }
 `
 
@@ -907,6 +948,14 @@ resource "opennebula_virtual_machine" "test" {
   sched_requirements = "FREE_CPU > 50"
 
   timeout = 4
+
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey1 = "testvalue_updated"
+		testkey3 = "testvalue3"
+	}
+  }
 }
 `
 
@@ -980,6 +1029,13 @@ resource "opennebula_virtual_machine" "test" {
   sched_requirements = "CLUSTER_ID!=\"123\""
 
   timeout = 4
+
+  template_section {
+	name = "test_vec_key2"
+	elements = {
+		testkey1 = "testvalue2"
+	}
+  }
 }
 `
 
@@ -1017,6 +1073,15 @@ resource "opennebula_virtual_machine" "test" {
   sched_requirements = "CLUSTER_ID!=\"123\""
 
   timeout = 4
+
+  template_section {
+	name = "test_vec_key3"
+	elements = {
+		testkey1 = "testvalue1"
+		testkey2 = "testvalue2"
+		testkey3 = "testvalue3"
+	}
+  }
 }
 `
 
@@ -1415,6 +1480,24 @@ resource "opennebula_virtual_machine" "test" {
 
 var testNICVNetResources = `
 
+resource "opennebula_security_group" "mysecgroup" {
+	name        = "secgroup"
+
+	rule {
+	  protocol  = "ALL"
+	  rule_type = "OUTBOUND"
+	}
+	rule {
+	  protocol  = "TCP"
+	  rule_type = "INBOUND"
+	  range     = "80"
+	}
+	rule {
+	  protocol  = "ICMP"
+	  rule_type = "INBOUND"
+	}
+  }
+
 resource "opennebula_virtual_network" "network1" {
 	name = "test-net1"
 	type            = "dummy"
@@ -1481,6 +1564,7 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	}
 
 	timeout = 5
@@ -1520,6 +1604,7 @@ resource "opennebula_virtual_machine" "test" {
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	}
 	nic {
 		network_id = opennebula_virtual_network.network1.id
@@ -1563,6 +1648,7 @@ var testAccVirtualMachineTemplateConfigNICUpdate = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
@@ -1606,6 +1692,7 @@ var testAccVirtualMachineTemplateConfigNICIPUpdate = testNICVNetResources + `
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.131"
+		security_groups = [opennebula_security_group.mysecgroup.id]
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network2.id

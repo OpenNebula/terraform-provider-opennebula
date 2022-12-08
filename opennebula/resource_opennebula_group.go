@@ -16,6 +16,9 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 )
 
+var apiListOrder = []string{"ASC", "DESC"}
+var yesNo = []string{"YES", "NO"}
+
 func resourceOpennebulaGroup() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaGroupCreate,
@@ -32,20 +35,6 @@ func resourceOpennebulaGroup() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "Name of the Group",
-			},
-			"template": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Description:   "Group template content, in OpenNebula XML or String format",
-				Deprecated:    "use other schema sections",
-				ConflictsWith: []string{"sunstone", "tags"},
-			},
-			"delete_on_destruction": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Deprecated:  "use Terraform lifcycle Meta-Argument instead.",
-				Description: "Flag to delete group on destruction, by default it is set to true",
 			},
 			"users": {
 				Type:        schema.TypeList,
@@ -95,15 +84,62 @@ func resourceOpennebulaGroup() *schema.Resource {
 						},
 					},
 				},
-				ConflictsWith: []string{"template"},
 			},
-			"tags": func() *schema.Schema {
-				s := tagsSchema()
-				s.ConflictsWith = []string{"template"}
-				return s
-			}(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"opennebula": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "OpenNebula core configuration",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"default_image_persistent": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Control the default value for the PERSISTENT attribute on image creation ( clone and disk save-as): should be YES or NO",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+
+								if inArray(value, yesNo) < 0 {
+									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
+								}
+
+								return
+							},
+						},
+						"default_image_persistent_new": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Control the default value for the PERSISTENT attribute on image creation ( only new images): should be YES or NO",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+
+								if inArray(value, yesNo) < 0 {
+									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
+								}
+
+								return
+							},
+						},
+						"api_list_order": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Sets order of elements by ID in list API calls: ASC or DESC respectively for ascending or descending order",
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+
+								if inArray(value, apiListOrder) < 0 {
+									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
+								}
+
+								return
+							},
+						},
+					},
+				},
+			},
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -111,27 +147,13 @@ func resourceOpennebulaGroup() *schema.Resource {
 func getGroupController(d *schema.ResourceData, meta interface{}) (*goca.GroupController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var gc *goca.GroupController
 
-	// Try to find the Group by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		gc = controller.Group(int(gid))
+	gid, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the Group by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.Groups().ByName(d.Get("name").(string))
-		if err != nil {
-			return nil, err
-		}
-		gc = controller.Group(gid)
-	}
-
-	return gc, nil
+	return controller.Group(int(gid)), nil
 }
 
 func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -209,26 +231,23 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 
 	// template management
 
-	// add template description
-	if d.Get("template") != "" {
-		// Erase previous template
-		err = gc.Update(d.Get("template").(string), 0)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update the group content",
-				Detail:   fmt.Sprintf("group (ID: %d): %s", groupID, err),
-			})
-			return diags
-		}
-	}
-
 	tpl := dyn.NewTemplate()
 
 	sunstone := d.Get("sunstone").(*schema.Set).List()
 	if len(sunstone) > 0 {
 		sunstoneVec := makeSunstoneVec(sunstone[0].(map[string]interface{}))
 		tpl.Elements = append(tpl.Elements, sunstoneVec)
+	}
+
+	opennebula := d.Get("opennebula").(*schema.Set).List()
+	if len(opennebula) > 0 {
+		opennebulaVec := makeOpenNebulaVec(opennebula[0].(map[string]interface{}))
+		tpl.Elements = append(tpl.Elements, opennebulaVec)
+	}
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
@@ -292,18 +311,36 @@ func makeSunstoneVec(sunstoneConfig map[string]interface{}) *dyn.Vector {
 	return &vector
 }
 
+func makeOpenNebulaVec(openNebulaConfig map[string]interface{}) *dyn.Vector {
+
+	vector := dyn.Vector{
+		XMLName: xml.Name{Local: "OPENNEBULA"},
+	}
+
+	defaultImagePersistent := openNebulaConfig["default_image_persistent"].(string)
+	if len(defaultImagePersistent) > 0 {
+		vector.AddPair("DEFAULT_IMAGE_PERSISTENT", strings.ToUpper(defaultImagePersistent))
+	}
+
+	defaultImagePersistentNew := openNebulaConfig["default_image_persistent_new"].(string)
+	if len(defaultImagePersistentNew) > 0 {
+		vector.AddPair("DEFAULT_IMAGE_PERSISTENT_NEW", strings.ToUpper(defaultImagePersistentNew))
+	}
+
+	apiListOrder := openNebulaConfig["api_list_order"].(string)
+	if len(apiListOrder) > 0 {
+		vector.AddPair("API_LIST_ORDER", strings.ToUpper(apiListOrder))
+	}
+
+	return &vector
+}
+
 func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
 
 	gc, err := getGroupController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the group controller",
@@ -312,10 +349,13 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		return diags
 	}
 
-	// TODO: fix it after 5.10 release
-	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	group, err := gc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing group %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed retrieve group informations",
@@ -326,11 +366,6 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 
 	d.SetId(strconv.FormatUint(uint64(group.ID), 10))
 	d.Set("name", group.Name)
-	d.Set("template", group.Template.String())
-	deleteOnDestruction, ok := d.Get("delete_on_destruction").(bool)
-	if ok {
-		d.Set("delete_on_destruction", deleteOnDestruction)
-	}
 
 	// read only configured users in current group resource
 	appliedUserIDs := make([]int, 0)
@@ -401,21 +436,52 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 		case *dyn.Vector:
 			switch e.Key() {
 			case "SUNSTONE":
-				defaultView, _ := e.GetStr("DEFAULT_VIEW")
-				views, _ := e.GetStr("VIEWS")
-				groupAdminDefaultView, _ := e.GetStr("GROUP_ADMIN_DEFAULT_VIEW")
-				groupAdminViews, _ := e.GetStr("GROUP_ADMIN_VIEWS")
+				sunstoneConfig := make(map[string]interface{})
 
-				sunstoneConfig := []map[string]interface{}{
-					{
-						"default_view":             defaultView,
-						"views":                    views,
-						"group_admin_default_view": groupAdminDefaultView,
-						"group_admin_views":        groupAdminViews,
-					},
+				defaultView, _ := e.GetStr("DEFAULT_VIEW")
+				if len(defaultView) > 0 {
+					sunstoneConfig["default_view"] = defaultView
 				}
 
-				err := d.Set("sunstone", sunstoneConfig)
+				views, _ := e.GetStr("VIEWS")
+				if len(views) > 0 {
+					sunstoneConfig["views"] = views
+				}
+
+				groupAdminDefaultView, _ := e.GetStr("GROUP_ADMIN_DEFAULT_VIEW")
+				if len(groupAdminDefaultView) > 0 {
+					sunstoneConfig["group_admin_default_view"] = groupAdminDefaultView
+				}
+
+				groupAdminViews, _ := e.GetStr("GROUP_ADMIN_VIEWS")
+				if len(groupAdminViews) > 0 {
+					sunstoneConfig["group_admin_views"] = groupAdminViews
+				}
+
+				err := d.Set("sunstone", []interface{}{sunstoneConfig})
+				if err != nil {
+					return err
+				}
+			case "OPENNEBULA":
+
+				opennebulaConfig := make(map[string]interface{})
+
+				defaultImagePersistent, _ := e.GetStr("DEFAULT_IMAGE_PERSISTENT")
+				if len(defaultImagePersistent) > 0 {
+					opennebulaConfig["default_image_persistent"] = defaultImagePersistent
+				}
+
+				defaultImagePersistentNew, _ := e.GetStr("DEFAULT_IMAGE_PERSISTENT_NEW")
+				if len(defaultImagePersistentNew) > 0 {
+					opennebulaConfig["default_image_persistent_new"] = defaultImagePersistentNew
+				}
+
+				APIListOrder, _ := e.GetStr("API_LIST_ORDER")
+				if len(APIListOrder) > 0 {
+					opennebulaConfig["api_list_order"] = APIListOrder
+				}
+
+				err := d.Set("opennebula", []interface{}{opennebulaConfig})
 				if err != nil {
 					return err
 				}
@@ -425,6 +491,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 
 		}
 
+	}
+
+	err := flattenTemplateSection(d, meta, groupTpl)
+	if err != nil {
+		return err
 	}
 
 	tags := make(map[string]interface{})
@@ -514,20 +585,6 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	if d.HasChange("template") {
-		// Erase previous template
-		err = gc.Update(d.Get("template").(string), 0)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update group content",
-				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-
-	}
-
 	update := false
 	newTpl := group.Template
 
@@ -539,6 +596,23 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 			sunstoneVec := makeSunstoneVec(sunstone[0].(map[string]interface{}))
 			newTpl.Elements = append(newTpl.Elements, sunstoneVec)
 		}
+
+		update = true
+	}
+
+	if d.HasChange("opennebula") {
+		newTpl.Del("OPENNEBULA")
+
+		opennebula := d.Get("opennebula").(*schema.Set).List()
+		if len(opennebula) > 0 {
+			opennebulaVec := makeOpenNebulaVec(opennebula[0].(map[string]interface{}))
+			newTpl.Elements = append(newTpl.Elements, opennebulaVec)
+		}
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl)
 
 		update = true
 	}
@@ -679,16 +753,14 @@ func resourceOpennebulaGroupDelete(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	if d.Get("delete_on_destruction") == true {
-		err = gc.Delete()
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to delete",
-				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
+	err = gc.Delete()
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to delete",
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+		})
+		return diags
 	}
 
 	return nil

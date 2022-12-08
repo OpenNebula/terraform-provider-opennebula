@@ -95,38 +95,25 @@ func resourceOpennebulaVirtualRouter() *schema.Resource {
 				Optional:    true,
 				Description: "A description of the entity",
 			},
-			"lock":         lockSchema(),
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"lock":             lockSchema(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
 
-func getVirtualRouterController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VirtualRouterController, error) {
+func getVirtualRouterController(d *schema.ResourceData, meta interface{}) (*goca.VirtualRouterController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vrc *goca.VirtualRouterController
 
-	// Try to find the virtual router by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vrc = controller.VirtualRouter(int(gid))
+	vrID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the virtual router by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.VirtualRouterByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vrc = controller.VirtualRouter(gid)
-	}
-
-	return vrc, nil
+	return controller.VirtualRouter(int(vrID)), nil
 }
 
 func changeVirtualRouterGroup(d *schema.ResourceData, meta interface{}) error {
@@ -232,14 +219,8 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 	var diags diag.Diagnostics
 
 	// Get requested virtual router from all virtual routers
-	vrc, err := getVirtualRouterController(d, meta, -2, -1, -1)
+	vrc, err := getVirtualRouterController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual router %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router error",
@@ -250,7 +231,11 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 
 	vr, err := vrc.Info(false)
 	if err != nil {
-
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual router %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "virtual router info error",
@@ -275,6 +260,17 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 	}
 
 	config := meta.(*Configuration)
+
+	err = flattenTemplateSection(d, meta, &vr.Template.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -465,6 +461,13 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 		newTpl.Add("DESCRIPTION", d.Get("description").(string))
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl.Template)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")
@@ -570,6 +573,11 @@ func generateVirtualRouter(d *schema.ResourceData, meta interface{}) string {
 	descr, ok := d.GetOk("description")
 	if ok {
 		tpl.Add("DESCRIPTION", descr.(string))
+	}
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
 	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})

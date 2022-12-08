@@ -139,6 +139,7 @@ func commonInstanceSchema() map[string]*schema.Schema {
 		"sched_requirements":    schedReqSchema(),
 		"sched_ds_requirements": schedDSReqSchema(),
 		"description":           descriptionSchema(),
+		"template_section":      templateSectionSchema(),
 	}
 }
 
@@ -620,6 +621,11 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 		tpl.VCPU(vmvcpu.(int))
 	}
 
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
+	}
+
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
@@ -865,6 +871,11 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, vmTemplate 
 
 	// add default_tags to tags_all
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, vmTemplate)
+	if err != nil {
+		return err
+	}
 
 	tagsAll := make(map[string]interface{})
 

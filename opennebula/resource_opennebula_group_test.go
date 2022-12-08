@@ -19,7 +19,6 @@ func TestAccGroup(t *testing.T) {
 				Config: testAccGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
-					resource.TestCheckResourceAttr("opennebula_group.group", "delete_on_destruction", "false"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "quotas.*", map[string]string{
 						"datastore_quotas.#":        "1",
@@ -32,22 +31,32 @@ func TestAccGroup(t *testing.T) {
 						"vm_quotas.0.cpu":           "4",
 						"vm_quotas.0.memory":        "8192",
 					}),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.0.%", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
 						"group_admin_default_view": "groupadmin",
 						"group_admin_views":        "groupadmin",
 						"views":                    "cloud",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "opennebula.*", map[string]string{
+						"default_image_persistent": "YES",
+						"api_list_order":           "ASC",
+					}),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey1", "testvalue1"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
+					}),
 				),
 			},
 			{
 				Config: testAccGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
-					resource.TestCheckResourceAttr("opennebula_group.group", "delete_on_destruction", "true"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "quotas.*", map[string]string{
 						"datastore_quotas.#":        "1",
@@ -60,15 +69,25 @@ func TestAccGroup(t *testing.T) {
 						"vm_quotas.0.cpu":           "4",
 						"vm_quotas.0.memory":        "8192",
 					}),
+					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.0.%", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
 						"group_admin_default_view": "groupadmin",
 						"group_admin_views":        "cloud",
 						"views":                    "cloud",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "opennebula.*", map[string]string{
+						"api_list_order": "DESC",
+					}),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey3", "testvalue3"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey2": "testvalue2",
+						"elements.testkey3": "testvalue3",
+					}),
 				),
 			},
 			{
@@ -85,6 +104,12 @@ func TestAccGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey2", "testvalue2"),
 					resource.TestCheckResourceAttr("opennebula_group.group", "tags.testkey3", "testvalue3"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey2": "testvalue2",
+						"elements.testkey3": "testvalue3",
+					}),
 				),
 			},
 			{
@@ -118,7 +143,6 @@ func TestAccGroup(t *testing.T) {
 				Config: testAccGroupLigh,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group2", "name", "noquotas"),
-					resource.TestCheckResourceAttr("opennebula_group.group2", "delete_on_destruction", "true"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
 						"group_admin_default_view": "groupadmin",
@@ -126,6 +150,7 @@ func TestAccGroup(t *testing.T) {
 						"views":                    "cloud",
 					}),
 					resource.TestCheckResourceAttr("opennebula_group.group2", "tags.%", "0"),
+					resource.TestCheckResourceAttr("opennebula_group.group2", "template_section.#", "0"),
 				),
 			},
 		},
@@ -178,7 +203,11 @@ resource "opennebula_group" "group" {
       group_admin_views = "groupadmin"
       views = "cloud"
 	}
-    delete_on_destruction = false
+	opennebula {
+	  default_image_persistent = "YES"
+	  api_list_order = "ASC"
+	}
+
     quotas {
         datastore_quotas {
             id = 1
@@ -195,10 +224,12 @@ resource "opennebula_group" "group" {
 		testkey2 = "testvalue2"
 	}
 
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
+	template_section {
+		name = "test_vec_key"
+		elements = {
+			testkey1 = "testvalue1"
+			testkey2 = "testvalue2"
+		}
 	}
 }
 `
@@ -212,7 +243,10 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    delete_on_destruction = true
+	opennebula {
+		api_list_order = "DESC"
+	}
+
     quotas {
         datastore_quotas {
             id = 1
@@ -229,10 +263,12 @@ resource "opennebula_group" "group" {
 		testkey3 = "testvalue3"
 	}
 
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
+	template_section {
+		name = "test_vec_key"
+		elements = {
+			testkey2 = "testvalue2"
+			testkey3 = "testvalue3"
+		}
 	}
 }
 `
@@ -246,7 +282,6 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    delete_on_destruction = true
     quotas {
         datastore_quotas {
             id = 1
@@ -263,10 +298,12 @@ resource "opennebula_group" "group" {
 		testkey3 = "testvalue3"
 	}
 
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
+	template_section {
+		name = "test_vec_key"
+		elements = {
+			testkey2 = "testvalue2"
+			testkey3 = "testvalue3"
+		}
 	}
 }
 `
@@ -309,7 +346,6 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    delete_on_destruction = true
     quotas {
         datastore_quotas {
             id = 1
@@ -321,12 +357,6 @@ resource "opennebula_group" "group" {
             memory = 8192
         }
     }
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
-	}
 }
 
 resource "opennebula_group" "group2" {
@@ -336,13 +366,6 @@ resource "opennebula_group" "group2" {
 		group_admin_default_view = "groupadmin"
 		group_admin_views = "cloud"
 		views = "cloud"
-	}
-    delete_on_destruction = true
-
-	lifecycle {
-		ignore_changes = [
-			template,
-		]
 	}
 }
 `

@@ -135,37 +135,24 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Template VM Group, If empty, it uses caller group",
 			},
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
 
-func getVMGroupController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VMGroupController, error) {
+func getVMGroupController(d *schema.ResourceData, meta interface{}) (*goca.VMGroupController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vmgc *goca.VMGroupController
 
-	// Try to find the vm group by ID, if specified
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vmgc = controller.VMGroup(int(gid))
+	vmgID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the template by name as the de facto compound primary key
-	if d.Id() == "" {
-		gid, err := controller.VMGroups().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vmgc = controller.VMGroup(gid)
-	}
-
-	return vmgc, nil
+	return controller.VMGroup(int(vmgID)), nil
 }
 
 func changeVMGroupGroup(d *schema.ResourceData, meta interface{}) error {
@@ -260,14 +247,8 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 	var diags diag.Diagnostics
 
 	// Get requested template from all templates
-	vmgc, err := getVMGroupController(d, meta, -2, -1, -1)
+	vmgc, err := getVMGroupController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual machine group template %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the VM group controller",
@@ -279,6 +260,11 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 
 	vmg, err := vmgc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual machine group template %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
@@ -322,6 +308,12 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, tpl)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -494,6 +486,13 @@ func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData
 		update = true
 	}
 
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl)
+
+		update = true
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")
@@ -604,6 +603,11 @@ func generateVMGroup(d *schema.ResourceData, meta interface{}) (*dyn.Template, e
 	tpl.AddPair("NAME", d.Get("name").(string))
 
 	generateVMGroupRoles(d, tpl)
+
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
+	}
 
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {

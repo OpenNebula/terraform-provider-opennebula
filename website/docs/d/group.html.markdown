@@ -22,7 +22,6 @@ data "opennebula_group" "example" {
 
 * `name` - (Optional) The OpenNebula group to retrieve information for.
 * `tags` - (Optional) Tags associated to the Image.
-* `quotas` - (Deprecated) Quotas configured for the group.
 
 ## Attribute Reference
 

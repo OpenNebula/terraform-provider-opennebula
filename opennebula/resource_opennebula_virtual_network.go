@@ -266,10 +266,11 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the Group that onws the Virtual Network, If empty, it uses caller group",
 			},
-			"lock":         lockSchema(),
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"lock":             lockSchema(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -354,30 +355,16 @@ func ARFields() map[string]*schema.Schema {
 	}
 }
 
-func getVirtualNetworkController(d *schema.ResourceData, meta interface{}, args ...int) (*goca.VirtualNetworkController, error) {
+func getVirtualNetworkController(d *schema.ResourceData, meta interface{}) (*goca.VirtualNetworkController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var vnc *goca.VirtualNetworkController
 
-	// Try to find the VNet by ID, if specified
-	if d.Id() != "" {
-		id, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		vnc = controller.VirtualNetwork(int(id))
+	imgID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the VNet by name as the de facto compound primary key
-	if d.Id() == "" {
-		id, err := controller.VirtualNetworks().ByName(d.Get("name").(string), args...)
-		if err != nil {
-			return nil, err
-		}
-		vnc = controller.VirtualNetwork(id)
-	}
-
-	return vnc, nil
+	return controller.VirtualNetwork(int(imgID)), nil
 }
 
 func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
@@ -765,6 +752,11 @@ func generateVnTemplate(d *schema.ResourceData, meta interface{}) (string, error
 		tpl.Add("DESCRIPTION", desc.(string))
 	}
 
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, &tpl.Template)
+	}
+
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
@@ -875,14 +867,8 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 
 	var diags diag.Diagnostics
 
-	vnc, err := getVirtualNetworkController(d, meta, -2, -1, -1)
+	vnc, err := getVirtualNetworkController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing virtual network %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the virtual network controller",
@@ -895,6 +881,11 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	vn, err := vnc.Info(false)
 	if err != nil {
+		if NoExists(err) {
+			log.Printf("[WARN] Removing virtual network %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
@@ -1020,6 +1011,12 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, &vnTpl.Template)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -1225,6 +1222,13 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		securitygroups := d.Get("security_groups")
 		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
 		tpl.Add(vnk.SecGroups, secgrouplist)
+		changes = true
+	}
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &tpl.Template)
+
 		changes = true
 	}
 

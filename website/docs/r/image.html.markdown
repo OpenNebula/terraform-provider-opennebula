@@ -46,6 +46,13 @@ resource "opennebula_image" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -65,6 +72,13 @@ resource "opennebula_image" "example" {
 
   tags = {
     environment = "example"
+  }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
   }
 }
 ```
@@ -122,6 +136,14 @@ The following arguments are supported:
 * `group` - (Optional) Name of the group which owns the image. Defaults to the caller primary group.
 * `tags` - (Optional) Image tags (Key = value)
 * `timeout` - (Deprecated) Timeout (in Minutes) for Image availability. Defaults to 10 minutes.
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

@@ -62,8 +62,9 @@ provider "opennebula" {
   username      = "me"
   password      = "p@s5w0rD"
   insecure      = true
-  default_tags  = {
-    tags {
+
+  default_tags {
+    tags = {
       environment = "default"
     }
   }

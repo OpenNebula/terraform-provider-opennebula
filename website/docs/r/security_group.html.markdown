@@ -40,6 +40,13 @@ resource "opennebula_security_group" "example" {
   tags = {
     environment = "example"
   }
+
+  template_section {
+	  name = "test"
+	  elements = {
+		    key1 = "value1"
+	  }
+  }
 }
 ```
 
@@ -54,6 +61,7 @@ The following arguments are supported:
 * `rule` - (Required) List of rules. See [Rule parameters](#rule-parameters) below for details
 * `group` - (Optional) Name of the group which owns the security group. Defaults to the caller primary group.
 * `tags` - (Optional) Security group tags (Key = Value).
+* `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Rule parameters
 
@@ -68,6 +76,13 @@ The following arguments are supported:
 * `icmp_type` - (Optional) Type of ICMP traffic to apply to when 'protocol' is `ICMP`.
 
 See <https://docs.opennebula.org/5.12/operation/network_management/security_groups.html> for more details on allowed values.
+
+### Template section parameters
+
+`template_section` supports the following arguments:
+
+* `name` - (Optional) The vector name.
+* `elements` - (Optional) Collection of custom tags.
 
 ## Attribute Reference
 

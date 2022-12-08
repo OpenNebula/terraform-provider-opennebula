@@ -23,13 +23,10 @@ data "opennebula_template" "example" {
 * `name` - (Optional) The OpenNebula template to retrieve information for.
 * `has_cpu` - (Optional) Indicate if a CPU value has been defined.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM.
-* `has_cvpu` - (Optional) Indicate if a VCPU value has been defined.
-* `vpcu` - (Optional) Number of CPU cores presented to the VM.
+* `has_vcpu` - (Optional) Indicate if a VCPU value has been defined.
+* `vcpu` - (Optional) Number of CPU cores presented to the VM.
 * `has_memory` - (Optional) Indicate if a memory value has been defined.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB.
-* `context` - (Deprecated) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
-* `graphics` - (Deprecated) Graphics parameters.
-* `os` - (Deprecated) OS parameters
 * `tags` - (Optional) Template tags (Key = Value).
 
 ## Attribute Reference
@@ -39,7 +36,7 @@ The following attributes are exported:
 * `id` - ID of the template.
 * `name` - Name of the template.
 * `cpu` - Amount of CPU shares assigned to the VM.
-* `vpcu` - Number of CPU cores presented to the VM.
+* `vcpu` - Number of CPU cores presented to the VM.
 * `memory` - Amount of RAM assigned to the VM in MB.
 * `disk` - Disk parameters
 * `nic` - NIC parameters

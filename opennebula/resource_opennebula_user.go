@@ -70,10 +70,11 @@ func resourceOpennebulaUser() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"quotas":       quotasSchema(),
-			"tags":         tagsSchema(),
-			"default_tags": defaultTagsSchemaComputed(),
-			"tags_all":     tagsSchemaComputed(),
+			"quotas":           quotasSchema(),
+			"tags":             tagsSchema(),
+			"default_tags":     defaultTagsSchemaComputed(),
+			"tags_all":         tagsSchemaComputed(),
+			"template_section": templateSectionSchema(),
 		},
 	}
 }
@@ -81,27 +82,13 @@ func resourceOpennebulaUser() *schema.Resource {
 func getUserController(d *schema.ResourceData, meta interface{}) (*goca.UserController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var uc *goca.UserController
 
-	// Try to find the User by ID, if specified
-	if d.Id() != "" {
-		uid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		uc = controller.User(int(uid))
+	uID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	// Otherwise, try to find the User by name as the de facto compound primary key
-	if d.Id() == "" {
-		uid, err := controller.Users().ByName(d.Get("name").(string))
-		if err != nil {
-			return nil, err
-		}
-		uc = controller.User(uid)
-	}
-
-	return uc, nil
+	return controller.User(int(uID)), nil
 }
 
 func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -172,6 +159,11 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 
 	tpl := dyn.NewTemplate()
 
+	vectorsInterface := d.Get("template_section").(*schema.Set).List()
+	if len(vectorsInterface) > 0 {
+		addTemplateVectors(vectorsInterface, tpl)
+	}
+
 	tagsInterface := d.Get("tags").(map[string]interface{})
 	for k, v := range tagsInterface {
 		tpl.AddPair(strings.ToUpper(k), v)
@@ -210,12 +202,6 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 
 	uc, err := getUserController(d, meta)
 	if err != nil {
-		if NoExists(err) {
-			log.Printf("[WARN] Removing user %s from state because it no longer exists in", d.Get("name"))
-			d.SetId("")
-			return nil
-		}
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to get the user controller",
@@ -228,14 +214,18 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
 	user, err := uc.Info(false)
 	if err != nil {
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to retrieve informations",
-				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
-			})
-			return diags
+		if NoExists(err) {
+			log.Printf("[WARN] Removing user %s from state because it no longer exists in", d.Get("name"))
+			d.SetId("")
+			return nil
 		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+
 	}
 
 	d.SetId(strconv.FormatUint(uint64(user.ID), 10))
@@ -315,6 +305,12 @@ func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
 func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.Template) error {
 
 	config := meta.(*Configuration)
+
+	err := flattenTemplateSection(d, meta, userTpl)
+	if err != nil {
+		return err
+	}
+
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
 
@@ -492,6 +488,13 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 
 	update := false
 	newTpl := userInfos.Template
+
+	if d.HasChange("template_section") {
+
+		updateTemplateSection(d, &newTpl)
+
+		update = true
+	}
 
 	if d.HasChange("tags") {
 

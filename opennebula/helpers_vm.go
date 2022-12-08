@@ -289,7 +289,22 @@ func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 			for _, pair := range nicTpl.Pairs {
 
 				value, err := nic.GetStr(pair.Key())
-				if err != nil || value != pair.Value {
+				if pair.Key() == "SECURITY_GROUPS" {
+					// look for security group ID in the list
+					ids := strings.Split(value, ",")
+					found := false
+					for _, id := range ids {
+
+						if id != pair.Value {
+							continue
+						}
+						found = true
+						break
+					}
+					if !found {
+						continue loop
+					}
+				} else if err != nil || value != pair.Value {
 					continue loop
 				}
 
