@@ -88,7 +88,7 @@ The following arguments are supported:
 * `permissions` - (Optional) Permissions applied on template. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `group` - (Optional) Name of the group which owns the template. Defaults to the caller primary group.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if `template_****id` is not set**.
-* `vpcu` - (Optional) Number of CPU cores presented to the VM.
+* `vcpu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if `template_****id` is not set**.
 * `features` - (Optional) See [Features parameters](#features-parameters) below for details.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
