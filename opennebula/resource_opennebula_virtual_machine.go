@@ -613,6 +613,18 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 
 		var diags diag.Diagnostics
 
+		// read template ID from which the VM was created
+		templateID, _ := vmInfos.Template.GetInt("TEMPLATE_ID")
+		d.Set("template_id", templateID)
+
+		// add empty values for import
+		if _, ok := d.GetOk("template_disk"); !ok {
+			d.Set("template_disk", []interface{}{})
+		}
+		if _, ok := d.GetOk("template_nic"); !ok {
+			d.Set("template_nic", []interface{}{})
+		}
+
 		err := flattenVMDisk(d, &vmInfos.Template)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
