@@ -376,7 +376,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
-		d.Set("template_tags", nil)
+		d.Set("template_tags", map[string]interface{}{})
 		d.Set("template_section_names", map[string]interface{}{})
 	}
 
@@ -623,6 +623,9 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 		}
 		if _, ok := d.GetOk("template_nic"); !ok {
 			d.Set("template_nic", []interface{}{})
+		}
+		if _, ok := d.GetOk("template_tags"); !ok {
+			d.Set("template_tags", map[string]interface{}{})
 		}
 
 		err := flattenVMDisk(d, &vmInfos.Template)
