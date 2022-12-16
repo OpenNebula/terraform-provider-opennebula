@@ -1,3 +1,9 @@
+# 1.1.1 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_datastore: fix system type values (#382)
+
 # 1.1.0 (December 6th, 2022)
 
 FEATURES:
