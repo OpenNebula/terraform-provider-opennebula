@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * resources/opennebula_datastore: fix system type values (#382)
+* resources/opennebula_host: fix host resource type case (#385)
 
 # 1.1.0 (December 6th, 2022)
 
