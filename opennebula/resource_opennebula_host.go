@@ -19,7 +19,7 @@ import (
 	hostk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/host/keys"
 )
 
-var hostTypes = []string{"KVM", "QEMU", "LXD", "LXC", "FIRECRACKER", "VCENTER", "CUSTOM"}
+var hostTypes = []string{"kvm", "qemu", "lxd", "lxc", "firecracker", "vcenter", "custom"}
 var defaultHostMinTimeout = 20
 var defaultHostTimeout = time.Duration(defaultHostMinTimeout) * time.Minute
 
@@ -49,9 +49,8 @@ func resourceOpennebulaHost() *schema.Resource {
 				ForceNew:    true,
 				Description: "Type of the new host: kvm, qemu, lxd, lxc, firecracker, custom",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := strings.ToUpper(v.(string))
 
-					if inArray(value, hostTypes) < 0 {
+					if inArray(v.(string), hostTypes) < 0 {
 						errors = append(errors, fmt.Errorf("host \"type\" must be one of: %s", strings.Join(hostTypes, ",")))
 					}
 
@@ -128,22 +127,22 @@ func resourceOpennebulaHostCreate(ctx context.Context, d *schema.ResourceData, m
 	var diags diag.Diagnostics
 
 	name := d.Get("name").(string)
-	hostType := strings.ToUpper(d.Get("type").(string))
+	hostType := d.Get("type").(string)
 
 	var vmMad, imMad string
 
 	switch hostType {
-	case "KVM", "QEMU", "LXD", "LXC", "FIRECRACKER":
+	case "kvm", "qemu", "lxd", "lxc", "firecracker":
 		imMad = hostType
 		vmMad = hostType
 
-	case "VCENTER":
+	case "vcenter":
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "The VCENTER type is not managed.",
+			Summary:  "The vcenter type is not managed.",
 		})
 		return diags
-	case "CUSTOM":
+	case "custom":
 
 		madsList := d.Get("custom").(*schema.Set).List()
 
