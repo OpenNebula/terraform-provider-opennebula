@@ -18,7 +18,7 @@ import (
 
 var datastoreTypes = map[string]string{
 	"IMAGE":  "IMAGE_DS",
-	"SYSTEM": "SYSTEM_IMAGE",
+	"SYSTEM": "SYSTEM_DS",
 	"FILE":   "FILE_DS"}
 
 func resourceOpennebulaDatastore() *schema.Resource {
@@ -186,7 +186,7 @@ func resourceOpennebulaDatastore() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"datastore": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							ForceNew:    true,
 							Description: "Datastore driver",
 						},
@@ -311,8 +311,8 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 
 	} else if len(customAttrsList) > 0 {
 		customAttrsMap := customAttrsList[0].(map[string]interface{})
-		datastoreDriver, ok := customAttrsMap["datastore"]
-		if ok {
+		datastoreDriver, _ := customAttrsMap["datastore"]
+		if len(datastoreDriver.(string)) > 0 {
 			tpl.Add("DS_MAD", datastoreDriver)
 		}
 		transferDriver, ok := customAttrsMap["transfer"]
