@@ -4,6 +4,7 @@ FEATURES:
 
 * resources/opennebula_virtual_network_address_range: add `ipam` field (#192)
 * resources/opennebula_virtual_network_address_range: add `custom` section to allow to pass user defined custom attributes (#376)
+* **New Data Source**: `opennebula_templates` (#322)
 
 BUG FIXES:
 
