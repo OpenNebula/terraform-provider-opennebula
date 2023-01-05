@@ -11,105 +11,114 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+func commonDatasourceTemplateSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"has_cpu": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Indicate if template has CPU defined",
+		},
+		"has_vcpu": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Indicate if template has VCPU defined",
+		},
+		"has_memory": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Indicate if template has memory defined",
+		},
+		"cpu": func() *schema.Schema {
+			s := cpuSchema()
+
+			s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
+				value := v.(float64)
+
+				if value == 0 {
+					errs = append(errs, errors.New("cpu should be strictly greater than 0"))
+				}
+
+				return
+			}
+			return s
+		}(),
+		"vcpu": func() *schema.Schema {
+			s := vcpuSchema()
+
+			s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
+				value := v.(int)
+
+				if value == 0 {
+					errs = append(errs, errors.New("vcpu should be strictly greater than 0"))
+				}
+
+				return
+			}
+			return s
+		}(),
+		"memory": func() *schema.Schema {
+			s := memorySchema()
+
+			s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
+				value := v.(int)
+
+				if value == 0 {
+					errs = append(errs, errors.New("memory should be strictly greater than 0"))
+				}
+
+				return
+			}
+			return s
+		}(),
+		"tags": tagsSchema(),
+	}
+}
+
 func dataOpennebulaTemplate() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: datasourceOpennebulaTemplateRead,
 
-		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     -1,
-				Description: "Id of the template",
+		Schema: mergeSchemas(
+			commonDatasourceTemplateSchema(),
+			map[string]*schema.Schema{
+				"id": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     -1,
+					Description: "Id of the template",
+				},
+				"name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Name of the Template",
+				},
+				"disk": func() *schema.Schema {
+					s := diskSchema()
+					s.Computed = true
+					s.Optional = false
+					return s
+				}(),
+				"nic": func() *schema.Schema {
+					s := nicSchema()
+					s.Computed = true
+					s.Optional = false
+					return s
+				}(),
+				"vmgroup": func() *schema.Schema {
+					s := vmGroupSchema()
+					s.Computed = true
+					s.Optional = false
+					s.MaxItems = 0
+					s.Description = "Virtual Machine Group to associate with during VM creation only."
+					return s
+				}(),
 			},
-			"name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the Template",
-			},
-			"has_cpu": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Indicate if template has CPU defined",
-			},
-			"has_vcpu": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Indicate if template has VCPU defined",
-			},
-			"has_memory": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Indicate if template has memory defined",
-			},
-			"cpu": func() *schema.Schema {
-				s := cpuSchema()
-
-				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
-					value := v.(float64)
-
-					if value == 0 {
-						errs = append(errs, errors.New("cpu should be strictly greater than 0"))
-					}
-
-					return
-				}
-				return s
-			}(),
-			"vcpu": func() *schema.Schema {
-				s := vcpuSchema()
-
-				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
-					value := v.(int)
-
-					if value == 0 {
-						errs = append(errs, errors.New("vcpu should be strictly greater than 0"))
-					}
-
-					return
-				}
-				return s
-			}(),
-			"memory": func() *schema.Schema {
-				s := memorySchema()
-
-				s.ValidateFunc = func(v interface{}, k string) (ws []string, errs []error) {
-					value := v.(int)
-
-					if value == 0 {
-						errs = append(errs, errors.New("memory should be strictly greater than 0"))
-					}
-
-					return
-				}
-				return s
-			}(),
-			"disk": func() *schema.Schema {
-				s := diskSchema()
-				s.Computed = true
-				s.Optional = false
-				return s
-			}(),
-			"nic": func() *schema.Schema {
-				s := nicSchema()
-				s.Computed = true
-				s.Optional = false
-				return s
-			}(),
-			"vmgroup": func() *schema.Schema {
-				s := vmGroupSchema()
-				s.Computed = true
-				s.Optional = false
-				s.MaxItems = 0
-				s.Description = "Virtual Machine Group to associate with during VM creation only."
-				return s
-			}(),
-			"tags": tagsSchema(),
-		},
+		),
 	}
 }
 
-func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Template, error) {
+// shared with opennebula_templates datasource
+func commonTemplatesFilter(d *schema.ResourceData, meta interface{}) ([]*templateSc.Template, error) {
 
 	config := meta.(*Configuration)
 	controller := config.Controller
@@ -172,9 +181,19 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 		match = append(match, &templates.Templates[i])
 	}
 
-	// check filtering results
+	return match, nil
+}
+
+func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Template, error) {
+
+	match, err := commonTemplatesFilter(d, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// the template datasource should match at most one element
 	if len(match) == 0 {
-		return nil, fmt.Errorf("no template match the constraints")
+		return nil, fmt.Errorf("no templates match the constraints")
 	} else if len(match) > 1 {
 		return nil, fmt.Errorf("several templates match the constraints")
 	}
