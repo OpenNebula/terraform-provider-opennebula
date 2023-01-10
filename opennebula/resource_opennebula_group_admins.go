@@ -24,7 +24,7 @@ func resourceOpennebulaGroupAdmins() *schema.Resource {
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Name of the group",
+				Description: "ID of the group",
 			},
 			"users_ids": {
 				Type:        schema.TypeSet,
@@ -191,7 +191,7 @@ func resourceOpennebulaGroupAdminsDelete(ctx context.Context, d *schema.Resource
 	}
 	gc := controller.Group(int(groupID))
 
-	// add admins users_ids if list provided
+	// remove admins users_ids if list provided
 	adminsIDs := d.Get("users_ids").(*schema.Set).List()
 	for _, id := range adminsIDs {
 		err := gc.DelAdmin(id.(int))
