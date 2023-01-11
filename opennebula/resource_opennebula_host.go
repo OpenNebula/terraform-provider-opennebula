@@ -100,6 +100,12 @@ func resourceOpennebulaHost() *schema.Resource {
 				Optional:    true,
 				Default:     -1,
 				Description: "ID of the cluster",
+				Deprecated:  "manage membership from the hosts attribute of the cluster",
+			},
+			"cluster": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Cluster IDs hosting the host",
 			},
 			"tags":         tagsSchema(),
 			"default_tags": defaultTagsSchemaComputed(),
@@ -312,6 +318,7 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	d.SetId(fmt.Sprintf("%v", hostInfos.ID))
 	d.Set("name", hostInfos.Name)
+	d.Set("cluster", hostInfos.ClusterID)
 
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
