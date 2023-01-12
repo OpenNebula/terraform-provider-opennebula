@@ -64,11 +64,6 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 					ForceNew:    true,
 					Description: "Id of the VM template to use. Defaults to -1: no template used.",
 				},
-				"template_tags": {
-					Type:        schema.TypeMap,
-					Computed:    true,
-					Description: "When template_id was set this keeps the template tags.",
-				},
 				"template_nic": templateNICVMSchema(),
 			},
 		),
@@ -326,6 +321,16 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 
 		d.Set("template_tags", inheritedTags)
 
+		// save inherited template sections names
+		inheritedSectionsNames := make(map[string]interface{})
+		for _, e := range tpl.Template.Elements {
+			if vec, ok := e.(*dyn.Vector); ok {
+				inheritedSectionsNames[vec.Key()] = ""
+			}
+		}
+
+		d.Set("template_section_names", inheritedSectionsNames)
+
 	} else {
 
 		if _, ok := d.GetOk("cpu"); !ok {
@@ -372,6 +377,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		}
 
 		d.Set("template_tags", nil)
+		d.Set("template_section_names", map[string]interface{}{})
 	}
 
 	d.SetId(fmt.Sprintf("%v", vmID))
@@ -564,7 +570,12 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		}
 	}
 
-	err = flattenTemplate(d, &vm.Template)
+	var inheritedVectors map[string]interface{}
+	inheritedVectorsIf := d.Get("template_section_names")
+	if inheritedVectorsIf != nil {
+		inheritedVectors = inheritedVectorsIf.(map[string]interface{})
+	}
+	err = flattenTemplate(d, inheritedVectors, &vm.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -574,7 +585,13 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		return diags
 	}
 
-	err = flattenVMUserTemplate(d, meta, &vm.UserTemplate.Template)
+	var inheritedTags map[string]interface{}
+	inheritedTagsIf := d.Get("template_tags")
+	if inheritedTagsIf != nil {
+		inheritedTags = inheritedTagsIf.(map[string]interface{})
+	}
+
+	err = flattenVMUserTemplate(d, meta, inheritedTags, &vm.UserTemplate.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

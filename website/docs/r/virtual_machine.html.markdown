@@ -184,7 +184,8 @@ The following attribute are exported:
 * `template_nic` - when `template_id` is used and the template define some NICs, this contains the template NICs description.
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
-* `template_tags` - When template_id was set this keeps the template tags.
+* `template_tags` - When `template_id` was set this keeps the template tags.
+* `template_section_names` - When `template_id` was set this keeps the template section names only.
 
 ### Template NIC
 

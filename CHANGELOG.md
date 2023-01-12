@@ -4,6 +4,10 @@ BUG FIXES:
 
 * resources/opennebula_datastore: fix system type values (#382)
 * resources/opennebula_host: fix host resource type case (#385)
+* resources/opennebula_virtual_machine: import more sections and attributes: `os`, `graphics`, `cpu_model`, `features`, `sched_requirements`, `sched_ds_requirements`, `description` (#377)
+* resources/opennebula_virtual_router_instance: import more sections and attributes: `os`, `graphics`, `cpu_model`, `features`, `sched_requirements`, `sched_ds_requirements`, `description` (#377)
+* resources/opennebula_template: import more sections and attributes: `os`, `graphics`, `cpu_model`, `features`, `sched_requirements`, `sched_ds_requirements`, `description` (#377)
+* resources/opennebula_virtual_router_instance_template: import more sections and attributes: `os`, `graphics`, `cpu_model`, `features`, `sched_requirements`, `sched_ds_requirements`, `description` (#377)
 
 # 1.1.0 (December 6th, 2022)
 

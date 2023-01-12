@@ -163,6 +163,7 @@ The following attribute are exported:
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
 * `template_tags` - When `template_id` was set this keeps the template tags.
+* `template_section_names` - When `template_id` was set this keeps the template section names only.
 
 ### Template disk
 
