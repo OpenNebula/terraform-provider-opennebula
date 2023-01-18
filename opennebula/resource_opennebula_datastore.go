@@ -610,10 +610,14 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 		d.Set("ceph", []interface{}{cephAttrsMap})
 	} else if len(customAttrsList) > 0 {
 
-		d.Set("custom", []interface{}{map[string]interface{}{
-			"datastore": datastoreInfos.DSMad,
-			"transfer":  datastoreInfos.TMMad,
-		}})
+		customMap := map[string]interface{}{
+			"transfer": datastoreInfos.TMMad,
+		}
+
+		if datastoreInfos.DSMad != "-" {
+			customMap["datastore"] = datastoreInfos.DSMad
+		}
+		d.Set("custom", []interface{}{customMap})
 
 	}
 
