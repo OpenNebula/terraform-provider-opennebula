@@ -12,6 +12,7 @@ BUG FIXES:
 * resources/opennebula_virtual_router_instance: set empty values instead of null for `template_disk`, `template_nic`, `template_tags` (#312, #369)
 * resources/opennebula_datastore: add argument `cluster_ids` (#389)
 * resources/opennebula_virtual_network: add argument `cluster_ids` (#389)
+* resources/opennebula_datastore: conditional reading of `datastore` argument from `custom`. (#382)
 
 DEPRECATION:
 
