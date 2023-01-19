@@ -136,12 +136,11 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				Computed:      true,
-				Description:   "List of cluster IDs hosting the virtual Network",
+				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Deprecated: "manage membership from the virtual_networks attribute of the cluster",
 			},
 			"vlan_id": {
 				Type:          schema.TypeString,

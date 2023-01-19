@@ -61,15 +61,6 @@ func resourceOpennebulaDatastore() *schema.Resource {
 				Optional:    true,
 				Default:     -1,
 				Description: "ID of the cluster",
-				Deprecated:  "manage membership from the datastores attribute of the cluster",
-			},
-			"clusters": {
-				Type:        schema.TypeSet,
-				Computed:    true,
-				Description: "List of cluster IDs hosting the datastore",
-				Elem: &schema.Schema{
-					Type: schema.TypeInt,
-				},
 			},
 			"restricted_directories": {
 				Type:        schema.TypeString,
@@ -459,7 +450,6 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 		}
 		d.Set("cluster_id", id)
 	}
-	d.Set("clusters", datastoreInfos.Clusters.ID)
 
 	restrictedDirs, err := datastoreInfos.Template.Get(dsKey.RestrictedDirs)
 	if err == nil {
