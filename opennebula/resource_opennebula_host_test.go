@@ -24,6 +24,7 @@ func TestAccHost(t *testing.T) {
 						"virtualization": "dummy",
 						"information":    "dummy",
 					}),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "cluster_id", "0"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.environment", "example"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "tags.test", "test"),
@@ -34,6 +35,7 @@ func TestAccHost(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_host.test1", "name", "test-updated"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "type", "custom"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "cluster_id", "0"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_host.test1", "custom.*", map[string]string{
 						"virtualization": "dummy",
 						"information":    "dummy",
@@ -52,6 +54,7 @@ func TestAccHost(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_host.test1", "name", "test-updated"),
 					resource.TestCheckResourceAttr("opennebula_host.test1", "type", "custom"),
+					resource.TestCheckResourceAttr("opennebula_host.test1", "cluster_id", "0"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_host.test1", "custom.*", map[string]string{
 						"virtualization": "dummy",
 						"information":    "dummy",
@@ -92,6 +95,7 @@ var testAccHostConfig = `
 resource "opennebula_host" "test1" {
 	name       = "test-custom"
 	type       = "custom"
+	cluster_id = 0
 
 	custom {
 		virtualization = "dummy"
@@ -109,6 +113,7 @@ var testAccHostConfigAddOvercommit = `
 resource "opennebula_host" "test1" {
 	name       = "test-updated"
 	type       = "custom"
+	cluster_id = 0
 
 	custom {
 		virtualization = "dummy"
@@ -131,6 +136,7 @@ var testAccHostConfigUpdate = `
 resource "opennebula_host" "test1" {
 	name       = "test-updated"
 	type       = "custom"
+	cluster_id = 0
 
 	custom {
 		virtualization = "dummy"

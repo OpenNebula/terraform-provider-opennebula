@@ -10,15 +10,6 @@ BUG FIXES:
 * resources/opennebula_virtual_router_instance_template: import more sections and attributes: `os`, `graphics`, `cpu_model`, `features`, `sched_requirements`, `sched_ds_requirements`, `description` (#377)
 * resources/opennebula_virtual_machine: set empty values instead of null for `template_disk`, `template_nic`, `template_tags` (#312, #369)
 * resources/opennebula_virtual_router_instance: set empty values instead of null for `template_disk`, `template_nic`, `template_tags` (#312, #369)
-* resources/opennebula_host: add computed `cluster` attribute. (#389)
-* resources/opennebula_datastore: add computed `clusters` attribute. (#389)
-
-DEPRECATION:
-
-* resources/opennebula_host: deprecate `cluster_id` (#389)
-* resources/opennebula_datastore: deprecate `cluster_id` (#389)
-* resources/opennebula_virtual_network: deprecate `clusters` (#389)
-
 
 # 1.1.0 (December 6th, 2022)
 
