@@ -99,7 +99,7 @@ func resourceOpennebulaHost() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     -1,
-				Description: "ID of the cluster",
+				Description: "ID of the cluster. Affected to the default cluster if not set",
 			},
 			"tags":         tagsSchema(),
 			"default_tags": defaultTagsSchemaComputed(),
@@ -172,6 +172,8 @@ func resourceOpennebulaHostCreate(ctx context.Context, d *schema.ResourceData, m
 
 	clusterID := d.Get("cluster_id").(int)
 
+	log.Printf("[INFO] Host %s %s %s", name, imMad, vmMad)
+
 	hostID, err := controller.Hosts().Create(name, imMad, vmMad, clusterID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
@@ -188,7 +190,7 @@ func resourceOpennebulaHostCreate(ctx context.Context, d *schema.ResourceData, m
 	hc := controller.Host(hostID)
 
 	timeout := d.Timeout(schema.TimeoutCreate)
-	_, err = waitForHostStates(ctx, hc, timeout, []string{"INIT", "MONITORING_INIT", "MONITORING_MONITORED"}, []string{"MONITORED"})
+	_, err = waitForHostStates(ctx, hc, timeout, []string{"INIT", "MONITORING_INIT", "MONITORING_MONITORED"}, []string{"MONITORED", "INIT"})
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
