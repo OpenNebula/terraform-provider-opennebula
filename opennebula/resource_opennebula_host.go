@@ -346,6 +346,12 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 		d.Set("overcommit", []map[string]interface{}{overcommitMap})
 	}
 
+	clusterID := d.Get("cluster_id").(int)
+	if clusterID != -1 {
+
+		d.Set("cluster_id", hostInfos.ClusterID)
+	}
+
 	// Get default tags
 	oldDefault := d.Get("default_tags").(map[string]interface{})
 	for k, _ := range oldDefault {
