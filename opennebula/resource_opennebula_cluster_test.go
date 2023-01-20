@@ -18,36 +18,56 @@ func TestAccCluster(t *testing.T) {
 			{
 				Config: testAccClusterConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "name", "test"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "hosts.#", "1"),
-					resource.TestCheckTypeSetElemAttr("opennebula_cluster.example", "hosts.*", "0"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "datastores.#", "1"),
-					resource.TestCheckTypeSetElemAttr("opennebula_cluster.example", "datastores.*", "2"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "virtual_networks.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "tags.%", "1"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "tags.environment", "example"),
+					resource.TestCheckResourceAttr("opennebula_host.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test2", "name", "test2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.environment", "example"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "name", "test2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.environment", "example"),
+				),
+			},
+			{
+				Config: testAccClusterConfigUpdateMembership,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_host.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test2", "name", "test2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.environment", "example"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "name", "test2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.environment", "example"),
+				),
+			},
+			{
+				Config: testAccClusterConfigUpdateMembership2,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_host.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.environment", "example"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "name", "test2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.environment", "example"),
 				),
 			},
 			{
 				Config: testAccClusterConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "name", "test"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "hosts.#", "1"),
-					resource.TestCheckTypeSetElemAttr("opennebula_cluster.example", "hosts.*", "0"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "datastores.#", "1"),
-					resource.TestCheckTypeSetElemAttr("opennebula_cluster.example", "datastores.*", "1"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "virtual_networks.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "tags.%", "1"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "tags.environment", "updated"),
-				),
-			},
-			{
-				Config: testAccClusterConfigEmpty,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "name", "test"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "hosts.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "datastores.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_cluster.example", "virtual_networks.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_host.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "name", "test"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.environment", "example"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test", "tags.environment2", "example2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "name", "test2"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.%", "1"),
+					resource.TestCheckResourceAttr("opennebula_cluster.test2", "tags.environment", "updated2"),
 				),
 			},
 		},
@@ -75,7 +95,22 @@ func testAccCheckClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccClusterVnet = `
+var testAccClusterConfigBasic = `
+resource "opennebula_host" "test" {
+	name       = "test"
+	type       = "custom"
+
+	custom {
+		virtualization = "dummy"
+		information = "dummy"
+	}
+  
+	tags = {
+	  test = "test"
+	  environment = "example"
+	}
+  }
+
 resource "opennebula_virtual_network" "test" {
 	name            = "test"
 	type            = "dummy"
@@ -83,12 +118,12 @@ resource "opennebula_virtual_network" "test" {
 	mtu             = 1500
 
 	security_groups = [0]
-	clusters = [0]
+	cluster_ids = [opennebula_cluster.test.id, opennebula_cluster.test2.id]
 	permissions = "660"
 	group = "users"
 
 	lifecycle {
-	  ignore_changes = [ar, hold_ips]
+	  ignore_changes = [ar, hold_ips, clusters]
 	}
 }
 
@@ -98,62 +133,227 @@ resource "opennebula_virtual_network" "test2" {
 	bridge          = "onebr"
 	mtu             = 1500
 
+	cluster_ids = [opennebula_cluster.test2.id]
+	permissions = "660"
+	group = "users"
+
+	lifecycle {
+	  ignore_changes = [ar, hold_ips, clusters]
+	}
+}
+
+resource "opennebula_cluster" "test" {
+	name = "test"
+
+	tags = {
+	  environment = "example"
+	}
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
+	}
+  }
+
+  resource "opennebula_cluster" "test2" {
+	name = "test2"
+
+	tags = {
+	  environment = "example"
+	}
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
+	}
+  }
+`
+
+var testAccClusterConfigUpdateMembership = `
+resource "opennebula_host" "test" {
+	name       = "test"
+	type       = "custom"
+	cluster_id = opennebula_cluster.test2.id
+
+	custom {
+		virtualization = "dummy"
+		information = "dummy"
+	}
+
+	tags = {
+	  test = "test"
+	  environment = "example"
+	}
+  }
+
+resource "opennebula_virtual_network" "test" {
+	name            = "test"
+	type            = "dummy"
+	bridge          = "onebr"
+	mtu             = 1500
+
 	security_groups = [0]
-	clusters = [0]
+	cluster_ids = [opennebula_cluster.test2.id]
+	permissions = "660"
+	group = "users"
+
+	lifecycle {
+		ignore_changes = [ar, hold_ips, clusters]
+	}
+}
+
+resource "opennebula_virtual_network" "test2" {
+	name            = "test2"
+	type            = "dummy"
+	bridge          = "onebr"
+	mtu             = 1500
+
+	cluster_ids = [opennebula_cluster.test.id, opennebula_cluster.test2.id]
+	permissions = "660"
+	group = "users"
+
+	lifecycle {
+		ignore_changes = [ar, hold_ips, clusters]
+	}
+}
+
+resource "opennebula_cluster" "test" {
+	name = "test"
+
+	tags = {
+	  environment = "example"
+	}
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
+	}
+  }
+
+  resource "opennebula_cluster" "test2" {
+	name = "test2"
+
+	tags = {
+	  environment = "example"
+	}
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
+	}
+  }
+`
+
+var testAccClusterConfigUpdateMembership2 = `
+resource "opennebula_host" "test" {
+	name       = "test"
+	type       = "custom"
+	cluster_id = opennebula_cluster.test.id
+
+	custom {
+		virtualization = "dummy"
+		information = "dummy"
+	}
+
+	tags = {
+	  test = "test"
+	  environment = "example"
+	}
+  }
+  
+resource "opennebula_virtual_network" "test" {
+	name            = "test"
+	type            = "dummy"
+	bridge          = "onebr"
+	mtu             = 1500
+
+	security_groups = [0]
+	cluster_ids = [opennebula_cluster.test2.id]
+	permissions = "660"
+	group = "users"
+
+	lifecycle {
+		ignore_changes = [ar, hold_ips, clusters]
+	}
+}
+
+resource "opennebula_cluster" "test" {
+	name = "test"
+
+	tags = {
+		environment = "example"
+	}
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
+	}
+  }
+
+  resource "opennebula_cluster" "test2" {
+	name = "test2"
+
+	tags = {
+		environment = "example"
+	}
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
+	}
+  }
+`
+
+var testAccClusterConfigUpdate = `
+resource "opennebula_host" "test" {
+	name       = "test"
+	type       = "custom"
+	cluster_id = opennebula_cluster.test.id
+
+	custom {
+		virtualization = "dummy"
+		information = "dummy"
+	}
+
+	tags = {
+	  test = "test"
+	  environment = "example"
+	}
+  }
+  
+resource "opennebula_virtual_network" "test" {
+	name            = "test"
+	type            = "dummy"
+	bridge          = "onebr"
+	mtu             = 1500
+
+	security_groups = [0]
+	cluster_ids = [opennebula_cluster.test2.id]
 	permissions = "660"
 	group = "users"
 
 	lifecycle {
 	  ignore_changes = [ar, hold_ips]
 	}
-}`
+}
 
-var testAccClusterConfigEmpty = testAccClusterVnet + `
-resource "opennebula_cluster" "example" {
+resource "opennebula_cluster" "test" {
 	name = "test"
 
 	tags = {
 	  environment = "example"
+	  environment2 = "example2"
+	}
+
+
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
 	}
   }
-`
 
-var testAccClusterConfigBasic = testAccClusterVnet + `
-resource "opennebula_cluster" "example" {
-	name = "test"
-
-	hosts = [
-	  0
-	]
-	datastores = [
-	  2,
-	]
-	virtual_networks = [
-		opennebula_virtual_network.test.id,
-	]
+  resource "opennebula_cluster" "test2" {
+	name = "test2"
 
 	tags = {
-	  environment = "example"
+	  environment = "updated2"
 	}
-  }
-`
 
-var testAccClusterConfigUpdate = testAccClusterVnet + `
-resource "opennebula_cluster" "example" {
-	name = "test"
-
-	hosts = [
-	  0
-	]
-	datastores = [
-	  1,
-	]
-	virtual_networks = [
-		opennebula_virtual_network.test2.id,
-	]
-
-	tags = {
-	  environment = "updated"
+	lifecycle {
+		ignore_changes = [hosts, datastores, virtual_networks]
 	}
   }
 `
