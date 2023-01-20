@@ -23,6 +23,7 @@ func TestAccDatastore(t *testing.T) {
 						"datastore": "dummy",
 						"transfer":  "dummy",
 					}),
+					resource.TestCheckTypeSetElemAttr("opennebula_datastore.example", "cluster_ids.*", "0"),
 					resource.TestCheckResourceAttr("opennebula_datastore.example", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_datastore.example", "tags.test", "test"),
 					resource.TestCheckResourceAttr("opennebula_datastore.example", "tags.environment", "example"),
@@ -36,6 +37,7 @@ func TestAccDatastore(t *testing.T) {
 						"datastore": "dummy",
 						"transfer":  "dummy",
 					}),
+					resource.TestCheckTypeSetElemAttr("opennebula_datastore.example", "cluster_ids.*", "0"),
 					resource.TestCheckResourceAttr("opennebula_datastore.example", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_datastore.example", "tags.environment", "example-updated"),
 					resource.TestCheckResourceAttr("opennebula_datastore.example", "tags.customer", "test"),
@@ -70,6 +72,7 @@ var testAccDatastoreConfigBasic = `
 resource "opennebula_datastore" "example" {
 	name = "test"
 	type = "image"
+	cluster_ids = [0]
 
 	custom {
 		datastore = "dummy"
@@ -87,6 +90,7 @@ var testAccDatastoreConfigUpdate = `
 resource "opennebula_datastore" "example" {
 	name = "test-updated"
 	type = "image"
+	cluster_ids = [0]
 
 	custom {
 		datastore = "dummy"

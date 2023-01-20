@@ -266,7 +266,11 @@ resource "opennebula_virtual_network" "network1" {
 	permissions = "642"
 	group = "oneadmin"
 	security_groups = [0]
-	clusters = [0]
+	cluster_ids     = [0]
+
+	lifecycle {
+		ignore_changes = [clusters]
+	}
   }
 
   resource "opennebula_virtual_network" "network2" {
@@ -282,7 +286,11 @@ resource "opennebula_virtual_network" "network1" {
 	permissions = "642"
 	group = "oneadmin"
 	security_groups = [0]
-	clusters = [0]
+	cluster_ids     = [0]
+
+	lifecycle {
+		ignore_changes = [clusters]
+	}
   }
 
   resource "opennebula_virtual_network" "network3" {
@@ -298,7 +306,11 @@ resource "opennebula_virtual_network" "network1" {
 	permissions = "642"
 	group = "oneadmin"
 	security_groups = [0]
-	clusters = [0]
+	cluster_ids     = [0]
+
+	lifecycle {
+		ignore_changes = [clusters]
+	}
   }
 `
 
