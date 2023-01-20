@@ -1540,6 +1540,18 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 		return diags
 	}
 
+	timeout := d.Timeout(schema.TimeoutDelete)
+	transient := []string{vn.Init.String(), vn.Ready.String()}
+	_, err = waitForVNetworkState(ctx, vnc, timeout, transient, []string{"notfound", vn.Done.String()})
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait image to be in NOTFOUND or DONE state",
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	log.Printf("[INFO] Successfully deleted Vnet\n")
 	return nil
 }
