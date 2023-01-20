@@ -61,6 +61,16 @@ func resourceOpennebulaDatastore() *schema.Resource {
 				Optional:    true,
 				Default:     -1,
 				Description: "ID of the cluster",
+				Deprecated:  "use cluster_ids instead",
+			},
+			"cluster_ids": {
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "List of cluster IDs hosting the datastore, if not set it uses the default cluster",
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				MinItems: 1,
 			},
 			"restricted_directories": {
 				Type:        schema.TypeString,
@@ -338,10 +348,10 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 		}
 	}
 
-	clusterID := d.Get("cluster_id").(int)
+	clusterIDs := d.Get("cluster_ids").(*schema.Set).List()
 
 	log.Printf("[INFO] Datastore template: %s\n", tpl.String())
-	datastoreID, err := controller.Datastores().Create(tpl.String(), clusterID)
+	datastoreID, err := controller.Datastores().Create(tpl.String(), clusterIDs[0].(int))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -351,6 +361,22 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 		return diags
 	}
 	d.SetId(fmt.Sprintf("%v", datastoreID))
+
+	// Set Clusters (first in list is already set)
+	if len(clusterIDs) > 1 {
+		for _, id := range clusterIDs[1:] {
+			err := controller.Cluster(id.(int)).AddDatastore(datastoreID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to set cluster",
+					Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+
+		}
+	}
 
 	return resourceOpennebulaDatastoreRead(ctx, d, meta)
 }
@@ -449,6 +475,16 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 			continue
 		}
 		d.Set("cluster_id", id)
+	}
+
+	err = d.Set("cluster_ids", datastoreInfos.Clusters.ID)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set cluster_ids field",
+			Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+		})
+		return diags
 	}
 
 	restrictedDirs, err := datastoreInfos.Template.Get(dsKey.RestrictedDirs)
@@ -614,6 +650,9 @@ func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastor
 
 func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+	controller := config.Controller
+
 	var diags diag.Diagnostics
 
 	dc, err := getDatastoreController(d, meta)
@@ -649,6 +688,45 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 			return diags
 		}
 		log.Printf("[INFO] Successfully updated name for datastore %s\n", datastoreInfos.Name)
+	}
+
+	if d.HasChange("cluster_ids") {
+
+		oldClustersIf, newClustersIf := d.GetChange("cluster_ids")
+
+		oldClusters := schema.NewSet(schema.HashInt, oldClustersIf.(*schema.Set).List())
+		newClusters := schema.NewSet(schema.HashInt, newClustersIf.(*schema.Set).List())
+
+		// remove from clusters
+		remClusters := oldClusters.Difference(newClusters)
+
+		for _, id := range remClusters.List() {
+
+			err = controller.Cluster(id.(int)).DelDatastore(dc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to remove from the cluster",
+					Detail:   fmt.Sprintf("cluster (ID: %d): %s", dc.ID, err),
+				})
+				return diags
+			}
+		}
+
+		// add to clusters
+		addClusters := newClusters.Difference(oldClusters)
+
+		for _, id := range addClusters.List() {
+			err := controller.Cluster(id.(int)).AddDatastore(dc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add to the cluster",
+					Detail:   fmt.Sprintf("cluster (ID: %d): %s", dc.ID, err),
+				})
+				return diags
+			}
+		}
 	}
 
 	update := false
