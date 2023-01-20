@@ -658,56 +658,67 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		restrictedDirs := d.Get("restricted_directories")
 		newTpl.Del(string(dsKey.RestrictedDirs))
 		newTpl.Add(dsKey.RestrictedDirs, restrictedDirs)
+		update = true
 	}
 	if d.HasChange("safe_directories") {
 		safeDirs := d.Get("safe_directories")
 		newTpl.Del(string(dsKey.SafeDirs))
 		newTpl.Add(dsKey.SafeDirs, safeDirs)
+		update = true
 	}
 	if d.HasChange("no_decompress") {
 		noDecompress := d.Get("no_decompress")
 		newTpl.Del(string(dsKey.NoDecompress))
 		newTpl.Add(dsKey.NoDecompress, noDecompress)
+		update = true
 	}
 	if d.HasChange("storage_usage_limit") {
 		storageUsageLimit := d.Get("storage_usage_limit")
 		newTpl.Del(string(dsKey.LimitMB))
 		newTpl.Add(dsKey.LimitMB, storageUsageLimit)
+		update = true
 	}
 	if d.HasChange("transfer_bandwith_limit") {
 		transgerBandwithLimit := d.Get("transfer_bandwith_limit")
 		newTpl.Del(string(dsKey.LimitTransferBW))
 		newTpl.Add(dsKey.LimitTransferBW, transgerBandwithLimit)
+		update = true
 	}
 	if d.HasChange("check_available_capacity") {
 		checkAvailableCapacity := d.Get("check_available_capacity")
 		newTpl.Del(string(dsKey.DatastoreCapacityCheck))
 		newTpl.Add(dsKey.DatastoreCapacityCheck, checkAvailableCapacity)
+		update = true
 	}
 	if d.HasChange("bridge_list") {
 		brigeList := d.Get("bridge_list")
 		newTpl.Del(string(dsKey.BridgeList))
 		newTpl.Add(dsKey.BridgeList, brigeList)
+		update = true
 	}
 	if d.HasChange("staging_dir") {
 		stagingDir := d.Get("staging_dir")
 		newTpl.Del(string(dsKey.StagingDir))
 		newTpl.Add(dsKey.StagingDir, stagingDir)
+		update = true
 	}
 	if d.HasChange("driver") {
 		driver := d.Get("driver")
 		newTpl.Del(string(dsKey.Driver))
 		newTpl.Add(dsKey.Driver, driver)
+		update = true
 	}
 	if d.HasChange("compatible_system_datastore") {
 		compatibleSystemDS := d.Get("compatible_system_datastore")
 		newTpl.Del(string(dsKey.CompatibleSysDs))
 		newTpl.Add(dsKey.CompatibleSysDs, compatibleSystemDS)
+		update = true
 	}
 
 	if d.HasChange("ceph") {
 		cephAttrsList := d.Get("ceph").(*schema.Set).List()
 		addCephAttributes(cephAttrsList[0].(map[string]interface{}), &newTpl)
+		update = true
 	}
 
 	if d.HasChange("tags") {
