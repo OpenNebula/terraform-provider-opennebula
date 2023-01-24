@@ -39,7 +39,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the datastore.
 * `type` - (Required) Type of the new datastore: image, system, file.
 * `cluster_id` - (Deprecated) ID of the cluster the datastore is part of.
-* `cluster_ids` - (Required) IDs of the clusters the datastore is part of. Minimum 1 item.
+* `cluster_ids` - (Optional) IDs of the clusters the datastore is part of. Minimum 1 item.
 * `restricted_directories` - (Optional) Paths that cannot be used to register images. A space separated list of paths.
 * `safe_directories` - (Optional) If you need to allow a directory listed under RESTRICTED_DIRS. A space separated list of paths.
 * `no_decompress` - (Optional) Boolean, do not try to untar or decompress the file to be registered.

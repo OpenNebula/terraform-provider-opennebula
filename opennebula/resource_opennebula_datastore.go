@@ -65,7 +65,7 @@ func resourceOpennebulaDatastore() *schema.Resource {
 			},
 			"cluster_ids": {
 				Type:        schema.TypeSet,
-				Required:    true,
+				Optional:    true,
 				Description: "List of cluster IDs hosting the datastore, if not set it uses the default cluster",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
@@ -349,6 +349,9 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	clusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+	if len(clusterIDs) == 0 {
+		clusterIDs = []interface{}{-1}
+	}
 
 	log.Printf("[INFO] Datastore template: %s\n", tpl.String())
 	datastoreID, err := controller.Datastores().Create(tpl.String(), clusterIDs[0].(int))
@@ -477,7 +480,25 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 		d.Set("cluster_id", id)
 	}
 
-	err = d.Set("cluster_ids", datastoreInfos.Clusters.ID)
+	cfgClusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+	var clusterIDs []int
+
+	if len(cfgClusterIDs) == 0 {
+		// if the user hasn't configured any cluster_id
+		// we ignore the the default cluster (ID: 0) at read step
+		clusterIDs = make([]int, 0, len(cfgClusterIDs))
+
+		for _, id := range datastoreInfos.Clusters.ID {
+			if id == 0 {
+				continue
+			}
+			clusterIDs = append(clusterIDs, id)
+		}
+	} else {
+		// read all IDs
+		clusterIDs = datastoreInfos.Clusters.ID
+	}
+	err = d.Set("cluster_ids", clusterIDs)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -698,9 +719,20 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		newClusters := schema.NewSet(schema.HashInt, newClustersIf.(*schema.Set).List())
 
 		// remove from clusters
-		remClusters := oldClusters.Difference(newClusters)
+		remClustersList := oldClusters.Difference(newClusters).List()
 
-		for _, id := range remClusters.List() {
+		// if the default value was set for cluster_ids (i.e. -1) at create step we remove
+		// the datastore from the default cluster
+		if len(oldClusters.List()) == 0 {
+			for _, id := range datastoreInfos.Clusters.ID {
+				if id != 0 {
+					continue
+				}
+				remClustersList = append(remClustersList, 0)
+			}
+		}
+
+		for _, id := range remClustersList {
 
 			err = controller.Cluster(id.(int)).DelDatastore(dc.ID)
 			if err != nil {
