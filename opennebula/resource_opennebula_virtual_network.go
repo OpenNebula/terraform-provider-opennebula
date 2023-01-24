@@ -144,9 +144,10 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Deprecated: "use cluster_ids field instead",
 			},
 			"cluster_ids": {
-				Type:        schema.TypeSet,
-				Required:    true,
-				Description: "List of cluster IDs hosting the virtual Network",
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Description:   "List of cluster IDs hosting the virtual Network",
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
@@ -839,6 +840,10 @@ func getVnetClusterIDsValue(d *schema.ResourceData) []int {
 		result = append(result, id.(int))
 	}
 
+	if len(result) == 0 {
+		return []int{-1}
+	}
+
 	return result
 }
 
@@ -967,7 +972,25 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		}
 	}
 
-	err = d.Set("cluster_ids", vn.Clusters.ID)
+	cfgClusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+	var clusterIDs []int
+
+	if len(cfgClusterIDs) == 0 {
+		// if the user hasn't configured any cluster_id
+		// we ignore the the default cluster (ID: 0) at read step
+		clusterIDs = make([]int, 0, len(cfgClusterIDs))
+
+		for _, id := range vn.Clusters.ID {
+			if id == 0 {
+				continue
+			}
+			clusterIDs = append(clusterIDs, id)
+		}
+	} else {
+		// read all IDs
+		clusterIDs = vn.Clusters.ID
+	}
+	err = d.Set("cluster_ids", clusterIDs)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -1189,6 +1212,16 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		return diags
 	}
 
+	vnInfos, err := vnc.Info(false)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	lock, lockOk := d.GetOk("lock")
 	if d.HasChange("lock") && lockOk && lock.(string) == "UNLOCK" {
 
@@ -1211,9 +1244,20 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		newClusters := schema.NewSet(schema.HashInt, newClustersIf.(*schema.Set).List())
 
 		// remove from clusters
-		remClusters := oldClusters.Difference(newClusters)
+		remClustersList := oldClusters.Difference(newClusters).List()
 
-		for _, id := range remClusters.List() {
+		// if the default value was set for cluster_ids (i.e. -1) at create step we remove
+		// the vnet from the default cluster
+		if len(oldClusters.List()) == 0 {
+			for _, id := range vnInfos.Clusters.ID {
+				if id != 0 {
+					continue
+				}
+				remClustersList = append(remClustersList, 0)
+			}
+		}
+
+		for _, id := range remClustersList {
 
 			err = controller.Cluster(id.(int)).DelVnet(vnc.ID)
 			if err != nil {

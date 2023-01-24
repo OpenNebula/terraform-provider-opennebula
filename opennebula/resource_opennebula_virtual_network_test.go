@@ -72,7 +72,7 @@ func TestAccVirtualNetwork(t *testing.T) {
 						GroupU: 1,
 						OtherM: 1,
 					}),
-					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.test", "cluster_ids.*", "0"),
+					resource.TestCheckNoResourceAttr("opennebula_virtual_network.test", "cluster_ids"),
 				),
 			},
 			{
@@ -297,7 +297,6 @@ resource "opennebula_virtual_network" "test" {
   permissions = "642"
   group = "oneadmin"
   security_groups = [0]
-  cluster_ids = [0]
   tags = {
     env = "prod"
     customer = "test"
