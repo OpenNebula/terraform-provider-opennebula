@@ -91,9 +91,17 @@ func resourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 				Description: "Prefix length Only needed for IP6_STATIC or IP4_6_STATIC",
 			},
 			"hold_ips": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "List of IPs to be held the VNET",
+				Description: "List of IPs to be held from this address range",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"held_ips": {
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Description: "List of IPs held in this address range",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -126,7 +134,7 @@ func resourceOpennebulaVirtualNetworkAddressRangeCreate(ctx context.Context, d *
 	d.SetId(fmt.Sprintf("%d", arID))
 
 	if holdIPs, ok := d.GetOk("hold_ips"); ok {
-		for _, ip := range holdIPs.([]interface{}) {
+		for _, ip := range holdIPs.(*schema.Set).List() {
 			err = ipHold(vnc, ip.(string))
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
@@ -250,11 +258,23 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 	d.Set("mac", ar.MAC)
 	d.Set("ula_prefix", ar.GlobalPrefix)
 
+	cfgLeasesApplied := make([]string, 0, len(ar.Leases))
+	holdIPs := d.Get("hold_ips").(*schema.Set).List()
+	for _, ip := range holdIPs {
+		for _, lease := range ar.Leases {
+			if lease.IP == ip || lease.IP6 == ip {
+				cfgLeasesApplied = append(cfgLeasesApplied, ip.(string))
+				break
+			}
+		}
+	}
+	d.Set("hold_ips", cfgLeasesApplied)
+
 	leases := make([]string, 0, len(ar.Leases))
 	for _, lease := range ar.Leases {
 		leases = append(leases, lease.IP)
 	}
-	d.Set("hold_ips", leases)
+	d.Set("held_ips", leases)
 
 	return nil
 }
@@ -273,8 +293,8 @@ func resourceOpennebulaVirtualNetworkAddressRangeUpdate(ctx context.Context, d *
 	if d.HasChange("hold_ips") {
 		oldIPs, newIPs := d.GetChange("hold_ips")
 
-		oldIPsSet := schema.NewSet(schema.HashString, oldIPs.([]interface{}))
-		newIPsSet := schema.NewSet(schema.HashString, newIPs.([]interface{}))
+		oldIPsSet := schema.NewSet(schema.HashString, oldIPs.(*schema.Set).List())
+		newIPsSet := schema.NewSet(schema.HashString, newIPs.(*schema.Set).List())
 
 		remIPs := oldIPsSet.Difference(newIPsSet).List()
 		addIPs = newIPsSet.Difference(oldIPsSet).List()
@@ -398,7 +418,7 @@ func resourceOpennebulaVirtualNetworkAddressRangeDelete(ctx context.Context, d *
 
 	if holdIPs, ok := d.GetOk("hold_ips"); ok {
 
-		for _, ip := range holdIPs.([]interface{}) {
+		for _, ip := range holdIPs.(*schema.Set).List() {
 
 			err := ipRelease(vnc, ip.(string))
 			if err != nil {

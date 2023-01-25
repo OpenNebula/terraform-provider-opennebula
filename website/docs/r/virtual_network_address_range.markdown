@@ -67,12 +67,14 @@ The following arguments are supported:
 * `global_prefix` - (Optional) Global prefix for `IP6` or `IP_4_6`.
 * `ula_prefix` - (Optional) ULA prefix for `IP6` or `IP_4_6`.
 * `prefix_length` - (Optional) Prefix length. Only needed for `IP6_STATIC` or `IP4_6_STATIC`
+* `hold_ips` - (Optional) List of IPs to be held from this address range.
 
 ## Attribute Reference
 
 The following attribute are exported:
 
 * `mac` - Starting MAC Address of the range.
+* `held_ips` - List of IPs held in this address range, possibly from other resource.
 
 ## Import
 

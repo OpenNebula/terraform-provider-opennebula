@@ -13,6 +13,7 @@ BUG FIXES:
 * resources/opennebula_datastore: add argument `cluster_ids` (#389)
 * resources/opennebula_virtual_network: add argument `cluster_ids` (#389)
 * resources/opennebula_datastore: conditional reading of `datastore` argument from `custom`. (#382)
+* resources/opennebula_virtual_network_address_range: modify `hold_ips` content reading and introduce `helds_ips` attribute (#397)
 * resources/opennebula_virtual_network: for reservation, fix `type` and `reservation_ar_id` reading. (#397)
 
 DEPRECATION:
