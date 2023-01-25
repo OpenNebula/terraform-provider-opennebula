@@ -132,8 +132,7 @@ func TestAccVirtualNetwork(t *testing.T) {
 				),
 			},
 			{
-				Config:             testAccVirtualNetworkReservationConfig,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualNetworkReservationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "name", "terravnetres"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_size", "5"),
