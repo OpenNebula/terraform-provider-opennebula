@@ -919,7 +919,12 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	if vn.VlanIDAutomatic == "1" {
 		d.Set("automatic_vlan_id", true)
 	}
-	d.Set("type", vn.VNMad)
+	// In case this vnet is not a reservation we read the type,
+	// which conflicts with reservation attributes
+	reservationVNet := d.Get("reservation_vnet").(int)
+	if reservationVNet == -1 {
+		d.Set("type", vn.VNMad)
+	}
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
 	err = flattenVnetTemplate(d, meta, &vn.Template)
@@ -945,7 +950,8 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		}
 	}
 
-	if len(vn.ParentNetworkID) > 0 {
+	// in case this vnet is a reservation
+	if reservationVNet > -1 {
 		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -956,8 +962,9 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 			return diags
 		}
 		d.Set("reservation_vnet", parentNetworkID)
+
 		if len(vn.ARs) > 0 {
-			arID, err := strconv.ParseInt(vn.ARs[0].ID, 10, 0)
+			arID, err := strconv.ParseInt(vn.ARs[0].ParentNetworkARID, 10, 0)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
