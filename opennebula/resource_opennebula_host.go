@@ -343,7 +343,9 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 			overcommitMap["memory"] = hostInfos.Share.TotalMem - reservedMem
 		}
 
-		d.Set("overcommit", []map[string]interface{}{overcommitMap})
+		if len(overcommitMap) > 0 {
+			d.Set("overcommit", []map[string]interface{}{overcommitMap})
+		}
 	}
 
 	clusterID := d.Get("cluster_id").(int)
