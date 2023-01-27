@@ -2,6 +2,7 @@
 
 NOTES:
 
+* update the provider dependency on the terraform SDK 2 to the release v2.24.1
 * update the go release to use the 1.18
 
 # 1.1.1 (January 30th, 2023)
