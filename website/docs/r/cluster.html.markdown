@@ -14,7 +14,7 @@ Provides an OpenNebula cluster resource.
 
 ```hcl
 resource "opennebula_cluster" "example" {
-  name = "test"
+  name = "example"
 
   hosts = [
     0
@@ -31,9 +31,9 @@ resource "opennebula_cluster" "example" {
   }
 
   template_section {
-    name = "test"
+    name = "example"
     elements = {
-      tag1 = "value1"
+      tag1 = "value"
     }
   }
 

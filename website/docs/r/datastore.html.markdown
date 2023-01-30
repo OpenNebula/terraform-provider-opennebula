@@ -18,7 +18,7 @@ Create a custom datastore:
 
 ```hcl
 resource "opennebula_datastore" "example" {
- name = "test"
+ name = "example"
  type = "image"
 
  custom {
@@ -28,8 +28,8 @@ resource "opennebula_datastore" "example" {
 
  tags = {
   environment = "example"
-   }
-  }
+ }
+}
 ```
 
 ## Argument Reference

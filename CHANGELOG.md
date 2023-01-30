@@ -1,4 +1,4 @@
-# 1.1.1 (Unreleased)
+# 1.1.1 (January 30th, 2023)
 
 BUG FIXES:
 
@@ -19,9 +19,9 @@ BUG FIXES:
 
 DEPRECATION:
 
-* resources/opennebula_cluster: deprecate `hosts`, `datastores`, `virtual_networks`
-* resources/opennebula_datastore: deprecate `cluster_id`
-* resources/opennebula_virtual_network: deprecate `clusters`
+* resources/opennebula_cluster: deprecate `hosts`, `datastores`, `virtual_networks` (#389)
+* resources/opennebula_datastore: deprecate `cluster_id` (#389)
+* resources/opennebula_virtual_network: deprecate `clusters` (#389)
 
 # 1.1.0 (December 6th, 2022)
 

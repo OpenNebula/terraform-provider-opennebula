@@ -71,10 +71,10 @@ resource "opennebula_virtual_router_instance" "example" {
   }
 
   template_section {
-	  name = "test1"
-	  elements = {
-		    key1 = "value1"
-	  }
+   name = "exmaple"
+   elements = {
+      key1 = "value1"
+   }
   }
 }
 ```

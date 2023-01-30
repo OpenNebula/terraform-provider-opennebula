@@ -13,8 +13,8 @@ Provides an OpenNebula virtual network address range resource. When applied, a n
 ## Example Usage
 
 ```hcl
-resource "opennebula_virtual_network" "test" {
-  name         = "test-virtual_network"
+resource "opennebula_virtual_network" "example" {
+  name         = "example-virtual_network"
   type         = "bridge"
   bridge       = "onebr"
   mtu          = 1500
@@ -35,7 +35,7 @@ resource "opennebula_virtual_network" "test" {
   clusters        = [0]
   tags = {
     env      = "prod"
-    customer = "test"
+    customer = "example"
   }
 
   lifecycle {
@@ -43,8 +43,8 @@ resource "opennebula_virtual_network" "test" {
   }
 }
 
-resource "opennebula_virtual_network_address_range" "test" {
-  virtual_network_id = opennebula_virtual_network.test.id
+resource "opennebula_virtual_network_address_range" "example" {
+  virtual_network_id = opennebula_virtual_network.example.id
   ar_type            = "IP4"
   mac                = "02:00:ac:10:64:6e"
   size               = 15
@@ -77,7 +77,6 @@ The following attribute are exported:
 * `held_ips` - List of IPs held in this address range, possibly from other resource.
 
 ## Import
-
 
 `opennebula_virtual_network_address_range` can be imported using a composed ID:
 

@@ -32,10 +32,10 @@ resource "opennebula_virtual_machine_group" "example" {
   }
 
   template_section {
-	  name = "test"
-	  elements = {
-		    key1 = "value1"
-	  }
+   name = "example"
+   elements = {
+      key1 = "value1"
+   }
   }
 }
 ```

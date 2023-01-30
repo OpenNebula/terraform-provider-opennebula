@@ -19,7 +19,7 @@ Create a KVM host with overcommit:
 
 ```hcl
 resource "opennebula_host" "example" {
-  name       = "test-kvm"
+  name       = "example-kvm"
   type       = "kvm"
   cluster_id = 0
 
@@ -38,7 +38,7 @@ Create a custom host:
 
 ```hcl
 resource "opennebula_host" "example" {
-  name       = "test-kvm"
+  name       = "example-kvm"
   type       = "custom"
   cluster_id = 0
 
@@ -52,7 +52,6 @@ resource "opennebula_host" "example" {
   }
 }
 ```
-
 
 ## Argument Reference
 
