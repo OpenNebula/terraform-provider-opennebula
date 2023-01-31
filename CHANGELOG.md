@@ -1,3 +1,9 @@
+# 1.2.0 (Unreleased)
+
+NOTES:
+
+* update the go release to use the 1.18
+
 # 1.1.1 (January 30th, 2023)
 
 BUG FIXES:
