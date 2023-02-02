@@ -284,7 +284,7 @@ func (p *OpenNebulaProvider) Configure(ctx context.Context, req provider.Configu
 func (p *OpenNebulaProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		func() resource.Resource {
-			return nil //resourceExample{}
+			return NewExampleResource()
 		},
 	}
 }
@@ -292,7 +292,7 @@ func (p *OpenNebulaProvider) Resources(ctx context.Context) []func() resource.Re
 func (p *OpenNebulaProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		func() datasource.DataSource {
-			return nil //dataSourceExample{}
+			return NewExampleDataSource()
 		},
 	}
 }
