@@ -14,7 +14,7 @@ Provides an OpenNebula cluster resource.
 
 ```hcl
 resource "opennebula_cluster" "example" {
-  name = "test"
+  name = "example"
 
   hosts = [
     0
@@ -31,9 +31,9 @@ resource "opennebula_cluster" "example" {
   }
 
   template_section {
-    name = "test"
+    name = "example"
     elements = {
-      tag1 = "value1"
+      tag1 = "value"
     }
   }
 
@@ -45,9 +45,9 @@ resource "opennebula_cluster" "example" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the cluster.
-* `hosts` - (Optional) List of hosts user IDs part of the cluster.
-* `datastores` - (Optional) List of hosts user IDs part of the cluster.
-* `virtual_networks` - (Optional) List of hosts user IDs part of the cluster.
+* `hosts` - (Deprecated) List of hosts user IDs part of the cluster.
+* `datastores` - (Deprecated) List of hosts user IDs part of the cluster.
+* `virtual_networks` - (Deprecated) List of hosts user IDs part of the cluster.
 * `tags` - (Optional) Cluster tags (Key = value)
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
@@ -65,6 +65,9 @@ The following attribute is exported:
 * `id` - ID of the cluster.
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
+* `hosts` - List of hosts user IDs part of the cluster.
+* `datastores` - List of hosts user IDs part of the cluster.
+* `virtual_networks` - List of hosts user IDs part of the cluster.
 
 ## Import
 

@@ -48,10 +48,10 @@ resource "opennebula_image" "example" {
   }
 
   template_section {
-	  name = "test"
-	  elements = {
-		    key1 = "value1"
-	  }
+   name = "example"
+   elements = {
+      key1 = "value1"
+   }
   }
 }
 ```
@@ -75,10 +75,10 @@ resource "opennebula_image" "example" {
   }
 
   template_section {
-	  name = "test"
-	  elements = {
-		    key1 = "value1"
-	  }
+   name = "example"
+   elements = {
+      key1 = "value"
+   }
   }
 }
 ```

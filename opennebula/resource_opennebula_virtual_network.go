@@ -136,12 +136,22 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				Computed:      true,
+				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
+				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Deprecated: "use cluster_ids field instead",
+			},
+			"cluster_ids": {
+				Type:          schema.TypeSet,
+				Optional:      true,
 				Description:   "List of cluster IDs hosting the virtual Network",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Deprecated: "manage membership from the virtual_networks attribute of the cluster",
+				MinItems: 1,
 			},
 			"vlan_id": {
 				Type:          schema.TypeString,
@@ -491,10 +501,10 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		}
 
 		// Get Clusters list
-		clusters := getVnetClustersValue(d)
+		clusterIDs := getVnetClusterIDsValue(d)
 
 		// Create VNet
-		vnetID, err := controller.VirtualNetworks().Create(vnDef, clusters[0])
+		vnetID, err := controller.VirtualNetworks().Create(vnDef, clusterIDs[0])
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -562,8 +572,8 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		}
 
 		// Set Clusters (first in list is already set)
-		if len(clusters) > 1 {
-			err := setVnetClusters(clusters[1:], meta, vnetID)
+		if len(clusterIDs) > 1 {
+			err := setVnetClusters(clusterIDs[1:], meta, vnetID)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -816,38 +826,37 @@ func generateVn(d *schema.ResourceData) (string, error) {
 	return tplStr, nil
 }
 
-func getVnetClustersValue(d *schema.ResourceData) []int {
+func getVnetClusterIDsValue(d *schema.ResourceData) []int {
 	var result = make([]int, 0)
 
-	if clusters, ok := d.GetOk("clusters"); ok {
-		clusterList := clusters.(*schema.Set).List()
-		for i := 0; i < len(clusterList); i++ {
-			result = append(result, clusterList[i].(int))
-		}
-	} else {
-		result = append(result, -1)
+	// merge clusters and cluster_ids values, both won't be set at the same time
+	clusters := d.Get("clusters").(*schema.Set).List()
+	clusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+
+	for _, id := range clusterIDs {
+		result = append(result, id.(int))
 	}
+	for _, id := range clusters {
+		result = append(result, id.(int))
+	}
+
+	if len(result) == 0 {
+		return []int{-1}
+	}
+
 	return result
 }
 
-func setVnetClusters(clusters []int, meta interface{}, id int) error {
+func setVnetClusters(clusters []int, meta interface{}, vnetID int) error {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	// TODO: fix it after 5.10 release
-	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-	clusterPool, err := controller.Clusters().Info(false)
-	if err != nil {
-		return err
-	}
-	log.Printf("Number of clusters: %d", len(clusters))
-	for i := 0; i < len(clusters); i++ {
-		clusterid := clusters[i]
-		for j := 0; j < len(clusterPool.Clusters); j++ {
-			if clusterid == clusterPool.Clusters[j].ID {
-				cc := controller.Cluster(clusterPool.Clusters[j].ID)
-				cc.AddVnet(id)
-			}
+
+	for _, id := range clusters {
+		err := controller.Cluster(id).AddVnet(vnetID)
+		if err != nil {
+			return err
 		}
+
 	}
 
 	return nil
@@ -910,7 +919,12 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	if vn.VlanIDAutomatic == "1" {
 		d.Set("automatic_vlan_id", true)
 	}
-	d.Set("type", vn.VNMad)
+	// In case this vnet is not a reservation we read the type,
+	// which conflicts with reservation attributes
+	reservationVNet := d.Get("reservation_vnet").(int)
+	if reservationVNet == -1 {
+		d.Set("type", vn.VNMad)
+	}
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
 	err = flattenVnetTemplate(d, meta, &vn.Template)
@@ -936,7 +950,8 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		}
 	}
 
-	if len(vn.ParentNetworkID) > 0 {
+	// in case this vnet is a reservation
+	if reservationVNet > -1 {
 		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -947,8 +962,9 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 			return diags
 		}
 		d.Set("reservation_vnet", parentNetworkID)
+
 		if len(vn.ARs) > 0 {
-			arID, err := strconv.ParseInt(vn.ARs[0].ID, 10, 0)
+			arID, err := strconv.ParseInt(vn.ARs[0].ParentNetworkARID, 10, 0)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -961,6 +977,34 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 			d.Set("reservation_size", vn.ARs[0].Size)
 			d.Set("reservation_first_ip", vn.ARs[0].IP)
 		}
+	}
+
+	cfgClusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+	var clusterIDs []int
+
+	if len(cfgClusterIDs) == 0 {
+		// if the user hasn't configured any cluster_id
+		// we ignore the the default cluster (ID: 0) at read step
+		clusterIDs = make([]int, 0, len(cfgClusterIDs))
+
+		for _, id := range vn.Clusters.ID {
+			if id == 0 {
+				continue
+			}
+			clusterIDs = append(clusterIDs, id)
+		}
+	} else {
+		// read all IDs
+		clusterIDs = vn.Clusters.ID
+	}
+	err = d.Set("cluster_ids", clusterIDs)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set cluster_ids field",
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+		})
+		return diags
 	}
 
 	if vn.Lock != nil {
@@ -1159,6 +1203,9 @@ func resourceOpennebulaVirtualNetworkExists(d *schema.ResourceData, meta interfa
 
 func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+	controller := config.Controller
+
 	var diags diag.Diagnostics
 
 	//Get Virtual Network Controller
@@ -1168,6 +1215,16 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			Severity: diag.Error,
 			Summary:  "Failed to get the virtual network controller",
 			Detail:   err.Error(),
+		})
+		return diags
+	}
+
+	vnInfos, err := vnc.Info(false)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve informations",
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
@@ -1183,6 +1240,56 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
+		}
+	}
+
+	if d.HasChange("cluster_ids") {
+
+		oldClustersIf, newClustersIf := d.GetChange("cluster_ids")
+
+		oldClusters := schema.NewSet(schema.HashInt, oldClustersIf.(*schema.Set).List())
+		newClusters := schema.NewSet(schema.HashInt, newClustersIf.(*schema.Set).List())
+
+		// remove from clusters
+		remClustersList := oldClusters.Difference(newClusters).List()
+
+		// if the default value was set for cluster_ids (i.e. -1) at create step we remove
+		// the vnet from the default cluster
+		if len(oldClusters.List()) == 0 {
+			for _, id := range vnInfos.Clusters.ID {
+				if id != 0 {
+					continue
+				}
+				remClustersList = append(remClustersList, 0)
+			}
+		}
+
+		for _, id := range remClustersList {
+
+			err = controller.Cluster(id.(int)).DelVnet(vnc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to remove from the cluster",
+					Detail:   fmt.Sprintf("cluster (ID: %d): %s", vnc.ID, err),
+				})
+				return diags
+			}
+		}
+
+		// add to clusters
+		addClusters := newClusters.Difference(oldClusters)
+
+		for _, id := range addClusters.List() {
+			err := controller.Cluster(id.(int)).AddVnet(vnc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add to the cluster",
+					Detail:   fmt.Sprintf("cluster (ID: %d): %s", vnc.ID, err),
+				})
+				return diags
+			}
 		}
 	}
 
@@ -1480,6 +1587,18 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
 			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	timeout := d.Timeout(schema.TimeoutDelete)
+	transient := []string{vn.Init.String(), vn.Ready.String()}
+	_, err = waitForVNetworkState(ctx, vnc, timeout, transient, []string{"notfound", vn.Done.String()})
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait image to be in NOTFOUND or DONE state",
+			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}

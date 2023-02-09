@@ -1,4 +1,11 @@
-# 1.1.1 (Unreleased)
+# 1.2.0 (Unreleased)
+
+NOTES:
+
+* update the provider dependency on the terraform SDK 2 to the release v2.24.1
+* update the go release to use the 1.18
+
+# 1.1.1 (January 30th, 2023)
 
 BUG FIXES:
 
@@ -10,15 +17,18 @@ BUG FIXES:
 * resources/opennebula_virtual_router_instance_template: import more sections and attributes: `os`, `graphics`, `cpu_model`, `features`, `sched_requirements`, `sched_ds_requirements`, `description` (#377)
 * resources/opennebula_virtual_machine: set empty values instead of null for `template_disk`, `template_nic`, `template_tags` (#312, #369)
 * resources/opennebula_virtual_router_instance: set empty values instead of null for `template_disk`, `template_nic`, `template_tags` (#312, #369)
-* resources/opennebula_host: add computed `cluster` attribute. (#389)
-* resources/opennebula_datastore: add computed `clusters` attribute. (#389)
+* resources/opennebula_datastore: add argument `cluster_ids` (#389)
+* resources/opennebula_virtual_network: add argument `cluster_ids` (#389)
+* resources/opennebula_datastore: conditional reading of `datastore` argument from `custom`. (#382)
+* resources/opennebula_virtual_network_address_range: modify `hold_ips` content reading and introduce `helds_ips` attribute (#397)
+* resources/opennebula_virtual_network: for reservation, fix `type` and `reservation_ar_id` reading. (#397)
+* resources/opennebula_host: set overcommit map only when not empty (#399)
 
 DEPRECATION:
 
-* resources/opennebula_host: deprecate `cluster_id` (#389)
+* resources/opennebula_cluster: deprecate `hosts`, `datastores`, `virtual_networks` (#389)
 * resources/opennebula_datastore: deprecate `cluster_id` (#389)
 * resources/opennebula_virtual_network: deprecate `clusters` (#389)
-
 
 # 1.1.0 (December 6th, 2022)
 

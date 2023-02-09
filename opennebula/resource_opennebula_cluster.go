@@ -40,22 +40,27 @@ func resourceOpennebulaCluster() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				Deprecated: "use cluster_id field from the host resource instead",
 			},
 			"datastores": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true,
 				Description: "List of datastores IDs part of the cluster",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				Deprecated: "use cluster_ids field from the datastore resource instead",
 			},
 			"virtual_networks": {
 				Type:        schema.TypeSet,
 				Optional:    true,
+				Computed:    true,
 				Description: "List of virtual network IDs part of the cluster",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				Deprecated: "use cluster_ids field from the virtual network resource instead",
 			},
 			"tags":             tagsSchema(),
 			"default_tags":     defaultTagsSchemaComputed(),
@@ -221,12 +226,7 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 	d.Set("name", clusterInfos.Name)
 
 	// read cluster hosts members
-	hostsIDs := make([]int, 0)
-	for _, id := range clusterInfos.Hosts.ID {
-		hostsIDs = append(hostsIDs, id)
-	}
-
-	err = d.Set("hosts", hostsIDs)
+	err = d.Set("hosts", clusterInfos.Hosts.ID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -237,12 +237,7 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	// read cluster datastore members
-	datastoreIDs := make([]int, 0)
-	for _, id := range clusterInfos.Datastores.ID {
-		datastoreIDs = append(datastoreIDs, id)
-	}
-
-	err = d.Set("datastores", datastoreIDs)
+	err = d.Set("datastores", clusterInfos.Datastores.ID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -253,12 +248,7 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	// read cluster virtual network members
-	vnetIDs := make([]int, 0)
-	for _, id := range clusterInfos.Vnets.ID {
-		vnetIDs = append(vnetIDs, id)
-	}
-
-	err = d.Set("virtual_networks", vnetIDs)
+	err = d.Set("virtual_networks", clusterInfos.Vnets.ID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

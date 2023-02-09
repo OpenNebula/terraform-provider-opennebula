@@ -72,6 +72,7 @@ func TestAccVirtualNetwork(t *testing.T) {
 						GroupU: 1,
 						OtherM: 1,
 					}),
+					resource.TestCheckNoResourceAttr("opennebula_virtual_network.test", "cluster_ids"),
 				),
 			},
 			{
@@ -127,11 +128,11 @@ func TestAccVirtualNetwork(t *testing.T) {
 						GroupU: 1,
 						GroupM: 1,
 					}),
+					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.test", "cluster_ids.*", "0"),
 				),
 			},
 			{
-				Config:             testAccVirtualNetworkReservationConfig,
-				ExpectNonEmptyPlan: true,
+				Config: testAccVirtualNetworkReservationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "name", "terravnetres"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_size", "5"),
@@ -147,6 +148,7 @@ func TestAccVirtualNetwork(t *testing.T) {
 						GroupU: 1,
 						GroupM: 1,
 					}),
+					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.test", "cluster_ids.*", "0"),
 				),
 			},
 			{
@@ -294,14 +296,13 @@ resource "opennebula_virtual_network" "test" {
   permissions = "642"
   group = "oneadmin"
   security_groups = [0]
-  clusters = [0]
   tags = {
     env = "prod"
     customer = "test"
   }
 
   lifecycle {
-    ignore_changes = [ar, hold_ips]
+    ignore_changes = [ar, hold_ips, clusters]
   }
 }
 
@@ -345,9 +346,9 @@ resource "opennebula_virtual_network" "test" {
     size    = 5
     ip4     = "172.16.100.1"
   }
-hold_ips           = ["172.16.100.2"]
+  hold_ips           = ["172.16.100.2"]
   security_groups = [0]
-  clusters = [0]
+  cluster_ids = [0]
   permissions = "660"
   group = "users"
   tags = {
@@ -357,7 +358,7 @@ hold_ips           = ["172.16.100.2"]
   }
 
   lifecycle {
-    ignore_changes = [ar, hold_ips]
+    ignore_changes = [ar, hold_ips, clusters]
   }
 }
 
@@ -405,14 +406,14 @@ resource "opennebula_virtual_network" "test" {
     size    = 5
     ip4     = "172.16.100.1"
   }
-	hold_ips           = ["172.16.100.2"]
+  hold_ips           = ["172.16.100.2"]
   security_groups = [0]
-  clusters = [0]
+  cluster_ids = [0]
   permissions = "660"
   group = "users"
 
   lifecycle {
-    ignore_changes = [ar, hold_ips]
+    ignore_changes = [ar, hold_ips, clusters]
   }
 }
 

@@ -99,13 +99,7 @@ func resourceOpennebulaHost() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     -1,
-				Description: "ID of the cluster",
-				Deprecated:  "manage membership from the hosts attribute of the cluster",
-			},
-			"cluster": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Cluster IDs hosting the host",
+				Description: "ID of the cluster. Affected to the default cluster if not set",
 			},
 			"tags":         tagsSchema(),
 			"default_tags": defaultTagsSchemaComputed(),
@@ -178,6 +172,8 @@ func resourceOpennebulaHostCreate(ctx context.Context, d *schema.ResourceData, m
 
 	clusterID := d.Get("cluster_id").(int)
 
+	log.Printf("[INFO] Host %s %s %s", name, imMad, vmMad)
+
 	hostID, err := controller.Hosts().Create(name, imMad, vmMad, clusterID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
@@ -194,7 +190,7 @@ func resourceOpennebulaHostCreate(ctx context.Context, d *schema.ResourceData, m
 	hc := controller.Host(hostID)
 
 	timeout := d.Timeout(schema.TimeoutCreate)
-	_, err = waitForHostStates(ctx, hc, timeout, []string{"INIT", "MONITORING_INIT", "MONITORING_MONITORED"}, []string{"MONITORED"})
+	_, err = waitForHostStates(ctx, hc, timeout, []string{"INIT", "MONITORING_INIT", "MONITORING_MONITORED"}, []string{"MONITORED", "INIT"})
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -318,7 +314,6 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	d.SetId(fmt.Sprintf("%v", hostInfos.ID))
 	d.Set("name", hostInfos.Name)
-	d.Set("cluster", hostInfos.ClusterID)
 
 	tags := make(map[string]interface{})
 	tagsAll := make(map[string]interface{})
@@ -348,7 +343,15 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 			overcommitMap["memory"] = hostInfos.Share.TotalMem - reservedMem
 		}
 
-		d.Set("overcommit", []map[string]interface{}{overcommitMap})
+		if len(overcommitMap) > 0 {
+			d.Set("overcommit", []map[string]interface{}{overcommitMap})
+		}
+	}
+
+	clusterID := d.Get("cluster_id").(int)
+	if clusterID != -1 {
+
+		d.Set("cluster_id", hostInfos.ClusterID)
 	}
 
 	// Get default tags

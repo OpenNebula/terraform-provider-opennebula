@@ -19,7 +19,7 @@ Create a KVM host with overcommit:
 
 ```hcl
 resource "opennebula_host" "example" {
-  name       = "test-kvm"
+  name       = "example-kvm"
   type       = "kvm"
   cluster_id = 0
 
@@ -38,8 +38,9 @@ Create a custom host:
 
 ```hcl
 resource "opennebula_host" "example" {
-  name       = "test-kvm"
+  name       = "example-kvm"
   type       = "custom"
+  cluster_id = 0
 
   custom = {
     virtualization = "custom"
@@ -52,14 +53,13 @@ resource "opennebula_host" "example" {
 }
 ```
 
-
 ## Argument Reference
 
 The following arguments are supported:
 
 * `name` - (Required) The name of the host.
 * `type` - (Required) Type of the new host: kvm, qemu, lxd, lxc, firecracker, custom. For now vcenter type is not managed by the provider.
-* `cluster_id` - (Deprecated) ID of the cluster the host is part of.
+* `cluster_id` - (Optional) ID of the cluster the host is part of.
 * `custom` - (Optional) If `type="custom"` this section should be defined, see [Custom](#custom) section for details.
 * `overcommit` - (Optional) This section allow to increase the allocatable capacity of the host. See [Overcommit](#overcommit)
 * `tags` - (Optional) Host tags (Key = value)
@@ -83,7 +83,6 @@ The following attributes are exported:
 * `id` - ID of the host.
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
-* `cluster` - ID of the cluster hosting the host.  Manager cluster membership from `hosts` fields of the `cluster` resource instead.
 
 ## Import
 

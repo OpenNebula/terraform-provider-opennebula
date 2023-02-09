@@ -61,15 +61,16 @@ func resourceOpennebulaDatastore() *schema.Resource {
 				Optional:    true,
 				Default:     -1,
 				Description: "ID of the cluster",
-				Deprecated:  "manage membership from the datastores attribute of the cluster",
+				Deprecated:  "use cluster_ids instead",
 			},
-			"clusters": {
+			"cluster_ids": {
 				Type:        schema.TypeSet,
-				Computed:    true,
-				Description: "List of cluster IDs hosting the datastore",
+				Optional:    true,
+				Description: "List of cluster IDs hosting the datastore, if not set it uses the default cluster",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+				MinItems: 1,
 			},
 			"restricted_directories": {
 				Type:        schema.TypeString,
@@ -347,10 +348,13 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 		}
 	}
 
-	clusterID := d.Get("cluster_id").(int)
+	clusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+	if len(clusterIDs) == 0 {
+		clusterIDs = []interface{}{-1}
+	}
 
 	log.Printf("[INFO] Datastore template: %s\n", tpl.String())
-	datastoreID, err := controller.Datastores().Create(tpl.String(), clusterID)
+	datastoreID, err := controller.Datastores().Create(tpl.String(), clusterIDs[0].(int))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -360,6 +364,22 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 		return diags
 	}
 	d.SetId(fmt.Sprintf("%v", datastoreID))
+
+	// Set Clusters (first in list is already set)
+	if len(clusterIDs) > 1 {
+		for _, id := range clusterIDs[1:] {
+			err := controller.Cluster(id.(int)).AddDatastore(datastoreID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to set cluster",
+					Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+
+		}
+	}
 
 	return resourceOpennebulaDatastoreRead(ctx, d, meta)
 }
@@ -459,7 +479,34 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 		}
 		d.Set("cluster_id", id)
 	}
-	d.Set("clusters", datastoreInfos.Clusters.ID)
+
+	cfgClusterIDs := d.Get("cluster_ids").(*schema.Set).List()
+	var clusterIDs []int
+
+	if len(cfgClusterIDs) == 0 {
+		// if the user hasn't configured any cluster_id
+		// we ignore the the default cluster (ID: 0) at read step
+		clusterIDs = make([]int, 0, len(cfgClusterIDs))
+
+		for _, id := range datastoreInfos.Clusters.ID {
+			if id == 0 {
+				continue
+			}
+			clusterIDs = append(clusterIDs, id)
+		}
+	} else {
+		// read all IDs
+		clusterIDs = datastoreInfos.Clusters.ID
+	}
+	err = d.Set("cluster_ids", clusterIDs)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set cluster_ids field",
+			Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
 
 	restrictedDirs, err := datastoreInfos.Template.Get(dsKey.RestrictedDirs)
 	if err == nil {
@@ -563,10 +610,14 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 		d.Set("ceph", []interface{}{cephAttrsMap})
 	} else if len(customAttrsList) > 0 {
 
-		d.Set("custom", []interface{}{map[string]interface{}{
-			"datastore": datastoreInfos.DSMad,
-			"transfer":  datastoreInfos.TMMad,
-		}})
+		customMap := map[string]interface{}{
+			"transfer": datastoreInfos.TMMad,
+		}
+
+		if datastoreInfos.DSMad != "-" {
+			customMap["datastore"] = datastoreInfos.DSMad
+		}
+		d.Set("custom", []interface{}{customMap})
 
 	}
 
@@ -624,6 +675,9 @@ func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastor
 
 func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+	controller := config.Controller
+
 	var diags diag.Diagnostics
 
 	dc, err := getDatastoreController(d, meta)
@@ -661,6 +715,56 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		log.Printf("[INFO] Successfully updated name for datastore %s\n", datastoreInfos.Name)
 	}
 
+	if d.HasChange("cluster_ids") {
+
+		oldClustersIf, newClustersIf := d.GetChange("cluster_ids")
+
+		oldClusters := schema.NewSet(schema.HashInt, oldClustersIf.(*schema.Set).List())
+		newClusters := schema.NewSet(schema.HashInt, newClustersIf.(*schema.Set).List())
+
+		// remove from clusters
+		remClustersList := oldClusters.Difference(newClusters).List()
+
+		// if the default value was set for cluster_ids (i.e. -1) at create step we remove
+		// the datastore from the default cluster
+		if len(oldClusters.List()) == 0 {
+			for _, id := range datastoreInfos.Clusters.ID {
+				if id != 0 {
+					continue
+				}
+				remClustersList = append(remClustersList, 0)
+			}
+		}
+
+		for _, id := range remClustersList {
+
+			err = controller.Cluster(id.(int)).DelDatastore(dc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to remove from the cluster",
+					Detail:   fmt.Sprintf("cluster (ID: %d): %s", dc.ID, err),
+				})
+				return diags
+			}
+		}
+
+		// add to clusters
+		addClusters := newClusters.Difference(oldClusters)
+
+		for _, id := range addClusters.List() {
+			err := controller.Cluster(id.(int)).AddDatastore(dc.ID)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to add to the cluster",
+					Detail:   fmt.Sprintf("cluster (ID: %d): %s", dc.ID, err),
+				})
+				return diags
+			}
+		}
+	}
+
 	update := false
 	newTpl := datastoreInfos.Template
 
@@ -668,56 +772,67 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		restrictedDirs := d.Get("restricted_directories")
 		newTpl.Del(string(dsKey.RestrictedDirs))
 		newTpl.Add(dsKey.RestrictedDirs, restrictedDirs)
+		update = true
 	}
 	if d.HasChange("safe_directories") {
 		safeDirs := d.Get("safe_directories")
 		newTpl.Del(string(dsKey.SafeDirs))
 		newTpl.Add(dsKey.SafeDirs, safeDirs)
+		update = true
 	}
 	if d.HasChange("no_decompress") {
 		noDecompress := d.Get("no_decompress")
 		newTpl.Del(string(dsKey.NoDecompress))
 		newTpl.Add(dsKey.NoDecompress, noDecompress)
+		update = true
 	}
 	if d.HasChange("storage_usage_limit") {
 		storageUsageLimit := d.Get("storage_usage_limit")
 		newTpl.Del(string(dsKey.LimitMB))
 		newTpl.Add(dsKey.LimitMB, storageUsageLimit)
+		update = true
 	}
 	if d.HasChange("transfer_bandwith_limit") {
 		transgerBandwithLimit := d.Get("transfer_bandwith_limit")
 		newTpl.Del(string(dsKey.LimitTransferBW))
 		newTpl.Add(dsKey.LimitTransferBW, transgerBandwithLimit)
+		update = true
 	}
 	if d.HasChange("check_available_capacity") {
 		checkAvailableCapacity := d.Get("check_available_capacity")
 		newTpl.Del(string(dsKey.DatastoreCapacityCheck))
 		newTpl.Add(dsKey.DatastoreCapacityCheck, checkAvailableCapacity)
+		update = true
 	}
 	if d.HasChange("bridge_list") {
 		brigeList := d.Get("bridge_list")
 		newTpl.Del(string(dsKey.BridgeList))
 		newTpl.Add(dsKey.BridgeList, brigeList)
+		update = true
 	}
 	if d.HasChange("staging_dir") {
 		stagingDir := d.Get("staging_dir")
 		newTpl.Del(string(dsKey.StagingDir))
 		newTpl.Add(dsKey.StagingDir, stagingDir)
+		update = true
 	}
 	if d.HasChange("driver") {
 		driver := d.Get("driver")
 		newTpl.Del(string(dsKey.Driver))
 		newTpl.Add(dsKey.Driver, driver)
+		update = true
 	}
 	if d.HasChange("compatible_system_datastore") {
 		compatibleSystemDS := d.Get("compatible_system_datastore")
 		newTpl.Del(string(dsKey.CompatibleSysDs))
 		newTpl.Add(dsKey.CompatibleSysDs, compatibleSystemDS)
+		update = true
 	}
 
 	if d.HasChange("ceph") {
 		cephAttrsList := d.Get("ceph").(*schema.Set).List()
 		addCephAttributes(cephAttrsList[0].(map[string]interface{}), &newTpl)
+		update = true
 	}
 
 	if d.HasChange("tags") {
