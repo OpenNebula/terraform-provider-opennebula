@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,33 +20,28 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"endpoint": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The URL to your public or private OpenNebula",
-				//DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_ENDPOINT", nil),
 			},
 			"flow_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The URL to your public or private OpenNebula Flow server",
-				//DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_FLOW_ENDPOINT", nil),
 			},
 			"username": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The ID of the user to identify as",
-				//DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_USERNAME", nil),
 			},
 			"password": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The password for the user",
-				//DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_PASSWORD", nil),
 			},
 			"insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Disable TLS validation",
-				//DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_INSECURE", false),
 			},
 			"default_tags": {
 				Type:        schema.TypeSet,
@@ -120,41 +117,70 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	var diags diag.Diagnostics
 
-	username, ok := d.GetOk("username")
-	if !ok {
+	username := d.Get("username").(string)
+	if len(username) == 0 {
+		username = os.Getenv("OPENNEBULA_USERNAME")
+	}
+	if len(username) == 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "username should be defined",
+			Detail:   "username should be provided either via the configuration or via the OPENNEBULA_USERNAME environment variable",
 		})
 		return nil, diags
 	}
 
-	password, ok := d.GetOk("password")
-	if !ok {
+	password := d.Get("password").(string)
+	if len(password) == 0 {
+		password = os.Getenv("OPENNEBULA_PASSWORD")
+	}
+	if len(password) == 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "password should be defined",
+			Detail:   "password should be provided either via the configuration or via the OPENNEBULA_PASSWORD environment variable",
 		})
 		return nil, diags
 	}
 
-	endpoint, ok := d.GetOk("endpoint")
-	if !ok {
+	endpoint := d.Get("endpoint").(string)
+	if len(endpoint) == 0 {
+		endpoint = os.Getenv("OPENNEBULA_ENDPOINT")
+	}
+	if len(endpoint) == 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "endpoint should be defined",
+			Detail:   "endpoint should be provided either via the configuration or via the OPENNEBULA_ENDPOINT environment variable",
 		})
 		return nil, diags
 	}
 
-	insecure := d.Get("insecure")
+	insecureIf := d.Get("insecure")
+	insecure := false
+	if insecureIf == nil || !insecureIf.(bool) {
+		insecureStr := os.Getenv("OPENNEBULA_INSECURE")
+
+		var err error
+		if len(insecureStr) > 0 {
+			insecure, err = strconv.ParseBool(insecureStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to parse boolean value from the OPENNEBULA_INSECURE environment variable",
+					Detail:   err.Error(),
+				})
+				return nil, diags
+			}
+		}
+	}
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure.(bool)},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
 
-	oneClient := goca.NewClient(goca.NewConfig(username.(string),
-		password.(string),
-		endpoint.(string)),
+	oneClient := goca.NewClient(goca.NewConfig(username,
+		password,
+		endpoint),
 		&http.Client{Transport: tr})
 
 	versionStr, err := goca.NewController(oneClient).SystemVersion()
@@ -199,12 +225,17 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		}
 	}
 
-	flowEndpoint, ok := d.GetOk("flow_endpoint")
-	if ok {
+	flowEndpoint := d.Get("flow_endpoint").(string)
+	if len(flowEndpoint) == 0 {
+		flowEndpoint = os.Getenv("OPENNEBULA_FLOW_ENDPOINT")
+	}
+
+	if len(flowEndpoint) > 0 {
+
 		flowClient := goca.NewDefaultFlowClient(
-			goca.NewFlowConfig(username.(string),
-				password.(string),
-				flowEndpoint.(string)))
+			goca.NewFlowConfig(username,
+				password,
+				flowEndpoint))
 
 		cfg.Controller = goca.NewGenericController(oneClient, flowClient)
 		return cfg, nil

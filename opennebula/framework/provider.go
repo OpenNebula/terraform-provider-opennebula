@@ -20,10 +20,10 @@ import (
 )
 
 type OpenNebulaProvider struct {
-	OneVersion *ver.Version
-	Controller *goca.Controller
-	mutex      MutexKV
-	//defaultTags map[string]interface{}
+	OneVersion  *ver.Version
+	Controller  *goca.Controller
+	mutex       MutexKV
+	defaultTags map[string]string
 	//oldDefaultTags map[string]interface{}
 	//newDefaultTags map[string]interface{}
 }
@@ -50,34 +50,24 @@ func (p *OpenNebulaProvider) Schema(ctx context.Context, req provider.SchemaRequ
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				Required: true,
-				//Computed:    true,
+				Optional:    true,
 				Description: "The URL to your public or private OpenNebula",
-				//PlanModifiers: []planmodifier.String{
-				//	default
-				//},
-				//	defaultValue(types.BoolValue(true)),
-				//DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_ENDPOINT", nil),
 			},
 			"flow_endpoint": schema.StringAttribute{
-				Optional: true,
-				//Computed:    true,
+				Optional:    true,
 				Description: "The URL to your public or private OpenNebula Flow server",
 			},
 			"username": schema.StringAttribute{
-				Required:    true,
+				Optional:    true,
 				Description: "The ID of the user to identify as",
 			},
 			"password": schema.StringAttribute{
-				Required:    true,
+				Optional:    true,
 				Description: "The password for the user",
 			},
 			"insecure": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Disable TLS validation",
-				//PlanModifiers: []planmodifier.Bool{
-				//	defaultValue(types.BoolValue(false)),
-				//},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -221,18 +211,6 @@ func (p *OpenNebulaProvider) Configure(ctx context.Context, req provider.Configu
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
 
-	//defaultTags := d.Get("default_tags").(*schema.Set).List()
-	//if len(defaultTags) > 0 {
-	//	defaultTagsMap := defaultTags[0].(map[string]interface{})
-	//	cfg.defaultTags = defaultTagsMap["tags"].(map[string]interface{})
-	//	if len(defaultTagsOld) > 0 {
-	//		cfg.oldDefaultTags = defaultTagsOld[0].(map[string]interface{})
-	//	}
-	//	if len(defaultTagsNew) > 0 {
-	//		cfg.newDefaultTags = defaultTagsNew[0].(map[string]interface{})
-	//	}
-	//}
-
 	// Create a new OpenNebula client using the configuration values
 	client := goca.NewClient(goca.NewConfig(username,
 		password,
@@ -273,6 +251,25 @@ func (p *OpenNebulaProvider) Configure(ctx context.Context, req provider.Configu
 	} else {
 		cfg.Controller = goca.NewController(client)
 	}
+
+	var tags Tags
+	for _, t := range config.DefaultTags.Elements() {
+		element, err := t.ToTerraformValue(ctx)
+		if err != nil {
+			log.Print("[DEBUG] As err: ", err)
+			continue
+		}
+		err = element.As(&tags)
+		if err != nil {
+			log.Print("[DEBUG] As err: ", err)
+			continue
+		}
+	}
+
+	if len(tags.elements) > 0 {
+		cfg.defaultTags = tags.elements
+	}
+	log.Printf("[DEBUG] default_tags: %+v", tags.elements)
 
 	// Make the OpenNebula client available during DataSource and Resource
 	// type Configure methods.
