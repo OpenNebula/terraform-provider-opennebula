@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-mux/tf5muxserver"
 
 	provider "github.com/OpenNebula/terraform-provider-opennebula/opennebula"
-	providerFramework "github.com/OpenNebula/terraform-provider-opennebula/opennebula/framework_migration"
+	providerFramework "github.com/OpenNebula/terraform-provider-opennebula/opennebula/framework"
 )
 
 func main() {

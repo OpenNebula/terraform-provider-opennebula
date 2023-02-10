@@ -43,7 +43,7 @@ type opennebulaProviderModel struct {
 	Username     types.String `tfsdk:"username"`
 	Password     types.String `tfsdk:"password"`
 	Insecure     types.Bool   `tfsdk:"insecure"`
-	DefaultTags  types.Object `tfsdk:"default_tags"`
+	DefaultTags  types.Set    `tfsdk:"default_tags"`
 }
 
 func (p *OpenNebulaProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
