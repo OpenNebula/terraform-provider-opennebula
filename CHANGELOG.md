@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * resources/opennebula_virtual_machine: add transient state `LCM_INIT` (#410)
+* resources/opennebula_virtual_network: for `ovswitch` type the attributes `vlan_id` and `automatic_vlan_id` are optional (#405)
 
 NOTES:
 

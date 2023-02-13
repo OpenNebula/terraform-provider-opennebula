@@ -406,9 +406,8 @@ func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func validVlanType(intype string) int {
-	vlanType := []string{"802.1Q", "vxlan", "ovswitch"}
-	return inArray(intype, vlanType)
+func mandatoryVLAN(intype string) bool {
+	return inArray(intype, []string{"802.1Q", "vxlan"}) >= 0
 }
 
 func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -804,7 +803,7 @@ func generateVn(d *schema.ResourceData) (string, error) {
 	tpl.Add(vnk.Name, vnname)
 	tpl.Add(vnk.VNMad, vnmad)
 
-	if validVlanType(vnmad) >= 0 {
+	if mandatoryVLAN(vnmad) {
 		if d.Get("automatic_vlan_id") == true {
 			tpl.Add("AUTOMATIC_VLAN_ID", "YES")
 		} else if vlanid, ok := d.GetOk("vlan_id"); ok {
