@@ -105,12 +105,10 @@ func Provider() *schema.Provider {
 }
 
 type Configuration struct {
-	OneVersion     *ver.Version
-	Controller     *goca.Controller
-	mutex          MutexKV
-	defaultTags    map[string]interface{}
-	oldDefaultTags map[string]interface{}
-	newDefaultTags map[string]interface{}
+	OneVersion  *ver.Version
+	Controller  *goca.Controller
+	mutex       MutexKV
+	defaultTags map[string]interface{}
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -209,20 +207,10 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		mutex:      *NewMutexKV(),
 	}
 
-	defaultTagsOldIf, defaultTagsNewIf := d.GetChange("default_tags")
-	defaultTagsOld := defaultTagsOldIf.(*schema.Set).List()
-	defaultTagsNew := defaultTagsNewIf.(*schema.Set).List()
-
 	defaultTags := d.Get("default_tags").(*schema.Set).List()
 	if len(defaultTags) > 0 {
 		defaultTagsMap := defaultTags[0].(map[string]interface{})
 		cfg.defaultTags = defaultTagsMap["tags"].(map[string]interface{})
-		if len(defaultTagsOld) > 0 {
-			cfg.oldDefaultTags = defaultTagsOld[0].(map[string]interface{})
-		}
-		if len(defaultTagsNew) > 0 {
-			cfg.newDefaultTags = defaultTagsNew[0].(map[string]interface{})
-		}
 	}
 
 	flowEndpoint := d.Get("flow_endpoint").(string)
