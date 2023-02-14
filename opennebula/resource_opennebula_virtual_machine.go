@@ -627,6 +627,9 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 		if _, ok := d.GetOk("template_tags"); !ok {
 			d.Set("template_tags", map[string]interface{}{})
 		}
+		if _, ok := d.GetOk("template_section_names"); !ok {
+			d.Set("template_section_names", map[string]interface{}{})
+		}
 
 		err := flattenVMDisk(d, &vmInfos.Template)
 		if err != nil {
