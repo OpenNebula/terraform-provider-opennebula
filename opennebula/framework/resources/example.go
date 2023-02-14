@@ -1,4 +1,4 @@
-package opennebula
+package resources
 
 import (
 	"context"
