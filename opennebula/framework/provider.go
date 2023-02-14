@@ -17,15 +17,15 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	ver "github.com/hashicorp/go-version"
+
+	"github.com/OpenNebula/terraform-provider-opennebula/opennebula/framework/config"
+	providerCfg "github.com/OpenNebula/terraform-provider-opennebula/opennebula/framework/config"
+	"github.com/OpenNebula/terraform-provider-opennebula/opennebula/framework/resources"
+	"github.com/OpenNebula/terraform-provider-opennebula/opennebula/framework/utils"
 )
 
 type OpenNebulaProvider struct {
-	OneVersion  *ver.Version
-	Controller  *goca.Controller
-	mutex       MutexKV
-	defaultTags map[string]string
-	//oldDefaultTags map[string]interface{}
-	//newDefaultTags map[string]interface{}
+	config.Provider
 }
 
 func New() provider.Provider {
@@ -52,22 +52,27 @@ func (p *OpenNebulaProvider) Schema(ctx context.Context, req provider.SchemaRequ
 			"endpoint": schema.StringAttribute{
 				Optional:    true,
 				Description: "The URL to your public or private OpenNebula",
+				//MarkdownDescription: "",
 			},
 			"flow_endpoint": schema.StringAttribute{
 				Optional:    true,
 				Description: "The URL to your public or private OpenNebula Flow server",
+				//MarkdownDescription: "",
 			},
 			"username": schema.StringAttribute{
 				Optional:    true,
 				Description: "The ID of the user to identify as",
+				//MarkdownDescription: "",
 			},
 			"password": schema.StringAttribute{
 				Optional:    true,
 				Description: "The password for the user",
+				//MarkdownDescription: "",
 			},
 			"insecure": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Disable TLS validation",
+				//MarkdownDescription: "",
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -237,8 +242,10 @@ func (p *OpenNebulaProvider) Configure(ctx context.Context, req provider.Configu
 	log.Printf("[INFO] OpenNebula version: %s", versionStr)
 
 	cfg := &OpenNebulaProvider{
-		OneVersion: version,
-		mutex:      *NewMutexKV(),
+		providerCfg.Provider{
+			OneVersion: version,
+			Mutex:      *utils.NewMutexKV(),
+		},
 	}
 
 	if len(flowEndpoint) > 0 {
@@ -252,11 +259,11 @@ func (p *OpenNebulaProvider) Configure(ctx context.Context, req provider.Configu
 		cfg.Controller = goca.NewController(client)
 	}
 
-	var tags Tags
+	var tags DefaultTags
 	for _, t := range config.DefaultTags.Elements() {
 		element, err := t.ToTerraformValue(ctx)
 		if err != nil {
-			log.Print("[DEBUG] As err: ", err)
+			log.Print("[DEBUG] ToTerraformValue err: ", err)
 			continue
 		}
 		err = element.As(&tags)
@@ -266,22 +273,22 @@ func (p *OpenNebulaProvider) Configure(ctx context.Context, req provider.Configu
 		}
 	}
 
-	if len(tags.elements) > 0 {
-		cfg.defaultTags = tags.elements
+	if len(tags.Elements) > 0 {
+		cfg.DefaultTags = tags.Elements
 	}
-	log.Printf("[DEBUG] default_tags: %+v", tags.elements)
+	log.Printf("[DEBUG] default_tags: %+v", tags.Elements)
 
-	// Make the OpenNebula client available during DataSource and Resource
+	// Make the OpenNebula controller available during DataSource and Resource
 	// type Configure methods.
-	resp.DataSourceData = cfg
-	resp.ResourceData = cfg
+	resp.DataSourceData = &cfg.Provider
+	resp.ResourceData = &cfg.Provider
 
 }
 
 func (p *OpenNebulaProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		func() resource.Resource {
-			return NewExampleResource()
+			return resources.NewCluster()
 		},
 	}
 }
