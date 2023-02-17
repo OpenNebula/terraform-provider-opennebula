@@ -1,5 +1,9 @@
 # 1.2.0 (Unreleased)
 
+BUG FIXES:
+
+* resources/opennebula_virtual_machine: add transient state `LCM_INIT` (#410)
+
 NOTES:
 
 * update the provider dependency on the terraform SDK 2 to the release v2.24.1
