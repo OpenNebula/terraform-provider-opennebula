@@ -44,8 +44,9 @@ resource "opennebula_group" "group" {
 
 ## OpenNebula versions support
 
-- `~> 6.4`
-- `~> 5.12`
+* `~> 6.6`
+* `~> 6.4`
+* `~> 5.12`
 
 See OpenNebula's [Release Policy](https://github.com/OpenNebula/one/wiki/Release-Policy) for more details.
 
