@@ -111,6 +111,14 @@ func resourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 				Optional:    true,
 				Description: "IPAM driver",
 			},
+			"custom": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Add custom attributes",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -221,6 +229,12 @@ func generateAR(d *schema.ResourceData) *vn.AddressRange {
 		ar.Add(vnk.PrefixLength, arprefixlength)
 	}
 
+	customIf := d.Get("custom").(map[string]interface{})
+
+	for k, v := range customIf {
+		ar.AddPair(strings.ToUpper(k), v)
+	}
+
 	return ar
 }
 
@@ -286,10 +300,26 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 	}
 	d.Set("held_ips", leases)
 
-	ipam, err := ar.Custom.GetStr("IPAM_MAD")
-	if err == nil {
-		d.Set("ipam", ipam)
+	// OpenNebula translate keys to uppercases so we need to retrieve the original case from the configuration
+	customCfg := d.Get("custom").(map[string]interface{})
+	custom := make(map[string]interface{})
+
+	for _, pair := range ar.Custom {
+
+		switch pair.Key() {
+		case "IPAM_MAD":
+			d.Set("ipam", pair.Value)
+		default:
+			// retrieve the case of the key from the configuration
+			for k, _ := range customCfg {
+				if strings.ToUpper(k) == pair.Key() {
+					custom[k] = pair.Value
+					break
+				}
+			}
+		}
 	}
+	d.Set("custom", custom)
 
 	return nil
 }
@@ -371,7 +401,8 @@ func resourceOpennebulaVirtualNetworkAddressRangeUpdate(ctx context.Context, d *
 	// in-place updates
 	if !updated && (d.HasChange("mac") || d.HasChange("size") ||
 		d.HasChange("global_prefix") || d.HasChange("ula_prefix") ||
-		d.HasChange("prefix_length") || d.HasChange("ipam")) {
+		d.HasChange("prefix_length") || d.HasChange("ipam") ||
+		d.HasChange("custom")) {
 
 		arTpl := generateAR(d)
 		arTpl.Add("AR_ID", d.Id())

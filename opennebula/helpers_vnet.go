@@ -3,6 +3,7 @@ package opennebula
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 
@@ -16,15 +17,22 @@ import (
 
 var vNetARAddInstancesStates = []string{vn.Ready.String()}
 
+// convert a static address range (vn.AR) struct to a vector (vn.AddressRange)
 func getARTemplate(AR *vn.AR) *vn.AddressRange {
 
 	ARValue := reflect.ValueOf(*AR)
 	typeOfAR := ARValue.Type()
 	ARTemplate := vn.NewAddressRange()
 
+	for _, pair := range AR.Custom {
+		ARTemplate.AddPair(pair.Key(), pair.Value)
+	}
+
 	for i := 0; i < ARValue.NumField(); i++ {
 		ARTemplate.AddPair(typeOfAR.Field(i).Name, ARValue.Field(i).Interface())
 	}
+
+	log.Printf("[DEBUG] AR template: %s", ARTemplate.String())
 
 	return ARTemplate
 }
@@ -100,7 +108,7 @@ func vNetARAdd(ctx context.Context, timeout time.Duration, vnc *goca.VirtualNetw
 				break
 			}
 			if attachedAR == nil {
-				return resource.RetryableError(fmt.Errorf("virtual network (ID:%d): can't find the nic", vNetID))
+				return resource.RetryableError(fmt.Errorf("virtual network (ID:%d): can't find the AR", vNetID))
 			}
 
 		}
