@@ -68,6 +68,7 @@ The following arguments are supported:
 * `ula_prefix` - (Optional) ULA prefix for `IP6` or `IP_4_6`.
 * `prefix_length` - (Optional) Prefix length. Only needed for `IP6_STATIC` or `IP4_6_STATIC`
 * `hold_ips` - (Optional) List of IPs to be held from this address range.
+* `ipam`: (Optional) IPAM driver to use for the address range.
 
 ## Attribute Reference
 

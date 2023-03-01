@@ -1,5 +1,8 @@
 # 1.2.0 (Unreleased)
 
+FEATURES:
+* resources/opennebula_virtual_network_address_range: add `ipam` field (#192)
+
 BUG FIXES:
 
 * resources/opennebula_virtual_machine: add transient state `LCM_INIT` (#410)

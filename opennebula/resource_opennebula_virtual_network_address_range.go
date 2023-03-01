@@ -106,6 +106,11 @@ func resourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"ipam": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "IPAM driver",
+			},
 		},
 	}
 }
@@ -165,12 +170,17 @@ func generateAR(d *schema.ResourceData) *vn.AddressRange {
 	argprefix := d.Get("global_prefix").(string)
 	arulaprefix := d.Get("ula_prefix").(string)
 	arprefixlength := d.Get("prefix_length").(string)
+	ipam := d.Get("ipam").(string)
 
 	ar.Add(vnk.Size, fmt.Sprint(arsize))
 	ar.Add(vnk.Type, artype)
 
 	if armac != "" {
 		ar.Add(vnk.Mac, armac)
+	}
+
+	if ipam != "" {
+		ar.Add("IPAM_MAD", ipam)
 	}
 
 	switch artype {
@@ -276,6 +286,11 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 	}
 	d.Set("held_ips", leases)
 
+	ipam, err := ar.Custom.GetStr("IPAM_MAD")
+	if err == nil {
+		d.Set("ipam", ipam)
+	}
+
 	return nil
 }
 
@@ -356,7 +371,7 @@ func resourceOpennebulaVirtualNetworkAddressRangeUpdate(ctx context.Context, d *
 	// in-place updates
 	if !updated && (d.HasChange("mac") || d.HasChange("size") ||
 		d.HasChange("global_prefix") || d.HasChange("ula_prefix") ||
-		d.HasChange("prefix_length")) {
+		d.HasChange("prefix_length") || d.HasChange("ipam")) {
 
 		arTpl := generateAR(d)
 		arTpl.Add("AR_ID", d.Id())
