@@ -69,6 +69,7 @@ The following arguments are supported:
 * `prefix_length` - (Optional) Prefix length. Only needed for `IP6_STATIC` or `IP4_6_STATIC`
 * `hold_ips` - (Optional) List of IPs to be held from this address range.
 * `ipam`: (Optional) IPAM driver to use for the address range.
+* `custom`: (Optional) Custom attributes to set in the address range.
 
 ## Attribute Reference
 
