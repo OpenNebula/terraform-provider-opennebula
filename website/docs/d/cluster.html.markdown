@@ -20,6 +20,7 @@ data "opennebula_cluster" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the cluster.
 * `name` - (Optional) The OpenNebula cluster to retrieve information for.
 * `tags` - (Optional) Tags associated to the cluster.
 

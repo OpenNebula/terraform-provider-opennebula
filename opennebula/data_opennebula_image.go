@@ -15,6 +15,12 @@ func dataOpennebulaImage() *schema.Resource {
 		ReadContext: datasourceOpennebulaImageRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the image",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func imageFilter(d *schema.ResourceData, meta interface{}) (*imageSc.Image, erro
 	}
 
 	// filter images with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*imageSc.Image, 0, 1)
 	for i, image := range images.Images {
+
+		if id != -1 && image.ID != id {
+			continue
+		}
 
 		if nameOk && image.Name != name {
 			continue

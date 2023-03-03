@@ -15,6 +15,12 @@ func dataOpennebulaHost() *schema.Resource {
 		ReadContext: datasourceOpennebulaHostRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the host",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func hostFilter(d *schema.ResourceData, meta interface{}) (*hostSc.Host, error) 
 	}
 
 	// filter hosts with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*hostSc.Host, 0, 1)
 	for i, host := range hosts.Hosts {
+
+		if id != -1 && host.ID != id {
+			continue
+		}
 
 		if nameOk && host.Name != name {
 			continue

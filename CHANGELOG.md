@@ -1,6 +1,7 @@
 # 1.2.0 (Unreleased)
 
 FEATURES:
+
 * resources/opennebula_virtual_network_address_range: add `ipam` field (#192)
 * resources/opennebula_virtual_network_address_range: add `custom` section to allow to pass user defined custom attributes (#376)
 
@@ -13,6 +14,20 @@ NOTES:
 
 * update the provider dependency on the terraform SDK 2 to the release v2.24.1
 * update the go release to use the 1.18
+
+ENHANCEMENTS:
+
+* data/opennebula_cluster: Allow to filter by ID (#415)
+* data/opennebula_datastore: Allow to filter by ID (#415)
+* data/opennebula_group: Allow to filter by ID (#415)
+* data/opennebula_host: Allow to filter by ID (#415)
+* data/opennebula_image: Allow to filter by ID (#415)
+* data/opennebula_security_group: Allow to filter by ID (#415)
+* data/opennebula_template: Allow to filter by ID (#415)
+* data/opennebula_user: Allow to filter by ID (#415)
+* data/opennebula_virtual_data_center: Allow to filter by ID (#415)
+* data/opennebula_virtual_machine_group: Allow to filter by ID (#415)
+* data/opennebula_virtual_network: Allow to filter by ID (#415)
 
 # 1.1.1 (January 30th, 2023)
 

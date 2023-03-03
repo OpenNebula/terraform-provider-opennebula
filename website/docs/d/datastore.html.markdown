@@ -20,6 +20,7 @@ data "opennebula_datastore" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the datastore.
 * `name` - (Optional) The OpenNebula datastore to retrieve information for.
 * `tags` - (Optional) Tags associated to the datastore.
 

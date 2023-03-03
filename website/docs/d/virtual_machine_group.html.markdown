@@ -20,6 +20,7 @@ data "opennebula_virtual_machine_group" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the virtual machine group.
 * `name` - (Optional) The OpenNebula virtual machine group to retrieve information for.
 * `tags` - (Optional) Virtual Machine group tags (Key = Value).
 

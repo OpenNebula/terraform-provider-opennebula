@@ -20,6 +20,7 @@ data "opennebula_image" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the image.
 * `name` - (Optional) The OpenNebula image to retrieve information for.
 * `tags` - (Optional) Tags associated to the image.
 

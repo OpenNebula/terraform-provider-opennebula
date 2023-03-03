@@ -15,6 +15,12 @@ func dataOpennebulaSecurityGroup() *schema.Resource {
 		ReadContext: datasourceOpennebulaSecurityGroupRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the security group",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func securityGroupFilter(d *schema.ResourceData, meta interface{}) (*secgroup.Se
 	}
 
 	// filter security groups with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*secgroup.SecurityGroup, 0, 1)
 	for i, securityGroup := range securityGroups.SecurityGroups {
+
+		if id != -1 && securityGroup.ID != id {
+			continue
+		}
 
 		if nameOk && securityGroup.Name != name {
 			continue

@@ -16,6 +16,12 @@ func dataOpennebulaUser() *schema.Resource {
 		ReadContext: datasourceOpennebulaUserRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the user",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -50,6 +56,7 @@ func userFilter(d *schema.ResourceData, meta interface{}) (*userSc.User, error) 
 	}
 
 	// filter users with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	primaryGroup, primaryGroupOk := d.GetOk("primary_group")
 	groups, groupsOk := d.GetOk("groups")
@@ -58,6 +65,10 @@ func userFilter(d *schema.ResourceData, meta interface{}) (*userSc.User, error) 
 	match := make([]*userSc.User, 0, 1)
 userLoop:
 	for i, user := range users.Users {
+
+		if id != -1 && user.ID != id {
+			continue
+		}
 
 		if nameOk && user.Name != name {
 			continue
