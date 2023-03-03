@@ -20,6 +20,7 @@ data "opennebula_group" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the group.
 * `name` - (Optional) The OpenNebula group to retrieve information for.
 * `tags` - (Optional) Tags associated to the Image.
 

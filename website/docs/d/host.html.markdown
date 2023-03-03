@@ -20,6 +20,7 @@ data "opennebula_host" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the host.
 * `name` - (Optional) The OpenNebula host to retrieve information for.
 * `tags` - (Optional) Tags associated to the host.
 

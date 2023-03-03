@@ -15,6 +15,12 @@ func dataOpennebulaDatastore() *schema.Resource {
 		ReadContext: datasourceOpennebulaDatastoreRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the datastore",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func datastoreFilter(d *schema.ResourceData, meta interface{}) (*datastoreSc.Dat
 	}
 
 	// filter datastores with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*datastoreSc.Datastore, 0, 1)
 	for i, datastore := range datastores.Datastores {
+
+		if id != -1 && datastore.ID != id {
+			continue
+		}
 
 		if nameOk && datastore.Name != name {
 			continue

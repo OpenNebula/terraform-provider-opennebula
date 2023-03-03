@@ -20,6 +20,7 @@ data "opennebula_template" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the template.
 * `name` - (Optional) The OpenNebula template to retrieve information for.
 * `has_cpu` - (Optional) Indicate if a CPU value has been defined.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM.

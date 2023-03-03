@@ -20,6 +20,7 @@ data "opennebula_security_group" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the security group.
 * `name` - (Optional) The OpenNebula security group to retrieve information for.
 * `tags` - (Optional) Security group tags.
 

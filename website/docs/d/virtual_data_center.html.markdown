@@ -20,6 +20,7 @@ data "opennebula_virtual_data_center" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the virtual data center.
 * `name` - (Optional) The OpenNebula virtual data center to retrieve information for.
 * `tags` - (Optional) Virtual data center tags (Key = Value).
 

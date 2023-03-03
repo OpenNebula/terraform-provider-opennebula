@@ -15,6 +15,12 @@ func dataOpennebulaVirtualDataCenter() *schema.Resource {
 		ReadContext: datasourceOpennebulaVirtualDataCenterRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the datacenter",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func vdcFilter(d *schema.ResourceData, meta interface{}) (*vdcSc.VDC, error) {
 	}
 
 	// filter vdcs with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*vdcSc.VDC, 0, 1)
 	for i, vdc := range vdcs.VDCs {
+
+		if id != -1 && vdc.ID != id {
+			continue
+		}
 
 		if nameOk && vdc.Name != name {
 			continue

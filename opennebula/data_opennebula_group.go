@@ -16,6 +16,12 @@ func dataOpennebulaGroup() *schema.Resource {
 		ReadContext: datasourceOpennebulaGroupRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the group",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -45,12 +51,17 @@ func groupFilter(d *schema.ResourceData, meta interface{}) (*groupSc.GroupShort,
 	}
 
 	// filter groups with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*groupSc.GroupShort, 0, 1)
 	for i, group := range groups.Groups {
+
+		if id != -1 && group.ID != id {
+			continue
+		}
 
 		if nameOk && group.Name != name {
 			continue

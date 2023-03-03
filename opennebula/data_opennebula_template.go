@@ -16,6 +16,12 @@ func dataOpennebulaTemplate() *schema.Resource {
 		ReadContext: datasourceOpennebulaTemplateRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the template",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -114,6 +120,7 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 	}
 
 	// filter templates with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	hasCPU := d.Get("has_cpu").(bool)
 	hasVCPU := d.Get("has_vcpu").(bool)
@@ -126,6 +133,10 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 
 	match := make([]*templateSc.Template, 0, 1)
 	for i, template := range templates.Templates {
+
+		if id != -1 && template.ID != id {
+			continue
+		}
 
 		if nameOk && template.Name != name {
 			continue

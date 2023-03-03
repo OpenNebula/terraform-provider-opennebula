@@ -20,6 +20,7 @@ data "opennebula_user" "example" {
 
 ## Argument Reference
 
+* `id` - (Optional) ID of the user.
 * `name` - (Optional) The OpenNebula user to retrieve information for.
 * `primary_group` - (Optional) Primary group ID of the user.
 * `groups` - (Optional) List of secondary groups ID of the user.

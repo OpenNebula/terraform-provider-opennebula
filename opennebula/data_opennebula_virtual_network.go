@@ -16,9 +16,15 @@ func dataOpennebulaVirtualNetwork() *schema.Resource {
 		ReadContext: datasourceOpennebulaVirtualNetworkRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the virtual network",
+			},
 			"name": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "Name of the Virtual Network",
 			},
 			"mtu": {
@@ -42,12 +48,17 @@ func vnetFilter(d *schema.ResourceData, meta interface{}) (*vnetSc.VirtualNetwor
 	}
 
 	// filter vnets with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*vnetSc.VirtualNetwork, 0, 1)
 	for i, vnet := range vnets.VirtualNetworks {
+
+		if id != -1 && vnet.ID != id {
+			continue
+		}
 
 		if nameOk && vnet.Name != name {
 			continue

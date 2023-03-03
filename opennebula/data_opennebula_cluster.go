@@ -15,6 +15,12 @@ func dataOpennebulaCluster() *schema.Resource {
 		ReadContext: datasourceOpennebulaClusterRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the cluster",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func clusterFilter(d *schema.ResourceData, meta interface{}) (*clusterSc.Cluster
 	}
 
 	// filter clusters with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*clusterSc.Cluster, 0, 1)
 	for i, cluster := range clusters.Clusters {
+
+		if id != -1 && cluster.ID != id {
+			continue
+		}
 
 		if nameOk && cluster.Name != name {
 			continue

@@ -15,6 +15,12 @@ func dataOpennebulaVMGroup() *schema.Resource {
 		ReadContext: datasourceOpennebulaVMGroupRead,
 
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "Id of the vm group",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -36,12 +42,17 @@ func vmGroupFilter(d *schema.ResourceData, meta interface{}) (*vmGroupSc.VMGroup
 	}
 
 	// filter vm groups with user defined criterias
+	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	tagsInterface, tagsOk := d.GetOk("tags")
 	tags := tagsInterface.(map[string]interface{})
 
 	match := make([]*vmGroupSc.VMGroup, 0, 1)
 	for i, vmGroup := range vmGroups.VMGroups {
+
+		if id != -1 && vmGroup.ID != id {
+			continue
+		}
 
 		if nameOk && vmGroup.Name != name {
 			continue
