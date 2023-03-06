@@ -301,7 +301,43 @@ func (r *Cluster) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 
 	data.Name = types.StringValue(clusterInfos.Name)
 
-	// read tags
+	// tags sections
+	var diags diag.Diagnostics
+
+	readTags := make(map[string]attr.Value)
+	readAllTags := make(map[string]attr.Value)
+
+	// read tags and tags_all
+	if len(r.defaultTags) > 0 {
+
+		// read default tags
+		defaultTags := make(map[string]attr.Value)
+
+		for k, _ := range r.defaultTags {
+			v, err := clusterInfos.Template.GetStr(strings.ToUpper(k))
+			if err != nil {
+				continue
+			}
+			defaultTags[k] = types.StringValue(v)
+		}
+
+		data.DefaultTags, diags = types.MapValue(types.StringType, defaultTags)
+		if len(diags) > 0 {
+			resp.Diagnostics = append(resp.Diagnostics, diags...)
+			return
+		}
+
+		// begin to fill tags_all with default tags
+		for k, _ := range r.defaultTags {
+			v, err := clusterInfos.Template.GetStr(strings.ToUpper(k))
+			if err != nil {
+				continue
+			}
+			readAllTags[k] = types.StringValue(v)
+		}
+
+	}
+
 	// Retrieve and copy the tags names from the configuration then fill value with thoses from remote cluster
 	var stateTags common.Tags
 	element, err := data.Tags.ToTerraformValue(ctx)
@@ -314,17 +350,17 @@ func (r *Cluster) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 	}
 
 	if len(stateTags.Elements) > 0 {
-		readTags := make(map[string]attr.Value)
 
 		for k, _ := range stateTags.Elements {
 			v, err := clusterInfos.Template.GetStr(strings.ToUpper(k))
 			if err != nil {
 				continue
 			}
-			readTags[k] = types.StringValue(v)
+			tag := types.StringValue(v)
+			readTags[k] = tag
+			readAllTags[k] = tag
 		}
 
-		var diags diag.Diagnostics
 		data.Tags, diags = types.MapValue(types.StringType, readTags)
 		if len(diags) > 0 {
 			resp.Diagnostics = append(resp.Diagnostics, diags...)
@@ -332,8 +368,54 @@ func (r *Cluster) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 		}
 	}
 
-	//data.TagsAll
-	//data.TemplateSection
+	data.TagsAll, diags = types.MapValue(types.StringType, readAllTags)
+	if len(diags) > 0 {
+		resp.Diagnostics = append(resp.Diagnostics, diags...)
+		return
+	}
+
+	// Read template section
+	var templateSection common.TemplateSection
+
+	element, err = data.TemplateSection.ToTerraformValue(ctx)
+	if err != nil {
+		log.Print("[DEBUG] ToTerraformValue state tags err: ", err)
+	}
+	err = element.As(&templateSection)
+	if err != nil {
+		log.Print("[DEBUG] As err: ", err)
+	}
+
+	// TODO: check vector name len ?
+	if len(templateSection.Elements) > 0 {
+		var sectionElements map[string]attr.Value
+
+		vector, err := clusterInfos.Template.GetVector(strings.ToUpper(templateSection.Name))
+		if err != nil {
+			log.Print("[DEBUG] ToTerraformValue state tags err: ", err)
+		} else {
+
+			for k, _ := range templateSection.Elements {
+				v, err := vector.GetStr(strings.ToUpper(k))
+				if err != nil {
+					continue
+				}
+				sectionElements[k] = types.StringValue(v)
+			}
+
+			templateSectionPairs, diags = types.SetValue(types.StringType, sectionElements)
+			if len(diags) > 0 {
+				resp.Diagnostics = append(resp.Diagnostics, diags...)
+				return
+			}
+
+			data.TemplateSection, diags = types.MapValue(types.StringType, readTags)
+			if len(diags) > 0 {
+				resp.Diagnostics = append(resp.Diagnostics, diags...)
+				return
+			}
+		}
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
