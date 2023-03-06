@@ -341,6 +341,70 @@ func (r *Cluster) Read(ctx context.Context, req resource.ReadRequest, resp *reso
 }
 
 func (r *Cluster) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan, state *ClusterModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Print("[DEBUG] Cluster reading...")
+
+	id64, err := strconv.ParseInt(plan.Id.ValueString(), 10, 0)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to parse cluster ID",
+			err.Error(),
+		)
+		return
+	}
+	id := int(id64)
+	controller := r.controller.Cluster(id)
+	clusterInfos, err := controller.Info()
+	if err != nil {
+
+		if NoExists(err) {
+			resp.Diagnostics.AddError(
+				"Failed to retrieve the cluster",
+				fmt.Sprintf("cluster (ID: %d): %s", id, err),
+			)
+			log.Printf("[WARN] Removing cluster %s from state because it no longer exists in", plan.Name)
+			return
+
+		}
+		resp.Diagnostics.AddError(
+			"Failed retrieve cluster informations",
+			fmt.Sprintf("cluster (ID: %d): %s", id, err),
+		)
+		return
+	}
+
+	// XXX
+	update := false
+	newTpl := clusterInfos.Template
+	if !plan.TemplateSection.Equal(state.TemplateSection) {
+		// updateTemplateSection(d, &newTpl.Template)
+		update = true
+	}
+
+	// tags
+	// tags_all
+
+	if update {
+		err = controller.Update(newTpl.String(), parameters.Replace)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Failed to update cluster content",
+				fmt.Sprintf("cluster (ID: %d): %s", id, err),
+			)
+			return
+		}
+
+	}
+
 }
 
 func (r *Cluster) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
