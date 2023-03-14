@@ -79,6 +79,7 @@ func Provider() *schema.Provider {
 			"opennebula_host":                  dataOpennebulaHost(),
 			"opennebula_datastore":             dataOpennebulaDatastore(),
 			"opennebula_zone":                  dataOpennebulaZone(),
+			"opennebula_marketplace":           dataOpennebulaMarketplace(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -105,6 +106,7 @@ func Provider() *schema.Provider {
 			"opennebula_cluster":                          resourceOpennebulaCluster(),
 			"opennebula_host":                             resourceOpennebulaHost(),
 			"opennebula_datastore":                        resourceOpennebulaDatastore(),
+			"opennebula_marketplace":                      resourceOpennebulaMarketPlace(),
 		},
 
 		ConfigureContextFunc: providerConfigure,

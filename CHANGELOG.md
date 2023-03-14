@@ -1,3 +1,10 @@
+# 1.4.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `opennebula_marketplace` (#414)
+* ***New Data Source**: `opennebula_marketplace` (#414)
+
 # 1.3.1 (September 11st, 2023)
 
 BUG FIXES:

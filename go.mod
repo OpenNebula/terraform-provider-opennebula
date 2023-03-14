@@ -3,7 +3,7 @@ module github.com/OpenNebula/terraform-provider-opennebula
 go 1.18
 
 require (
-	github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20230301133003-197f04efa071
+	github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20230912160253-4673721a21ca
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1
@@ -34,6 +34,7 @@ require (
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/kolo/xmlrpc v0.0.0-20190909154602-56d5ec7c422e // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
