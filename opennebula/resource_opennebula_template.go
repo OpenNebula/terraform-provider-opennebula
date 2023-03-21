@@ -460,11 +460,9 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	}
 
 	flattenDiags := flattenVMUserTemplate(d, meta, nil, &tpl.Template.Template)
-	if len(flattenDiags) > 0 {
-		for _, diag := range flattenDiags {
-			diag.Detail = fmt.Sprintf("template (ID: %s): %s", d.Id(), err)
-			diags = append(diags, diag)
-		}
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("template (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
 	}
 
 	rawVec, _ := tpl.Template.GetVector("RAW")
