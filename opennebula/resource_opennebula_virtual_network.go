@@ -929,7 +929,6 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	flattenDiags := flattenVnetTemplate(d, meta, &vn.Template)
 	if len(flattenDiags) > 0 {
 		diags = append(diags, flattenDiags...)
-		return diags
 	}
 
 	ARIf := d.Get("ar")
@@ -1006,7 +1005,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 		d.Set("lock", LockLevelToString(vn.Lock.Locked))
 	}
 
-	return nil
+	return diags
 }
 
 func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
@@ -1051,7 +1050,6 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) diag.Diagnostics {
 
 	var diags diag.Diagnostics
-	config := meta.(*Configuration)
 
 	err := flattenTemplateSection(d, meta, &vnTpl.Template)
 	if err != nil {
@@ -1061,9 +1059,6 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 		})
 	}
-
-	tags := make(map[string]interface{})
-	tagsAll := make(map[string]interface{})
 
 	for i, _ := range vnTpl.Elements {
 		pair, ok := vnTpl.Elements[i].(*dyn.Pair)
@@ -1137,50 +1132,14 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 		}
 	}
 
-	// Get default tags
-	oldDefault := d.Get("default_tags").(map[string]interface{})
-	for k, _ := range oldDefault {
-		key := strings.ToUpper(k)
-		tagValue, err := vnTpl.GetStr(key)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to get default tag",
-				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-			})
-		}
-		tagsAll[k] = tagValue
+	flattenDiags := flattenTemplateTags(d, meta, &vnTpl.Template)
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
 	}
-	d.Set("default_tags", config.defaultTags)
 
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
+	return nil
 
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := vnTpl.GetStr(strings.ToUpper(k))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to get tag from the template",
-					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-				})
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
-		}
-
-		err := d.Set("tags", tags)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to set attribute",
-				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-			})
-		}
-	}
-	d.Set("tags_all", tagsAll)
-
-	return diags
 }
 
 func flattenAR(config map[string]interface{}, AR vn.AR) map[string]interface{} {

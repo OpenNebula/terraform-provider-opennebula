@@ -259,22 +259,28 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 		d.Set("lock", LockLevelToString(vr.LockInfos.Locked))
 	}
 
-	config := meta.(*Configuration)
+	flattenDiags := flattenVirtualRouterTemplate(d, meta, &vr.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
+	}
 
-	err = flattenTemplateSection(d, meta, &vr.Template.Template)
+	return diags
+}
+
+func flattenVirtualRouterTemplate(d *schema.ResourceData, meta interface{}, vrTpl *vr.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	err := flattenTemplateSection(d, meta, &vrTpl.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to flatten template section",
+			Summary:  "Failed to read template section",
 			Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
 
-	tags := make(map[string]interface{})
-	tagsAll := make(map[string]interface{})
-
-	vrTpl := vr.Template
 	for i, _ := range vrTpl.Elements {
 		pair, ok := vrTpl.Elements[i].(*dyn.Pair)
 		if !ok {
@@ -299,47 +305,11 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 		}
 	}
 
-	// Get default tags
-	oldDefault := d.Get("default_tags").(map[string]interface{})
-	for k, _ := range oldDefault {
-		key := strings.ToUpper(k)
-		tagValue, err := vrTpl.GetStr(key)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to get default tag",
-				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
-			})
-		}
-		tagsAll[k] = tagValue
+	flattenDiags := flattenTemplateTags(d, meta, &vrTpl.Template)
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
 	}
-	d.Set("default_tags", config.defaultTags)
-
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := vrTpl.GetStr(strings.ToUpper(k))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to get tag from the template",
-					Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
-				})
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
-		}
-
-		err := d.Set("tags", tags)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "virtual router set attribute error",
-				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
-			})
-		}
-	}
-	d.Set("tags_all", tagsAll)
 
 	return diags
 }

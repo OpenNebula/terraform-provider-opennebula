@@ -425,7 +425,6 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dyn.Template) diag.Diagnostics {
 
 	var diags diag.Diagnostics
-	config := meta.(*Configuration)
 
 	for i, _ := range groupTpl.Elements {
 
@@ -499,55 +498,16 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "Failed to flatten template section",
+			Summary:  "Failed to read template section",
 			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
 		})
 	}
 
-	tags := make(map[string]interface{})
-	tagsAll := make(map[string]interface{})
-
-	// Get default tags
-	oldDefault := d.Get("default_tags").(map[string]interface{})
-	for k, _ := range oldDefault {
-		tagValue, err := groupTpl.GetStr(strings.ToUpper(k))
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to get default tag",
-				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-			})
-		}
-		tagsAll[k] = tagValue
+	flattenDiags := flattenTemplateTags(d, meta, groupTpl)
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("group (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
 	}
-	d.Set("default_tags", config.defaultTags)
-
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
-
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := groupTpl.GetStr(strings.ToUpper(k))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to get tag from the template",
-					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-				})
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
-		}
-
-		err := d.Set("tags", tags)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to set attribute",
-				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-			})
-		}
-	}
-	d.Set("tags_all", tagsAll)
 
 	return diags
 }

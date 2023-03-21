@@ -592,18 +592,16 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 	}
 
 	flattenDiags := flattenVMUserTemplate(d, meta, inheritedTags, &vm.UserTemplate.Template)
-	if len(flattenDiags) > 0 {
-		for _, diag := range flattenDiags {
-			diag.Detail = fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err)
-			diags = append(diags, diag)
-		}
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
 	}
 
 	if vm.LockInfos != nil {
 		d.Set("lock", LockLevelToString(vm.LockInfos.Locked))
 	}
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

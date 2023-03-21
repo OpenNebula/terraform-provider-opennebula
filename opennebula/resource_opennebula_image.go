@@ -454,7 +454,6 @@ func waitForImageState(ctx context.Context, ic *goca.ImageController, timeout ti
 func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
-	config := meta.(*Configuration)
 
 	// Get all images
 	ic, err := getImageController(d, meta)
@@ -501,44 +500,57 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 		d.Set("type", image.Type)
 	}
 
-	err = flattenTemplateSection(d, meta, &image.Template.Template)
+	flattenDiags := flattenImageTemplate(d, meta, &image.Template)
+	for _, diag := range flattenDiags {
+		diags = append(diags, diag)
+	}
+
+	if image.LockInfos != nil {
+		d.Set("lock", LockLevelToString(image.LockInfos.Locked))
+	}
+
+	return diags
+}
+
+func flattenImageTemplate(d *schema.ResourceData, meta interface{}, imageTpl *image.Template) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	err := flattenTemplateSection(d, meta, &imageTpl.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to flatten template section",
+			Summary:  "Failed to read template section",
 			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
 	}
 
-	tags := make(map[string]interface{})
-	tagsAll := make(map[string]interface{})
-	for i, _ := range image.Template.Elements {
-		pair, ok := image.Template.Elements[i].(*dyn.Pair)
+	for i, _ := range imageTpl.Elements {
+		pair, ok := imageTpl.Elements[i].(*dyn.Pair)
 		if !ok {
 			continue
 		}
 
 		switch pair.Key() {
 		case "DEV_PREFIX":
-			devpref, err := image.Template.GetStr("DEV_PREFIX")
+			devpref, err := imageTpl.GetStr("DEV_PREFIX")
 			if err == nil {
 				d.Set("dev_prefix", devpref)
 			}
 
 		case "DRIVER":
-			driver, err := image.Template.GetStr("DRIVER")
+			driver, err := imageTpl.GetStr("DRIVER")
 			if err == nil {
 				d.Set("driver", driver)
 			}
 
 		case "FORMAT":
-			format, err := image.Template.GetStr("FORMAT")
+			format, err := imageTpl.GetStr("FORMAT")
 			if err == nil {
 				d.Set("format", format)
 			}
 
 		case "DESCRIPTION":
-			desc, err := image.Template.GetStr("DESCRIPTION")
+			desc, err := imageTpl.GetStr("DESCRIPTION")
 			if err == nil {
 				d.Set("description", desc)
 			}
@@ -547,49 +559,10 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	// Get default tags
-	oldDefault := d.Get("default_tags").(map[string]interface{})
-	for k, _ := range oldDefault {
-		tagValue, err := image.Template.GetStr(strings.ToUpper(k))
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to get default tag",
-				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
-			})
-		}
-		tagsAll[k] = tagValue
-	}
-	d.Set("default_tags", config.defaultTags)
-
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := image.Template.GetStr(strings.ToUpper(k))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to get tag from the template",
-					Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
-				})
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
-		}
-
-		err := d.Set("tags", tags)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to set attribute",
-				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
-			})
-		}
-	}
-	d.Set("tags_all", tagsAll)
-
-	if image.LockInfos != nil {
-		d.Set("lock", LockLevelToString(image.LockInfos.Locked))
+	flattenDiags := flattenTemplateTags(d, meta, &imageTpl.Template)
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("image (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
 	}
 
 	return diags

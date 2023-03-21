@@ -284,7 +284,6 @@ func generateHostOvercommit(d *schema.ResourceData, meta interface{}, hc *goca.H
 func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	var diags diag.Diagnostics
-	config := meta.(*Configuration)
 
 	hc, err := getHostController(d, meta)
 	if err != nil {
@@ -314,9 +313,6 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	d.SetId(fmt.Sprintf("%v", hostInfos.ID))
 	d.Set("name", hostInfos.Name)
-
-	tags := make(map[string]interface{})
-	tagsAll := make(map[string]interface{})
 
 	custom := d.Get("custom").(*schema.Set).List()
 	if len(custom) > 0 {
@@ -354,46 +350,32 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 		d.Set("cluster_id", hostInfos.ClusterID)
 	}
 
-	// Get default tags
-	oldDefault := d.Get("default_tags").(map[string]interface{})
-	for k, _ := range oldDefault {
-		tagValue, err := hostInfos.Template.GetStr(strings.ToUpper(k))
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to get default tag",
-				Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
-			})
-		}
-		tagsAll[k] = tagValue
+	flattenDiags := flattenHostTemplate(d, meta, &hostInfos.Template)
+	for _, diag := range flattenDiags {
+		diags = append(diags, diag)
 	}
-	d.Set("default_tags", config.defaultTags)
 
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := hostInfos.Template.GetStr(strings.ToUpper(k))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to get tag from the template",
-					Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
-				})
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
-		}
+	return diags
+}
 
-		err := d.Set("tags", tags)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to set attribute",
-				Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
-			})
-		}
+func flattenHostTemplate(d *schema.ResourceData, meta interface{}, hostTpl *host.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	err := flattenTemplateSection(d, meta, &hostTpl.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to read template section",
+			Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
+		})
 	}
-	d.Set("tags_all", tagsAll)
+
+	flattenDiags := flattenTemplateTags(d, meta, &hostTpl.Template)
+	for _, diag := range flattenDiags {
+		diag.Detail = fmt.Sprintf("host (ID: %s): %s", d.Id(), err)
+		diags = append(diags, diag)
+	}
 
 	return diags
 }

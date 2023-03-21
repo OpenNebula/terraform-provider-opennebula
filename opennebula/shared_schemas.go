@@ -882,65 +882,19 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 	var diags diag.Diagnostics
 
 	// We read attributes only if they are described in the VM description
-	// to avoid a diff due to template attribute inheritence
-
-	// add default_tags to tags_all
-	config := meta.(*Configuration)
+	// to avoid a diff due to template attribute inheritance
 
 	err := flattenTemplateSection(d, meta, vmTemplate)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "Failed to flatten template section",
+			Summary:  "Failed to read template section",
 		})
 	}
-
-	tagsAll := make(map[string]interface{})
-
-	// Get default tags
-	oldDefault := d.Get("default_tags").(map[string]interface{})
-	for k, _ := range oldDefault {
-		tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to get default tag",
-			})
-		}
-		tagsAll[k] = tagValue
+	tagsDiags := flattenTemplateTags(d, meta, vmTemplate)
+	if len(tagsDiags) > 0 {
+		diags = append(diags, tagsDiags...)
 	}
-	d.Set("default_tags", config.defaultTags)
-	tags := make(map[string]interface{})
-
-	// Get only tags described in the configuration
-	if tagsInterface, ok := d.GetOk("tags"); ok {
-		for k, _ := range tagsInterface.(map[string]interface{}) {
-			tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to get tag from the template",
-				})
-			}
-			tags[k] = tagValue
-			tagsAll[k] = tagValue
-		}
-
-		err := d.Set("tags", tags)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to set attribute",
-			})
-		}
-
-		// append tags to tags_all
-		for k, v := range tags {
-			tagsAll[k] = v
-		}
-	}
-
-	d.Set("tags_all", tagsAll)
 
 	schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
 	_, inherited := inheritedTags["SCHED_REQUIREMENTS"]
