@@ -1941,6 +1941,7 @@ func updateNIC(ctx context.Context, d *schema.ResourceData, meta interface{}) er
 	// reorder toAttach NIC list according to new nics list order
 	newNICtoAttach := make([]interface{}, len(toAttach))
 	i := 0
+nicCFGsLoop:
 	for _, newNICIf := range newNicsCfg {
 		newNIC := newNICIf.(map[string]interface{})
 		newNICSecGroup := newNIC["security_groups"].([]interface{})
@@ -1966,6 +1967,11 @@ func updateNIC(ctx context.Context, d *schema.ResourceData, meta interface{}) er
 
 				newNICtoAttach[i] = NIC
 				i++
+				// The "i" variable value is not bounded by the len of toAttach.
+				// This check ensure the nicCFGsLoop won't continue when newNICtoAttach is filled
+				if i == len(toAttach) {
+					break nicCFGsLoop
+				}
 				break
 			}
 		}

@@ -1,3 +1,9 @@
+# 1.2.1 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_machine: fix index out of range when attaching a new NIC (#423)
+
 # 1.2.0 (March 23th, 2023)
 
 FEATURES:
