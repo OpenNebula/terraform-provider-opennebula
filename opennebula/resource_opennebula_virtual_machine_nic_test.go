@@ -144,6 +144,38 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 	})
 }
 
+// reproduce #423 problem: index out of range when reordering the list of NICs to attach
+func TestAccVirtualMachineAddNIC(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVirtualMachineOneNIC,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "1"),
+				),
+			},
+			{
+				Config: testAccVirtualMachineTwoNICs,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "2"),
+				),
+			},
+			{
+				Config: testAccVirtualMachineNoNics,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 var testNICVNetResources = `
 
 resource "opennebula_security_group" "mysecgroup" {
@@ -581,4 +613,60 @@ resource "opennebula_virtual_machine" "test" {
 
 	timeout = 5
 }
+`
+
+var testAccVirtualMachineOneNIC = testNICVNetResources + `
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	cpu         = 1
+	vcpu        = 2
+	memory      = 128
+
+	context = {
+	  SET_HOSTNAME = "$NAME"
+	  NETWORK      = "YES"
+	}
+
+	nic {
+	  model           = "virtio"
+	  network_id      = opennebula_virtual_network.network1.id
+	}
+  }
+`
+
+var testAccVirtualMachineTwoNICs = testNICVNetResources + `
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	cpu         = 1
+	vcpu        = 2
+	memory      = 128
+  
+	context = {
+	  SET_HOSTNAME = "$NAME"
+	  NETWORK      = "YES"
+	}
+  
+	nic {
+		model           = "virtio"
+		network_id      = opennebula_virtual_network.network1.id
+	}
+	nic {
+		model           = "virtio"
+		network_id      = opennebula_virtual_network.network2.id
+	}
+  }
+`
+
+var testAccVirtualMachineNoNics = testNICVNetResources + `
+resource "opennebula_virtual_machine" "test" {
+	name        = "test-virtual_machine"
+	cpu         = 1
+	vcpu        = 2
+	memory      = 128
+
+	context = {
+	  SET_HOSTNAME = "$NAME"
+	  NETWORK      = "YES"
+	}
+  }
 `
