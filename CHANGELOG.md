@@ -3,6 +3,11 @@
 BUG FIXES:
 
 * resources/opennebula_virtual_machine: fix index out of range when attaching a new NIC (#423)
+* resources/opennebula_host:  rework diagnostics in read method and lower some severity levels (#425)
+* resources/opennebula_image:  rework diagnostics in read method and lower some severity levels (#425)
+* resources/opennebula_virtual_machine:  rework diagnostics in read method and lower some severity levels (#425)
+* resources/opennebula_virtual_network:  rework diagnostics in read method and lower some severity levels (#425)
+* resources/opennebula_virtual_router_instance:  rework diagnostics in read method and lower some severity levels (#425)
 
 # 1.2.0 (March 23th, 2023)
 

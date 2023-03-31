@@ -413,20 +413,18 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	err = flattenGroupTemplate(d, meta, &group.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenGroupTemplate(d, meta, &group.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
 	return nil
 }
 
-func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dyn.Template) error {
+func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dyn.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	for i, _ := range groupTpl.Elements {
@@ -459,9 +457,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 				}
 
 				err := d.Set("sunstone", []interface{}{sunstoneConfig})
-				if err != nil {
-					return err
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to find vector",
+					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+				})
 			case "OPENNEBULA":
 
 				opennebulaConfig := make(map[string]interface{})
@@ -482,9 +482,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 				}
 
 				err := d.Set("opennebula", []interface{}{opennebulaConfig})
-				if err != nil {
-					return err
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to find vector",
+					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+				})
 			default:
 				log.Printf("[DEBUG] ignored: %s", e)
 			}
@@ -495,7 +497,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 
 	err := flattenTemplateSection(d, meta, groupTpl)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+		})
 	}
 
 	tags := make(map[string]interface{})
@@ -506,7 +512,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 	for k, _ := range oldDefault {
 		tagValue, err := groupTpl.GetStr(strings.ToUpper(k))
 		if err != nil {
-			return nil
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -518,7 +528,11 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := groupTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -526,12 +540,16 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

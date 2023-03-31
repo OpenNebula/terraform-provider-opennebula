@@ -459,14 +459,12 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		return diags
 	}
 
-	err = flattenVMUserTemplate(d, meta, nil, &tpl.Template.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
-		})
-		return diags
+	flattenDiags := flattenVMUserTemplate(d, meta, nil, &tpl.Template.Template)
+	if len(flattenDiags) > 0 {
+		for _, diag := range flattenDiags {
+			diag.Detail = fmt.Sprintf("template (ID: %s): %s", d.Id(), err)
+			diags = append(diags, diag)
+		}
 	}
 
 	rawVec, _ := tpl.Template.GetVector("RAW")

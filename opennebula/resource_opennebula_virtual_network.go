@@ -926,13 +926,9 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	}
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
-	err = flattenVnetTemplate(d, meta, &vn.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenVnetTemplate(d, meta, &vn.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
@@ -1052,13 +1048,18 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 	return nil
 }
 
-func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) error {
+func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) diag.Diagnostics {
 
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	err := flattenTemplateSection(d, meta, &vnTpl.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+		})
 	}
 
 	tags := make(map[string]interface{})
@@ -1074,7 +1075,11 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 		case "SECURITY_GROUPS":
 			secgrouplist, err := vnTpl.GetStr("SECURITY_GROUPS")
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to find SECURITY_GROUPS attribute",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
 			}
 			secgroups_str := strings.Split(secgrouplist, ",")
 			secgroups_int := []int{}
@@ -1083,7 +1088,11 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 				if i != "" {
 					j, err := strconv.Atoi(i)
 					if err != nil {
-						return err
+						diags = append(diags, diag.Diagnostic{
+							Severity: diag.Warning,
+							Summary:  "Failed to convert security group IDs as integer",
+							Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+						})
 					}
 					secgroups_int = append(secgroups_int, j)
 				}
@@ -1091,27 +1100,37 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 
 			err = d.Set("security_groups", secgroups_int)
 			if err != nil {
-				log.Printf("[DEBUG] Error setting security groups on vnet: %s", err)
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed set attribute",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
 			}
 		case "MTU":
 			mtustr, _ := vnTpl.Get("MTU")
 			if mtustr != "" {
 				mtu, err := strconv.ParseInt(mtustr, 10, 0)
-				if err != nil {
-					return err
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to convert MTU as integer",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
 				err = d.Set("mtu", mtu)
-				if err != nil {
-					return err
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed set attribute",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
 			}
 		case "DESCRIPTION":
-			desc, err := vnTpl.Get("DESCRIPTION")
+			desc, _ := vnTpl.Get("DESCRIPTION")
 			if desc != "" {
 				err = d.Set("description", desc)
-				if err != nil {
-					return err
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed set attribute",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
 			}
 		default:
 
@@ -1124,7 +1143,11 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 		key := strings.ToUpper(k)
 		tagValue, err := vnTpl.GetStr(key)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -1136,7 +1159,11 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := vnTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -1144,12 +1171,16 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func flattenAR(config map[string]interface{}, AR vn.AR) map[string]interface{} {

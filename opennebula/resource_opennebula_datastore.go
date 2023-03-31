@@ -621,20 +621,18 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 
 	}
 
-	err = flattenDatastoreTemplate(d, meta, &datastoreInfos.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenDatastoreTemplate(d, meta, &datastoreInfos.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
 	return nil
 }
 
-func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastoreTpl *datastore.Template) error {
+func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastoreTpl *datastore.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	tags := make(map[string]interface{})
@@ -645,7 +643,11 @@ func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastor
 	for k, _ := range oldDefault {
 		tagValue, err := datastoreTpl.GetStr(strings.ToUpper(k))
 		if err != nil {
-			return nil
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -657,7 +659,11 @@ func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastor
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := datastoreTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -665,12 +671,16 @@ func flattenDatastoreTemplate(d *schema.ResourceData, meta interface{}, datastor
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("datastore (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

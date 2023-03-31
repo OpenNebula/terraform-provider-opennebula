@@ -364,7 +364,6 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 				Summary:  "Failed to get default tag",
 				Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
 			})
-			return diags
 		}
 		tagsAll[k] = tagValue
 	}
@@ -376,12 +375,10 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 			tagValue, err := hostInfos.Template.GetStr(strings.ToUpper(k))
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to get tag from the host template",
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
 					Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
 				})
-				return diags
-
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -394,12 +391,11 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 				Summary:  "Failed to set attribute",
 				Detail:   fmt.Sprintf("host (ID: %s): %s", d.Id(), err),
 			})
-			return diags
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaHostUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

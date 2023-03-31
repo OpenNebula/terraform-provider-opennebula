@@ -270,13 +270,9 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 		return diags
 	}
 
-	err = flattenUserTemplate(d, meta, &user.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenUserTemplate(d, meta, &user.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
@@ -302,13 +298,18 @@ func flattenUserGroups(d *schema.ResourceData, user *user.User) error {
 	return nil
 }
 
-func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.Template) error {
+func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.Template) diag.Diagnostics {
 
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	err := flattenTemplateSection(d, meta, userTpl)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
+		})
 	}
 
 	tags := make(map[string]interface{})
@@ -319,7 +320,12 @@ func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.
 	for k, _ := range oldDefault {
 		tagValue, err := userTpl.GetStr(strings.ToUpper(k))
 		if err != nil {
-			return nil
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
+			})
+			return diags
 		}
 		tagsAll[k] = tagValue
 	}
@@ -331,7 +337,12 @@ func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := userTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
+				})
+				return diags
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -339,12 +350,16 @@ func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("user (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

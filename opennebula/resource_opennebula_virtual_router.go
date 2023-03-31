@@ -310,7 +310,6 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 				Summary:  "Failed to get default tag",
 				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
-			return diags
 		}
 		tagsAll[k] = tagValue
 	}
@@ -322,12 +321,10 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 			tagValue, err := vrTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to get tag from the virtual router template",
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
 					Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 				})
-				return diags
-
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -340,12 +337,11 @@ func resourceOpennebulaVirtualRouterRead(ctx context.Context, d *schema.Resource
 				Summary:  "virtual router set attribute error",
 				Detail:   fmt.Sprintf("virtual router (ID: %s): %s", d.Id(), err),
 			})
-			return diags
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaVirtualRouterExists(d *schema.ResourceData, meta interface{}) (bool, error) {
