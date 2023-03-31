@@ -508,7 +508,6 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 			Summary:  "Failed to flatten template section",
 			Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 		})
-		return diags
 	}
 
 	tags := make(map[string]interface{})
@@ -558,7 +557,6 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 				Summary:  "Failed to get default tag",
 				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
-			return diags
 		}
 		tagsAll[k] = tagValue
 	}
@@ -570,12 +568,10 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 			tagValue, err := image.Template.GetStr(strings.ToUpper(k))
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to get tag from the image template",
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
 					Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 				})
-				return diags
-
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -588,7 +584,6 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 				Summary:  "Failed to set attribute",
 				Detail:   fmt.Sprintf("image (ID: %s): %s", d.Id(), err),
 			})
-			return diags
 		}
 	}
 	d.Set("tags_all", tagsAll)
@@ -597,7 +592,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 		d.Set("lock", LockLevelToString(image.LockInfos.Locked))
 	}
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaImageExists(d *schema.ResourceData, meta interface{}) (bool, error) {

@@ -591,14 +591,12 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		inheritedTags = inheritedTagsIf.(map[string]interface{})
 	}
 
-	err = flattenVMUserTemplate(d, meta, inheritedTags, &vm.UserTemplate.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
-		})
-		return diags
+	flattenDiags := flattenVMUserTemplate(d, meta, inheritedTags, &vm.UserTemplate.Template)
+	if len(flattenDiags) > 0 {
+		for _, diag := range flattenDiags {
+			diag.Detail = fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err)
+			diags = append(diags, diag)
+		}
 	}
 
 	if vm.LockInfos != nil {

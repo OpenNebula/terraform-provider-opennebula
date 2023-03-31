@@ -292,26 +292,27 @@ func resourceOpennebulaVMGroupRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	err = flattenVMGroupTags(d, meta, &vmg.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten tags",
-			Detail:   fmt.Sprintf("VM group (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenVMGroupTags(d, meta, &vmg.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
 	return nil
 }
 
-func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Template) error {
+func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Template) diag.Diagnostics {
 
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	err := flattenTemplateSection(d, meta, tpl)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("vm group (ID: %s): %s", d.Id(), err),
+		})
 	}
 
 	tags := make(map[string]interface{})
@@ -322,7 +323,11 @@ func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Templ
 	for k, _ := range oldDefault {
 		tagValue, err := tpl.GetStr(strings.ToUpper(k))
 		if err != nil {
-			return nil
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("vm group (ID: %s): %s", d.Id(), err),
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -334,7 +339,11 @@ func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Templ
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := tpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("vm group (ID: %s): %s", d.Id(), err),
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -342,12 +351,16 @@ func flattenVMGroupTags(d *schema.ResourceData, meta interface{}, tpl *dyn.Templ
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("vm group (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func flattenVMGroupRoles(d *schema.ResourceData, vmgRoles []vmgroup.Role) error {

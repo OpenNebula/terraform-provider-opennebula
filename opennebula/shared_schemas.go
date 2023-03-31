@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
@@ -876,7 +877,9 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	return nil
 }
 
-func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTags map[string]interface{}, vmTemplate *dynamic.Template) error {
+func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTags map[string]interface{}, vmTemplate *dynamic.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 
 	// We read attributes only if they are described in the VM description
 	// to avoid a diff due to template attribute inheritence
@@ -886,7 +889,10 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 
 	err := flattenTemplateSection(d, meta, vmTemplate)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+		})
 	}
 
 	tagsAll := make(map[string]interface{})
@@ -896,7 +902,10 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 	for k, _ := range oldDefault {
 		tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
 		if err != nil {
-			return nil
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -908,7 +917,10 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := vmTemplate.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -916,8 +928,12 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+			})
 		}
+
 		// append tags to tags_all
 		for k, v := range tags {
 			tagsAll[k] = v
@@ -930,27 +946,30 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 	_, inherited := inheritedTags["SCHED_REQUIREMENTS"]
 	if !inherited {
 		err = d.Set("sched_requirements", schedReq)
-		if err != nil {
-			return err
-		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to find MTU attribute",
+		})
 	}
 
 	schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
 	_, inherited = inheritedTags["SCHED_DS_REQUIREMENTS"]
 	if !inherited {
 		err = d.Set("sched_ds_requirements", schedDSReq)
-		if err != nil {
-			return err
-		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to find SCHED_DS_REQUIREMENTS attribute",
+		})
 	}
 
 	description, _ := vmTemplate.GetStr("DESCRIPTION")
 	_, inherited = inheritedTags["DESCRIPTION"]
 	if !inherited {
 		err = d.Set("description", description)
-		if err != nil {
-			return err
-		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to find DESCRIPTION attribute",
+		})
 	}
 
 	return nil

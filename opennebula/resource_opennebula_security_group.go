@@ -262,26 +262,27 @@ func resourceOpennebulaSecurityGroupRead(ctx context.Context, d *schema.Resource
 		log.Printf("[WARN] Error setting rule for Security Group %x, error: %s", securitygroup.ID, err)
 	}
 
-	err = flattenSecurityGroupTags(d, meta, &securitygroup.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten tags",
-			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenSecurityGroupTags(d, meta, &securitygroup.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
 	return nil
 }
 
-func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *securitygroup.Template) error {
+func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *securitygroup.Template) diag.Diagnostics {
 
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	err := flattenTemplateSection(d, meta, &sgTpl.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
+		})
 	}
 
 	tags := make(map[string]interface{})
@@ -293,7 +294,11 @@ func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *s
 		key := strings.ToUpper(k)
 		tagValue, err := sgTpl.GetStr(key)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -304,7 +309,11 @@ func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *s
 		for k, _ := range tagsCfg {
 			tagValue, err := sgTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -312,12 +321,16 @@ func flattenSecurityGroupTags(d *schema.ResourceData, meta interface{}, sgTpl *s
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func generateSecurityGroupMapFromStructs(rulesVectors []securitygroup.Rule) []map[string]interface{} {

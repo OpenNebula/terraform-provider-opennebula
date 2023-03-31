@@ -258,25 +258,27 @@ func resourceOpennebulaClusterRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	err = flattenClusterTemplate(d, meta, &clusterInfos.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to flatten template",
-			Detail:   fmt.Sprintf("cluster (ID: %s): %s", d.Id(), err),
-		})
+	flattenDiags := flattenClusterTemplate(d, meta, &clusterInfos.Template)
+	if len(flattenDiags) > 0 {
+		diags = append(diags, flattenDiags...)
 		return diags
 	}
 
 	return nil
 }
 
-func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl *cluster.Template) error {
+func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl *cluster.Template) diag.Diagnostics {
+
+	var diags diag.Diagnostics
 	config := meta.(*Configuration)
 
 	err := flattenTemplateSection(d, meta, &clusterTpl.Template)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to flatten template section",
+			Detail:   fmt.Sprintf("cluster (ID: %s): %s", d.Id(), err),
+		})
 	}
 
 	tags := make(map[string]interface{})
@@ -287,7 +289,11 @@ func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl
 	for k, _ := range oldDefault {
 		tagValue, err := clusterTpl.GetStr(strings.ToUpper(k))
 		if err != nil {
-			return nil
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get default tag",
+				Detail:   fmt.Sprintf("cluster (ID: %s): %s", d.Id(), err),
+			})
 		}
 		tagsAll[k] = tagValue
 	}
@@ -299,7 +305,11 @@ func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl
 		for k, _ := range tagsInterface.(map[string]interface{}) {
 			tagValue, err := clusterTpl.GetStr(strings.ToUpper(k))
 			if err != nil {
-				return err
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to get tag from the template",
+					Detail:   fmt.Sprintf("cluster (ID: %s): %s", d.Id(), err),
+				})
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue
@@ -307,12 +317,16 @@ func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl
 
 		err := d.Set("tags", tags)
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to set attribute",
+				Detail:   fmt.Sprintf("cluster (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 	d.Set("tags_all", tagsAll)
 
-	return nil
+	return diags
 }
 
 func resourceOpennebulaClusterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
