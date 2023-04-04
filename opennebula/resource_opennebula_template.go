@@ -453,7 +453,17 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to flatten",
+			Summary:  "Failed to flatten template",
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	err = flattenFeatures(d, &tpl.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten features",
 			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
@@ -493,6 +503,40 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 
 	if tpl.LockInfos != nil {
 		d.Set("lock", LockLevelToString(tpl.LockInfos.Locked))
+	}
+
+	return nil
+}
+
+func flattenFeatures(d *schema.ResourceData, tpl *vm.Template) error {
+	// Features
+	featuresMap := make([]map[string]interface{}, 0, 1)
+	pae, _ := tpl.GetFeature(vmk.PAE)
+	acpi, _ := tpl.GetFeature(vmk.ACPI)
+	apic, _ := tpl.GetFeature(vmk.APIC)
+	localtime, _ := tpl.GetFeature(vmk.LocalTime)
+	hyperv, _ := tpl.GetFeature("HYPERV")
+	guest_agent, _ := tpl.GetFeature(vmk.GuestAgent)
+	virtio_scsi_queues, _ := tpl.GetFeature(vmk.VirtIOScsiQueues)
+	iothreads, _ := tpl.GetFeature("IOTHREADS")
+
+	// Set features to resource
+	if pae != "" || acpi != "" || apic != "" || localtime != "" || hyperv != "" || guest_agent != "" || virtio_scsi_queues != "" || iothreads != "" {
+		featuresMap = append(featuresMap, map[string]interface{}{
+			"pae":                pae,
+			"acpi":               acpi,
+			"apic":               apic,
+			"localtime":          localtime,
+			"hyperv":             hyperv,
+			"guest_agent":        guest_agent,
+			"virtio_scsi_queues": virtio_scsi_queues,
+			"iothreads":          iothreads,
+		})
+
+		err := d.Set("features", featuresMap)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
