@@ -1495,18 +1495,6 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		}
 	}
 
-	// TODO: fix it after 5.10 release
-	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-	vn, err = vnc.Info(false)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to retrieve informations",
-			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-		})
-		return diags
-	}
-
 	if d.HasChange("ar") {
 		log.Println("[DEBUG] AR changed")
 		old, new := d.GetChange("ar")
