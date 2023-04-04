@@ -78,6 +78,7 @@ func Provider() *schema.Provider {
 			"opennebula_virtual_machine_group": dataOpennebulaVMGroup(),
 			"opennebula_host":                  dataOpennebulaHost(),
 			"opennebula_datastore":             dataOpennebulaDatastore(),
+			"opennebula_zone":                  dataOpennebulaZone(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
