@@ -76,6 +76,7 @@ The following arguments are supported:
 * `primary_group` - (Optional) Primary group ID of the User. Defaults to 0 (oneadmin).
 * `groups` - (Optional) List of secondary groups ID of the user.
 * `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
+* `ssh_public_key` - (Optional) SSH public key.
 * `tags` - (Optional) Group tags (Key = value)
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 

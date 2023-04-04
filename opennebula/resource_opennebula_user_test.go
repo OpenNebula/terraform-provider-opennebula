@@ -21,6 +21,7 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "password", "p@ssw0rd"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "auth_driver", "core"),
+					resource.TestCheckResourceAttr("opennebula_user.user", "ssh_public_key", "xxx"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_user.user", "quotas.*", map[string]string{
 						"datastore_quotas.#":        "1",
@@ -43,6 +44,7 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_user.user", "name", "iamuser"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "password", "p@ssw0rd2"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "auth_driver", "core"),
+					resource.TestCheckResourceAttr("opennebula_user.user", "ssh_public_key", "xxx"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_user.user", "quotas.*", map[string]string{
 						"datastore_quotas.#":        "1",
@@ -87,6 +89,7 @@ resource "opennebula_user" "user" {
   name = "iamuser"
   password = "p@ssw0rd"
   auth_driver = "core"
+  ssh_public_key = "xxx"
   quotas {
       datastore_quotas {
           id = 1
@@ -110,6 +113,7 @@ resource "opennebula_user" "user" {
   name = "iamuser"
   password = "p@ssw0rd2"
   auth_driver = "core"
+  ssh_public_key = "xxx"
   quotas {
       datastore_quotas {
           id = 1
