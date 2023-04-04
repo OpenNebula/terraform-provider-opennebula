@@ -62,6 +62,11 @@ func resourceOpennebulaUser() *schema.Resource {
 				Default:     0,
 				Description: "Primary (Default) Group ID of the user. Defaults to 0",
 			},
+			"ssh_public_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "User SSH public key",
+			},
 			"groups": {
 				Type:        schema.TypeSet,
 				Optional:    true,
@@ -158,6 +163,11 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	tpl := dyn.NewTemplate()
+
+	sshPublicKey := d.Get("ssh_public_key").(string)
+	if len(sshPublicKey) > 0 {
+		tpl.AddPair("SSH_PUBLIC_KEY", sshPublicKey)
+	}
 
 	vectorsInterface := d.Get("template_section").(*schema.Set).List()
 	if len(vectorsInterface) > 0 {
@@ -301,7 +311,12 @@ func flattenUserTemplate(d *schema.ResourceData, meta interface{}, userTpl *dyn.
 
 	var diags diag.Diagnostics
 
-	err := flattenTemplateSection(d, meta, userTpl)
+	sshPublicKey, err := userTpl.GetStr("SSH_PUBLIC_KEY")
+	if err == nil {
+		d.Set("ssh_public_key", sshPublicKey)
+	}
+
+	err = flattenTemplateSection(d, meta, userTpl)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -460,6 +475,18 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 
 	update := false
 	newTpl := userInfos.Template
+
+	if d.HasChange("ssh_public_key") {
+
+		newTpl.Del("SSH_PUBLIC_KEY")
+
+		sshPublicKey := d.Get("ssh_public_key").(string)
+		if len(sshPublicKey) > 0 {
+			newTpl.AddPair("SSH_PUBLIC_KEY", sshPublicKey)
+		}
+
+		update = true
+	}
 
 	if d.HasChange("template_section") {
 

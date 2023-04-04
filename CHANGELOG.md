@@ -2,6 +2,7 @@
 
 FEATURES:
 * **New Data Source**: `opennebula_zone` (#417)
+* resources/opennebula_user: add `ssh_public_key` attribute (#416)
 
 BUG FIXES:
 
