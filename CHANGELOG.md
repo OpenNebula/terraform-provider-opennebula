@@ -1,5 +1,8 @@
 # 1.2.1 (Unreleased)
 
+FEATURES:
+* **New Data Source**: `opennebula_zone` (#417)
+
 BUG FIXES:
 
 * resources/opennebula_virtual_machine: fix index out of range when attaching a new NIC (#423)
