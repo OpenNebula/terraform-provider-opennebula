@@ -26,6 +26,11 @@ func dataOpennebulaZone() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the zone",
 			},
+			"endpoint": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Endpoint of the zone",
+			},
 		},
 	}
 }
@@ -84,6 +89,7 @@ func datasourceOpennebulaZoneRead(ctx context.Context, d *schema.ResourceData, m
 
 	d.SetId(strconv.FormatInt(int64(zone.ID), 10))
 	d.Set("name", zone.Name)
+	d.Set("endpoint", zone.Template.Endpoint)
 
 	return nil
 }

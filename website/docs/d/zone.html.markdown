@@ -27,3 +27,4 @@ data "opennebula_zone" "example" {
 
 * `id` - ID of the zone.
 * `name` - The OpenNebula zone name.
+* `endpoint` - The endpoint of the zone.
