@@ -15,6 +15,7 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/parameters"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
 	vnk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork/keys"
@@ -1282,64 +1283,138 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		}
 	}
 
-	tpl := vn.NewTemplate()
-	changes := false
+	tpl := vnInfos.Template
+	update := false
 
 	if d.HasChange("description") {
-		tpl.Add("DESCRIPTION", d.Get("description").(string))
-		changes = true
+		tpl.Del("DESCRIPTION")
+		description := d.Get("description").(string)
+		if len(description) > 0 {
+			tpl.Add("DESCRIPTION", description)
+		}
+		update = true
 	}
 
 	if d.HasChange("gateway") {
-		tpl.Add(vnk.Gateway, d.Get("gateway").(string))
-		changes = true
+		tpl.Del(string(vnk.Gateway))
+		gateway := d.Get("gateway").(string)
+		if len(gateway) > 0 {
+			tpl.Add(vnk.Gateway, gateway)
+		}
+		update = true
 	}
 
 	if d.HasChange("dns") {
-		tpl.Add(vnk.DNS, d.Get("dns").(string))
-		changes = true
+		tpl.Del(string(vnk.DNS))
+		dns := d.Get("dns").(string)
+		if len(dns) > 0 {
+			tpl.Add(vnk.DNS, dns)
+		}
+		update = true
 	}
 
 	if d.HasChange("network_mask") {
-		tpl.Add(vnk.NetworkMask, d.Get("network_mask").(string))
-		changes = true
+		tpl.Del(string(vnk.NetworkMask))
+		networkMask := d.Get("network_mask").(string)
+		if len(networkMask) > 0 {
+			tpl.Add(vnk.NetworkMask, networkMask)
+		}
+		update = true
 	}
 
 	if d.HasChange("network_address") {
-		tpl.Add(vnk.NetworkAddress, d.Get("network_address").(string))
-		changes = true
+		tpl.Del(string(vnk.NetworkAddress))
+		networkAddress := d.Get("network_address").(string)
+		if len(networkAddress) > 0 {
+			tpl.Add(vnk.NetworkAddress, networkAddress)
+		}
+		update = true
 	}
 
 	if d.HasChange("search_domain") {
-		tpl.Add(vnk.SearchDomain, d.Get("search_domain").(string))
-		changes = true
+		tpl.Del(string(vnk.SearchDomain))
+		searchDomain := d.Get("search_domain").(string)
+		if len(searchDomain) > 0 {
+			tpl.Add(vnk.SearchDomain, searchDomain)
+		}
+		update = true
 	}
 
 	if d.HasChange("security_groups") {
-		securitygroups := d.Get("security_groups")
-		secgrouplist := ArrayToString(securitygroups.([]interface{}), ",")
-		tpl.Add(vnk.SecGroups, secgrouplist)
-		changes = true
+		tpl.Del(string(vnk.SecGroups))
+		securityGroupsList := d.Get("security_groups").([]interface{})
+		if len(securityGroupsList) > 0 {
+			securityGroupsStr := ArrayToString(securityGroupsList, ",")
+			tpl.Add(vnk.SecGroups, securityGroupsStr)
+		}
+		update = true
 	}
 
 	if d.HasChange("template_section") {
 
 		updateTemplateSection(d, &tpl.Template)
 
-		changes = true
+		update = true
 	}
 
 	if d.HasChange("tags") {
-		tagsInterface := d.Get("tags").(map[string]interface{})
-		for k, v := range tagsInterface {
+
+		oldTagsIf, newTagsIf := d.GetChange("tags")
+		oldTags := oldTagsIf.(map[string]interface{})
+		newTags := newTagsIf.(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTags {
+			_, ok := newTags[k]
+			if ok {
+				continue
+			}
 			tpl.Del(strings.ToUpper(k))
-			tpl.AddPair(strings.ToUpper(k), v)
 		}
-		changes = true
+
+		// add/update tags
+		for k, v := range newTags {
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
+		}
+
+		update = true
 	}
 
-	if changes {
-		err := vnc.Update(tpl.String(), 1)
+	if d.HasChange("tags_all") {
+		oldTagsAllIf, newTagsAllIf := d.GetChange("tags_all")
+		oldTagsAll := oldTagsAllIf.(map[string]interface{})
+		newTagsAll := newTagsAllIf.(map[string]interface{})
+
+		tags := d.Get("tags").(map[string]interface{})
+
+		// delete tags
+		for k, _ := range oldTagsAll {
+			_, ok := newTagsAll[k]
+			if ok {
+				continue
+			}
+			tpl.Del(strings.ToUpper(k))
+		}
+
+		// reapply all default tags that were neither applied nor overriden via tags section
+		for k, v := range newTagsAll {
+			_, ok := tags[k]
+			if ok {
+				continue
+			}
+
+			key := strings.ToUpper(k)
+			tpl.Del(key)
+			tpl.AddPair(key, v)
+		}
+
+		update = true
+	}
+
+	if update {
+		err := vnc.Update(tpl.String(), parameters.Replace)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -1365,7 +1440,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-	vn, err := vnc.Info(false)
+	vnInfos, err = vnc.Info(false)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -1400,7 +1475,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 			})
 			return diags
 		}
-		log.Printf("[INFO] Successfully updated group for Vnet %s\n", vn.Name)
+		log.Printf("[INFO] Successfully updated group for Vnet %s\n", vnInfos.Name)
 	}
 
 	if d.HasChange("hold_ips") {

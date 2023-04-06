@@ -132,6 +132,62 @@ func TestAccVirtualNetwork(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccVirtualNetworkConfigRemoveGateway,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "test-virtual_network-renamed"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "dummy"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "mtu", "1500"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "group", "users"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "dns", "172.16.100.254"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "gateway", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_mask", "255.255.0.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "network_address", "172.16.100.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "search_domain", "example.com"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test", "gname"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "size", "17"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "ip4", "172.16.100.110"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test", "hold_ips.0", "172.16.100.112"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "size", "15"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test2", "ip4", "172.16.100.170"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ar_type", "IP4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "size", "13"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ip4", "172.16.100.140"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.0", "172.16.100.141"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "ar_type", "IP6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "dev"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.version", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "hold_ips.0", "172.16.100.2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "ar.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_network.test", "ar.*", map[string]string{
+						"ar_type": "IP4",
+						"size":    "5",
+						"ip4":     "172.16.100.1",
+					}),
+					testAccVirtualNetworkSG([]int{0}),
+					testAccCheckVirtualNetworkPermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						OwnerA: 0,
+						GroupU: 1,
+						GroupM: 1,
+					}),
+					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.test", "cluster_ids.*", "0"),
+				),
+			},
+			{
 				Config: testAccVirtualNetworkReservationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "name", "terravnetres"),
@@ -337,6 +393,67 @@ resource "opennebula_virtual_network" "test" {
   bridge          = "onebr"
   mtu             = 1500
   gateway         = "172.16.100.254"
+  dns             = "172.16.100.254"
+  network_mask    = "255.255.0.0"
+  network_address = "172.16.100.0"
+  search_domain   = "example.com"
+  ar {
+    ar_type = "IP4"
+    size    = 5
+    ip4     = "172.16.100.1"
+  }
+  hold_ips           = ["172.16.100.2"]
+  security_groups = [0]
+  cluster_ids = [0]
+  permissions = "660"
+  group = "users"
+  tags = {
+    env = "dev"
+    customer = "test"
+    version = "2"
+  }
+
+  lifecycle {
+    ignore_changes = [ar, hold_ips, clusters]
+  }
+}
+
+resource "opennebula_virtual_network_address_range" "test" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 17
+	ip4                = "172.16.100.110"
+	hold_ips = ["172.16.100.112"]
+}
+
+resource "opennebula_virtual_network_address_range" "test2" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 15
+	ip4                = "172.16.100.170"
+}
+
+resource "opennebula_virtual_network_address_range" "test3" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP4"
+	size               = 13
+	ip4                = "172.16.100.140"
+	hold_ips           = ["172.16.100.141"]
+}
+
+resource "opennebula_virtual_network_address_range" "test4" {
+	virtual_network_id = opennebula_virtual_network.test.id
+	ar_type            = "IP6"
+	size               = 2
+}
+`
+
+var testAccVirtualNetworkConfigRemoveGateway = `
+resource "opennebula_virtual_network" "test" {
+  name = "test-virtual_network-renamed"
+  type            = "dummy"
+  bridge          = "onebr"
+  mtu             = 1500
   dns             = "172.16.100.254"
   network_mask    = "255.255.0.0"
   network_address = "172.16.100.0"
