@@ -54,8 +54,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "Description of the vnet, in OpenNebula's XML or String format",
+				Description: "Description of the vnet",
 			},
 			"permissions": {
 				Type:        schema.TypeString,
@@ -185,35 +184,30 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"gateway": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Computed:      true,
 				Description:   "Gateway IP if necessary",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"network_mask": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Computed:      true,
 				Description:   "Network Mask",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
 			"network_address": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Computed:      true,
 				Description:   "Network Address",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"search_domain": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Computed:      true,
 				Description:   "Search Domain",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size"},
 			},
 			"dns": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Computed:      true,
 				Description:   "DNS IP if necessary",
 				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
 			},
@@ -735,14 +729,14 @@ func generateVnTemplate(d *schema.ResourceData, meta interface{}) (string, error
 	tpl := vn.NewTemplate()
 
 	mtu := d.Get("mtu").(int)
-	guestmtu := d.Get("guest_mtu").(int)
+	guestMTU := d.Get("guest_mtu").(int)
 
-	if guestmtu > mtu {
-		return "", fmt.Errorf("Invalid: Guest MTU (%v) is greater than MTU (%v)", guestmtu, mtu)
+	if guestMTU > mtu {
+		return "", fmt.Errorf("Invalid: Guest MTU (%v) is greater than MTU (%v)", guestMTU, mtu)
 	}
 
 	tpl.AddPair("MTU", mtu)
-	tpl.AddPair(string(vnk.GuestMTU), guestmtu)
+	tpl.AddPair(string(vnk.GuestMTU), guestMTU)
 
 	if dns, ok := d.GetOk("dns"); ok {
 		tpl.Add(vnk.DNS, dns.(string))
@@ -919,15 +913,16 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	if vn.VlanIDAutomatic == "1" {
 		d.Set("automatic_vlan_id", true)
 	}
-	// In case this vnet is not a reservation we read the type,
-	// which conflicts with reservation attributes
-	reservationVNet := d.Get("reservation_vnet").(int)
-	if reservationVNet == -1 {
-		d.Set("type", vn.VNMad)
-	}
 	d.Set("permissions", permissionsUnixString(*vn.Permissions))
 
-	flattenDiags := flattenVnetTemplate(d, meta, &vn.Template)
+	reservationVNet := d.Get("reservation_vnet").(int)
+	isReservation := reservationVNet > -1 && len(vn.ParentNetworkID) > 0
+
+	if !isReservation {
+		d.Set("type", vn.VNMad)
+	}
+
+	flattenDiags := flattenVnetTemplate(d, meta, isReservation, &vn.Template)
 	if len(flattenDiags) > 0 {
 		diags = append(diags, flattenDiags...)
 	}
@@ -946,7 +941,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	}
 
 	// in case this vnet is a reservation
-	if reservationVNet > -1 {
+	if isReservation {
 		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -972,6 +967,11 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 			d.Set("reservation_size", vn.ARs[0].Size)
 			d.Set("reservation_first_ip", vn.ARs[0].IP)
 		}
+	} else {
+		d.Set("reservation_vnet", -1)
+		d.Set("reservation_ar_id", -1)
+		d.Set("reservation_size", 0)
+		d.Set("reservation_first_ip", "")
 	}
 
 	cfgClusterIDs := d.Get("cluster_ids").(*schema.Set).List()
@@ -1048,7 +1048,7 @@ func flattenVnetARs(d *schema.ResourceData, vn *vn.VirtualNetwork) error {
 	return nil
 }
 
-func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Template) diag.Diagnostics {
+func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, isReservation bool, vnTpl *vn.Template) diag.Diagnostics {
 
 	var diags diag.Diagnostics
 
@@ -1061,75 +1061,136 @@ func flattenVnetTemplate(d *schema.ResourceData, meta interface{}, vnTpl *vn.Tem
 		})
 	}
 
-	for i, _ := range vnTpl.Elements {
-		pair, ok := vnTpl.Elements[i].(*dyn.Pair)
-		if !ok {
-			continue
+	secGroupsStr, _ := vnTpl.Get(vnk.SecGroups)
+	secGroups := []int{}
+
+	for _, i := range strings.Split(secGroupsStr, ",") {
+		if i != "" {
+			j, err := strconv.Atoi(i)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to convert security group IDs as integer",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
+			}
+			secGroups = append(secGroups, j)
 		}
+	}
 
-		switch pair.Key() {
-		case "SECURITY_GROUPS":
-			secgrouplist, err := vnTpl.GetStr("SECURITY_GROUPS")
+	err = d.Set("security_groups", secGroups)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed set attribute",
+			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+		})
+	}
+
+	if !isReservation {
+
+		mtuStr, _ := vnTpl.Get("MTU")
+		mtu := 1500
+		if len(mtuStr) > 0 {
+			mtuI64, err := strconv.ParseInt(mtuStr, 10, 0)
 			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to find SECURITY_GROUPS attribute",
-					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-				})
-			}
-			secgroups_str := strings.Split(secgrouplist, ",")
-			secgroups_int := []int{}
-
-			for _, i := range secgroups_str {
-				if i != "" {
-					j, err := strconv.Atoi(i)
-					if err != nil {
-						diags = append(diags, diag.Diagnostic{
-							Severity: diag.Warning,
-							Summary:  "Failed to convert security group IDs as integer",
-							Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-						})
-					}
-					secgroups_int = append(secgroups_int, j)
-				}
-			}
-
-			err = d.Set("security_groups", secgroups_int)
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed set attribute",
-					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-				})
-			}
-		case "MTU":
-			mtustr, _ := vnTpl.Get("MTU")
-			if mtustr != "" {
-				mtu, err := strconv.ParseInt(mtustr, 10, 0)
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Warning,
 					Summary:  "Failed to convert MTU as integer",
 					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 				})
-				err = d.Set("mtu", mtu)
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed set attribute",
-					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-				})
 			}
-		case "DESCRIPTION":
-			desc, _ := vnTpl.Get("DESCRIPTION")
-			if desc != "" {
-				err = d.Set("description", desc)
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed set attribute",
-					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-				})
-			}
-		default:
+			mtu = int(mtuI64)
+		}
+		err = d.Set("mtu", mtu)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
 
+		guestMTUStr, _ := vnTpl.Get("GUEST_MTU")
+		guestMTU := 1500
+		if len(guestMTUStr) > 0 {
+			guestMTUI64, err := strconv.ParseInt(guestMTUStr, 10, 0)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Failed to convert GUEST_MTU as integer",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
+			}
+			guestMTU = int(guestMTUI64)
+		}
+		err = d.Set("guest_mtu", guestMTU)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
+
+		description, _ := vnTpl.Get("DESCRIPTION")
+		err = d.Set("description", description)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
+
+		gateway, _ := vnTpl.Get(vnk.Gateway)
+		err = d.Set("gateway", gateway)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
+
+		networkAddress, _ := vnTpl.Get(vnk.NetworkAddress)
+		err = d.Set("network_address", networkAddress)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
+
+		networkMask, _ := vnTpl.Get(vnk.NetworkMask)
+		err = d.Set("network_mask", networkMask)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
+
+		searchDomain, _ := vnTpl.Get(vnk.SearchDomain)
+		err = d.Set("search_domain", searchDomain)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
+		}
+
+		dns, _ := vnTpl.Get(vnk.DNS)
+		err = d.Set("dns", dns)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Failed set attribute",
+				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+			})
 		}
 	}
 
