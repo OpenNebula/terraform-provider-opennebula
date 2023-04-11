@@ -863,17 +863,17 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 		diags = append(diags, tagsDiags...)
 	}
 
-	schedReq, err := vmTemplate.GetStr("SCHED_REQUIREMENTS")
+	schedReq, _ := vmTemplate.GetStr("SCHED_REQUIREMENTS")
 	_, inherited := inheritedTags["SCHED_REQUIREMENTS"]
 	if !inherited {
 		err = d.Set("sched_requirements", schedReq)
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "Failed to find MTU attribute",
+			Summary:  "Failed to find SCHED_REQUIREMENTS attribute",
 		})
 	}
 
-	schedDSReq, err := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
+	schedDSReq, _ := vmTemplate.GetStr("SCHED_DS_REQUIREMENTS")
 	_, inherited = inheritedTags["SCHED_DS_REQUIREMENTS"]
 	if !inherited {
 		err = d.Set("sched_ds_requirements", schedDSReq)
