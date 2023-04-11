@@ -945,7 +945,7 @@ func resourceOpennebulaVirtualNetworkRead(ctx context.Context, d *schema.Resourc
 	}
 
 	// in case this vnet is a reservation
-	if reservationVNet > -1 {
+	if reservationVNet > -1 && len(vn.ParentNetworkID) > 0 {
 		parentNetworkID, err := strconv.ParseInt(vn.ParentNetworkID, 10, 0)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
