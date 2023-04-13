@@ -123,7 +123,7 @@ resource "opennebula_virtual_network" "test" {
 	group = "users"
 
 	lifecycle {
-	  ignore_changes = [ar, hold_ips, clusters]
+	  ignore_changes = [ar, hold_ips]
 	}
 }
 
@@ -138,7 +138,7 @@ resource "opennebula_virtual_network" "test2" {
 	group = "users"
 
 	lifecycle {
-	  ignore_changes = [ar, hold_ips, clusters]
+	  ignore_changes = [ar, hold_ips]
 	}
 }
 
@@ -196,7 +196,7 @@ resource "opennebula_virtual_network" "test" {
 	group = "users"
 
 	lifecycle {
-		ignore_changes = [ar, hold_ips, clusters]
+		ignore_changes = [ar, hold_ips]
 	}
 }
 
@@ -211,7 +211,7 @@ resource "opennebula_virtual_network" "test2" {
 	group = "users"
 
 	lifecycle {
-		ignore_changes = [ar, hold_ips, clusters]
+		ignore_changes = [ar, hold_ips]
 	}
 }
 
@@ -269,7 +269,7 @@ resource "opennebula_virtual_network" "test" {
 	group = "users"
 
 	lifecycle {
-		ignore_changes = [ar, hold_ips, clusters]
+		ignore_changes = [ar, hold_ips]
 	}
 }
 
