@@ -1,0 +1,87 @@
+name: 🐞 Bug report
+description: Something isn't working as expected 🤔
+labels:
+  - "status: triage"
+  - "type: bug"
+
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: >-
+        A clear and concise description of what the bug is...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Terraform and Provider version
+      description: >-
+        Copy and paste output of `terraform -v`.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Affected resources and data sources
+      placeholder: >-
+        List of impacted resources and data sources...
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Terraform configuration
+      description: >-
+        Copy-paste your Terraform configurations here...
+      render: HCL
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: >-
+        What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Actual behavior
+      description: >-
+        What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: >-
+        Please list the steps required to reproduce the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Debug output
+      description: >-
+        Please provide a link to a GitHub Gist containing the complete debug output. Please do NOT paste the debug output in the issue; just paste a link to the Gist.
+
+        To obtain the debug output, see the [Terraform documentation on debugging](https://www.terraform.io/docs/internals/debugging.html).
+
+  - type: textarea
+    attributes:
+      label: Panic output
+      description: >-
+        If Terraform produced a panic, please provide a link to a GitHub Gist containing the output of the `crash.log`.
+
+  - type: textarea
+    attributes:
+      label: Important factoids
+      description: >-
+        Are there anything atypical about your accounts that we should know?
+
+  - type: textarea
+    attributes:
+      label: References
+      description: >-
+        Are there any other GitHub issues (open or closed) or pull requests that should be linked here? Vendor documentation?
