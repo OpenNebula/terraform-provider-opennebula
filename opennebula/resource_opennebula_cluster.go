@@ -35,16 +35,16 @@ func resourceOpennebulaCluster() *schema.Resource {
 			},
 			"hosts": {
 				Type:        schema.TypeSet,
-				Optional:    true,
+				Optional:    false,
+				Computed:    true,
 				Description: "List of hosts IDs part of the cluster",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
-				Deprecated: "use cluster_id field from the host resource instead",
 			},
 			"datastores": {
 				Type:        schema.TypeSet,
-				Optional:    true,
+				Optional:    false,
 				Computed:    true,
 				Description: "List of datastores IDs part of the cluster",
 				Elem: &schema.Schema{
@@ -54,7 +54,7 @@ func resourceOpennebulaCluster() *schema.Resource {
 			},
 			"virtual_networks": {
 				Type:        schema.TypeSet,
-				Optional:    true,
+				Optional:    false,
 				Computed:    true,
 				Description: "List of virtual network IDs part of the cluster",
 				Elem: &schema.Schema{
@@ -104,54 +104,6 @@ func resourceOpennebulaClusterCreate(ctx context.Context, d *schema.ResourceData
 	d.SetId(fmt.Sprintf("%d", clusterID))
 
 	cc := controller.Cluster(clusterID)
-
-	// add hosts
-	if hostsIf, ok := d.GetOk("hosts"); ok {
-		hostsList := hostsIf.(*schema.Set).List()
-		for i := 0; i < len(hostsList); i++ {
-			err = cc.AddHost(hostsList[i].(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to add hosts",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", clusterID, err),
-				})
-				return diags
-			}
-		}
-	}
-
-	// add datastores
-	if datastoreIf, ok := d.GetOk("datastores"); ok {
-		datastoreList := datastoreIf.(*schema.Set).List()
-		for i := 0; i < len(datastoreList); i++ {
-			err = cc.AddDatastore(datastoreList[i].(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to add datastore",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", clusterID, err),
-				})
-				return diags
-			}
-		}
-	}
-
-	// add virtual networks
-	if vnetIf, ok := d.GetOk("virtual_networks"); ok {
-		vnetList := vnetIf.(*schema.Set).List()
-		for i := 0; i < len(vnetList); i++ {
-			err = cc.AddVnet(vnetList[i].(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to add virtual network",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", clusterID, err),
-				})
-				return diags
-			}
-		}
-	}
 
 	// template management
 
@@ -290,9 +242,6 @@ func flattenClusterTemplate(d *schema.ResourceData, meta interface{}, clusterTpl
 
 func resourceOpennebulaClusterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	config := meta.(*Configuration)
-	controller := config.Controller
-
 	var diags diag.Diagnostics
 
 	cc, err := getClusterController(d, meta)
@@ -319,151 +268,6 @@ func resourceOpennebulaClusterUpdate(ctx context.Context, d *schema.ResourceData
 
 	update := false
 	newTpl := cluster.Template
-
-	if d.HasChange("hosts") {
-
-		oldHostsIf, newHostsIf := d.GetChange("hosts")
-
-		oldHosts := schema.NewSet(schema.HashInt, oldHostsIf.(*schema.Set).List())
-		newHosts := schema.NewSet(schema.HashInt, newHostsIf.(*schema.Set).List())
-
-		// delete hosts
-		remHosts := oldHosts.Difference(newHosts)
-
-		for _, id := range remHosts.List() {
-
-			// we need to check is the ID is not an old ID
-			// i.e. the ID of an user deleted/replaced
-			_, err := controller.Host(id.(int)).Info(false)
-			if err != nil {
-				if NoExists(err) {
-					continue
-				}
-			}
-
-			err = cc.DelHost(id.(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to delete a host from the cluster",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", cc.ID, err),
-				})
-				return diags
-			}
-		}
-
-		// add hosts
-		addHosts := newHosts.Difference(oldHosts)
-
-		for _, id := range addHosts.List() {
-			err := cc.AddHost(id.(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to add a host to the cluster",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", cc.ID, err),
-				})
-				return diags
-			}
-		}
-	}
-
-	if d.HasChange("datastores") {
-
-		oldDatastoresIf, newDatastoresIf := d.GetChange("datastores")
-
-		oldDatastores := schema.NewSet(schema.HashInt, oldDatastoresIf.(*schema.Set).List())
-		newDatastores := schema.NewSet(schema.HashInt, newDatastoresIf.(*schema.Set).List())
-
-		// delete datastores
-		remDatastores := oldDatastores.Difference(newDatastores)
-
-		for _, id := range remDatastores.List() {
-
-			// we need to check is the ID is not an old ID
-			// i.e. the ID of an user deleted/replaced
-			_, err := controller.Datastore(id.(int)).Info(false)
-			if err != nil {
-				if NoExists(err) {
-					continue
-				}
-			}
-
-			err = cc.DelDatastore(id.(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to delete a datastore from the cluster",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", cc.ID, err),
-				})
-				return diags
-			}
-		}
-
-		// add datastores
-		addDatastores := newDatastores.Difference(oldDatastores)
-
-		for _, id := range addDatastores.List() {
-			err := cc.AddDatastore(id.(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to add a datastore to the cluster",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", cc.ID, err),
-				})
-				return diags
-			}
-		}
-	}
-
-	if d.HasChange("virtual_networks") {
-
-		oldVNetIf, newVNetIf := d.GetChange("virtual_networks")
-
-		oldVNet := schema.NewSet(schema.HashInt, oldVNetIf.(*schema.Set).List())
-		newVNet := schema.NewSet(schema.HashInt, newVNetIf.(*schema.Set).List())
-
-		// delete virtual network
-		remVNet := oldVNet.Difference(newVNet)
-
-		for _, id := range remVNet.List() {
-
-			// we need to check is the ID is not an old ID
-			// i.e. the ID of an user deleted/replaced
-			_, err := controller.VirtualNetwork(id.(int)).Info(false)
-			if err != nil {
-				if NoExists(err) {
-					continue
-				}
-			}
-
-			// delete the user from group admin
-			err = cc.DelVnet(id.(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to delete a virtual network from the cluster",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", cc.ID, err),
-				})
-				return diags
-			}
-		}
-
-		// add virtual networks
-		addVNet := newVNet.Difference(oldVNet)
-
-		for _, id := range addVNet.List() {
-			err := cc.AddVnet(id.(int))
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to add a virtual network to the cluster",
-					Detail:   fmt.Sprintf("cluster (ID: %d): %s", cc.ID, err),
-				})
-				return diags
-			}
-		}
-	}
 
 	if d.HasChange("template_section") {
 
