@@ -56,13 +56,6 @@ func resourceOpennebulaDatastore() *schema.Resource {
 					return
 				},
 			},
-			"cluster_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     -1,
-				Description: "ID of the cluster",
-				Deprecated:  "use cluster_ids instead",
-			},
 			"cluster_ids": {
 				Type:        schema.TypeSet,
 				Optional:    true,
@@ -470,14 +463,6 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 	}
 	if err == nil {
 		d.Set("type", strings.ToLower(dsType))
-	}
-
-	configuredClusterID := d.Get("cluster_id").(int)
-	for _, id := range datastoreInfos.Clusters.ID {
-		if id != configuredClusterID {
-			continue
-		}
-		d.Set("cluster_id", id)
 	}
 
 	cfgClusterIDs := d.Get("cluster_ids").(*schema.Set).List()
