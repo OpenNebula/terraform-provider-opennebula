@@ -16,16 +16,6 @@ Provides an OpenNebula cluster resource.
 resource "opennebula_cluster" "example" {
   name = "example"
 
-  hosts = [
-    0
-  ]
-  datastores = [
-    2,
-  ]
-  virtual_networks = [
-    0,
-  ]
-
   tags = {
     environment = "example"
   }
@@ -45,9 +35,6 @@ resource "opennebula_cluster" "example" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the cluster.
-* `hosts` - (Deprecated) List of hosts user IDs part of the cluster.
-* `datastores` - (Deprecated) List of hosts user IDs part of the cluster.
-* `virtual_networks` - (Deprecated) List of hosts user IDs part of the cluster.
 * `tags` - (Optional) Cluster tags (Key = value)
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
