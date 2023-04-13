@@ -132,17 +132,6 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 					return
 				},
 			},
-			"clusters": {
-				Type:          schema.TypeSet,
-				Optional:      true,
-				Computed:      true,
-				Description:   "List of cluster IDs hosting the virtual Network, if not set it uses the default cluster",
-				ConflictsWith: []string{"reservation_vnet", "reservation_size", "reservation_ar_id", "reservation_first_ip"},
-				Elem: &schema.Schema{
-					Type: schema.TypeInt,
-				},
-				Deprecated: "use cluster_ids field instead",
-			},
 			"cluster_ids": {
 				Type:          schema.TypeSet,
 				Optional:      true,
@@ -236,27 +225,27 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Description:   "Create a reservation from this VNET ID",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask", "network_address", "search_domain"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask", "network_address", "search_domain"},
 				Default:       -1,
 			},
 			"reservation_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask", "network_address", "search_domain"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask", "network_address", "search_domain"},
 			},
 			"reservation_first_ip": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Description:   "First IP of the reservation",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask"},
 			},
 			"reservation_ar_id": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Default:       -1,
 				Description:   "Address Range ID to be used for the reservation",
-				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "clusters", "dns", "gateway", "network_mask"},
+				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask"},
 			},
 			"security_groups": {
 				Type:        schema.TypeSet,
@@ -820,13 +809,9 @@ func getVnetClusterIDsValue(d *schema.ResourceData) []int {
 	var result = make([]int, 0)
 
 	// merge clusters and cluster_ids values, both won't be set at the same time
-	clusters := d.Get("clusters").(*schema.Set).List()
 	clusterIDs := d.Get("cluster_ids").(*schema.Set).List()
 
 	for _, id := range clusterIDs {
-		result = append(result, id.(int))
-	}
-	for _, id := range clusters {
 		result = append(result, id.(int))
 	}
 
