@@ -456,11 +456,13 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 				}
 
 				err := d.Set("sunstone", []interface{}{sunstoneConfig})
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to find vector",
-					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-				})
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Warning,
+						Summary:  "Failed to find vector",
+						Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+					})
+				}
 			case "OPENNEBULA":
 
 				opennebulaConfig := make(map[string]interface{})
@@ -481,11 +483,13 @@ func flattenGroupTemplate(d *schema.ResourceData, meta interface{}, groupTpl *dy
 				}
 
 				err := d.Set("opennebula", []interface{}{opennebulaConfig})
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Failed to find vector",
-					Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
-				})
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Warning,
+						Summary:  "Failed to find vector",
+						Detail:   fmt.Sprintf("group (ID: %s): %s", d.Id(), err),
+					})
+				}
 			default:
 				log.Printf("[DEBUG] ignored: %s", e)
 			}
