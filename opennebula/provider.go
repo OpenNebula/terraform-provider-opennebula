@@ -118,6 +118,10 @@ type Configuration struct {
 	newDefaultTags map[string]interface{}
 }
 
+func (c *Configuration) isFlowConfigured() bool {
+	return c.Controller.ClientFlow != nil
+}
+
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 
 	var diags diag.Diagnostics

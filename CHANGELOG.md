@@ -17,6 +17,8 @@ BUG FIXES:
   * `mtu`, `guest_mtu`, `description`, `gateway`, `network_mask`, `network_address`, `search_domain`, `dns` are not marked as `computed` and are not read for a reservation virtual network
   * `gateway`, `network_mask`, `network_address`, `search_domain`, `dns` are now read by the provider
   * When not used more emtpy values are set for attributes
+* resources/opennebula_service: check if flow client is nil (#445)
+* resources/opennebula_service_template: check if flow client is nil (#445)
 
 # 1.2.0 (March 23th, 2023)
 

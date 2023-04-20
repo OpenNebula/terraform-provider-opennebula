@@ -116,6 +116,15 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 
 	var diags diag.Diagnostics
 
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
+
 	// Marshall the json
 	stemplate := &srv_tmpl.ServiceTemplate{}
 	err := json.Unmarshal([]byte(d.Get("template").(string)), stemplate)
@@ -195,8 +204,18 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 }
 
 func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	config := meta.(*Configuration)
 
 	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
 
 	stc, err := getServiceTemplateController(d, meta)
 	if err != nil {
@@ -251,7 +270,18 @@ func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.Resour
 
 func resourceOpennebulaServiceTemplateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+
 	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
 
 	//Get Service
 	stc, err := getServiceTemplateController(d, meta)
@@ -301,6 +331,15 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 	controller := config.Controller
 
 	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
 
 	//Get Service controller
 	stc, err := getServiceTemplateController(d, meta)
