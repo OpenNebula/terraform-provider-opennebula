@@ -148,9 +148,19 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 	config := meta.(*Configuration)
 	controller := config.Controller
 
+	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
+
 	var err error
 	var serviceID int
-	var diags diag.Diagnostics
 
 	// if template id is set, instantiate a Service from this template
 	tc := controller.STemplate(d.Get("template_id").(int))
@@ -240,7 +250,18 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 
 func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+
 	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
 
 	sc, err := getServiceController(d, meta)
 	if err != nil {
@@ -312,7 +333,18 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 
 func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+
 	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
 
 	//Get Service
 	sc, err := getServiceController(d, meta)
@@ -376,10 +408,20 @@ func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (
 }
 
 func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+
 	config := meta.(*Configuration)
 	controller := config.Controller
 
 	var diags diag.Diagnostics
+
+	if !config.isFlowConfigured() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Flow client isn't configured",
+			Detail:   fmt.Sprintf("Check flow_endpoint in the provider configuration"),
+		})
+		return diags
+	}
 
 	//Get Service controller
 	sc, err := getServiceController(d, meta)
