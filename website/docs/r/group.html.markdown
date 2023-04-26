@@ -19,36 +19,6 @@ a new group is created. When destroyed, it is removed.
 resource "opennebula_group" "example" {
   name = "group"
 
-  quotas {
-    datastore_quotas {
-      id     = 1
-      images = 3
-      size   = 10000
-    }
-    vm_quotas {
-      cpu            = 3
-      running_cpu    = 3
-      memory         = 2048
-      running_memory = 2048
-    }
-    network_quotas {
-      id     = 10
-      leases = 6
-    }
-    network_quotas {
-      id     = 11
-      leases = 4
-    }
-    image_quotas {
-      id          = 8
-      running_vms = 1
-    }
-    image_quotas {
-      id          = 9
-      running_vms = 1
-    }
-  }
-
   tags = {
     environment = "example"
   }
@@ -60,6 +30,42 @@ resource "opennebula_group" "example" {
    }
   }
 
+  lifecycle {
+	  ignore_changes = [
+	    "quotas"
+	  ]
+	}
+}
+
+resource "opennebula_group_quotas" "example" {
+  group_id = opennebula_group.example.id
+  datastore {
+    id     = 1
+    images = 3
+    size   = 10000
+  }
+  vm {
+    cpu            = 3
+    running_cpu    = 3
+    memory         = 2048
+    running_memory = 2048
+  }
+  network {
+    id     = 10
+    leases = 6
+  }
+  network {
+    id     = 11
+    leases = 4
+  }
+  image {
+    id          = 8
+    running_vms = 1
+  }
+  image {
+    id          = 9
+    running_vms = 1
+  }
 }
 ```
 
@@ -69,7 +75,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the group.
 * `admins` - (Optional) List of Administrator user IDs part of the group.
-* `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
+* `quotas` - (Deprecated) See [Quotas parameters](#quotas-parameters) below for details. Use `resource_opennebula_group_quotas` instead.
 * `sunstone` - (Optional) Allow users and group admins to access specific views. See [Sunstone parameters](#sunstone-parameters) below for details
 * `opennebula` - (Optional) OpenNebula core configuration. See [Opennebula parameters](#opennebula-parameters) below for details
 * `tags` - (Optional) Group tags (Key = value)

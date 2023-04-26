@@ -19,18 +19,6 @@ func TestAccGroup(t *testing.T) {
 				Config: testAccGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
-					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "quotas.*", map[string]string{
-						"datastore_quotas.#":        "1",
-						"datastore_quotas.0.id":     "1",
-						"datastore_quotas.0.images": "3",
-						"datastore_quotas.0.size":   "100",
-						"image_quotas.#":            "0",
-						"network_quotas.#":          "0",
-						"vm_quotas.#":               "1",
-						"vm_quotas.0.cpu":           "4",
-						"vm_quotas.0.memory":        "8192",
-					}),
 					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.0.%", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
@@ -51,24 +39,21 @@ func TestAccGroup(t *testing.T) {
 						"elements.testkey1": "testvalue1",
 						"elements.testkey2": "testvalue2",
 					}),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.id", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.images", "3"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.size", "100"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "image.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "network.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.cpu", "4"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.memory", "8192"),
 				),
 			},
 			{
 				Config: testAccGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_group.group", "name", "iamgroup"),
-					resource.TestCheckResourceAttr("opennebula_group.group", "quotas.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "quotas.*", map[string]string{
-						"datastore_quotas.#":        "1",
-						"datastore_quotas.0.id":     "1",
-						"datastore_quotas.0.images": "4",
-						"datastore_quotas.0.size":   "100",
-						"image_quotas.#":            "0",
-						"network_quotas.#":          "0",
-						"vm_quotas.#":               "1",
-						"vm_quotas.0.cpu":           "4",
-						"vm_quotas.0.memory":        "8192",
-					}),
 					resource.TestCheckResourceAttr("opennebula_group.group", "sunstone.0.%", "4"),
 					resource.TestCheckTypeSetElemNestedAttrs("opennebula_group.group", "sunstone.*", map[string]string{
 						"default_view":             "cloud",
@@ -88,6 +73,15 @@ func TestAccGroup(t *testing.T) {
 						"elements.testkey2": "testvalue2",
 						"elements.testkey3": "testvalue3",
 					}),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.id", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.images", "4"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.size", "100"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "image.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "network.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.cpu", "4"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.memory", "8192"),
 				),
 			},
 			{
@@ -208,17 +202,6 @@ resource "opennebula_group" "group" {
 	  api_list_order = "ASC"
 	}
 
-    quotas {
-        datastore_quotas {
-            id = 1
-            images = 3
-            size = 100
-        }
-        vm_quotas {
-            cpu = 4
-            memory = 8192
-        }
-    }
 	tags = {
 		testkey1 = "testvalue1"
 		testkey2 = "testvalue2"
@@ -230,6 +213,25 @@ resource "opennebula_group" "group" {
 			testkey1 = "testvalue1"
 			testkey2 = "testvalue2"
 		}
+	}
+
+	lifecycle {
+		ignore_changes = [
+		  "quotas"
+		]
+	  }
+}
+
+resource "opennebula_group_quotas" "quotas" {
+	group_id = opennebula_group.group.id
+	datastore {
+		id = 1
+		images = 3
+		size = 100
+	}
+	vm {
+		cpu = 4
+		memory = 8192
 	}
 }
 `
@@ -247,17 +249,6 @@ resource "opennebula_group" "group" {
 		api_list_order = "DESC"
 	}
 
-    quotas {
-        datastore_quotas {
-            id = 1
-            images = 4
-            size = 100
-        }
-        vm_quotas {
-            cpu = 4
-            memory = 8192
-        }
-    }
 	tags = {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
@@ -269,6 +260,25 @@ resource "opennebula_group" "group" {
 			testkey2 = "testvalue2"
 			testkey3 = "testvalue3"
 		}
+	}
+
+	lifecycle {
+		ignore_changes = [
+		  "quotas"
+		]
+	  }
+}
+
+resource "opennebula_group_quotas" "quotas" {
+	group_id = opennebula_group.group.id
+	datastore {
+		id = 1
+		images = 4
+		size = 100
+	}
+	vm {
+		cpu = 4
+		memory = 8192
 	}
 }
 `
@@ -282,17 +292,7 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    quotas {
-        datastore_quotas {
-            id = 1
-            images = 4
-            size = 100
-        }
-        vm_quotas {
-            cpu = 4
-            memory = 8192
-        }
-    }
+
 	tags = {
 		testkey2 = "testvalue2"
 		testkey3 = "testvalue3"
@@ -304,6 +304,25 @@ resource "opennebula_group" "group" {
 			testkey2 = "testvalue2"
 			testkey3 = "testvalue3"
 		}
+	}
+
+	lifecycle {
+		ignore_changes = [
+		  "quotas"
+		]
+	  }
+}
+
+resource "opennebula_group_quotas" "quotas" {
+	group_id = opennebula_group.group.id
+	datastore {
+		id = 1
+		images = 4
+		size = 100
+	}
+	vm {
+		cpu = 4
+		memory = 8192
 	}
 }
 `
@@ -346,17 +365,25 @@ resource "opennebula_group" "group" {
 		group_admin_views = "cloud"
 		views = "cloud"
 	}
-    quotas {
-        datastore_quotas {
-            id = 1
-            images = 4
-            size = 100
-        }
-        vm_quotas {
-            cpu = 4
-            memory = 8192
-        }
-    }
+
+	lifecycle {
+		ignore_changes = [
+		  "quotas"
+		]
+	  }
+}
+
+resource "opennebula_group_quotas" "quotas" {
+	group_id = opennebula_group.group.id
+	datastore {
+		id = 1
+		images = 4
+		size = 100
+	}
+	vm {
+		cpu = 4
+		memory = 8192
+	}
 }
 
 resource "opennebula_group" "group2" {
