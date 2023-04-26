@@ -55,7 +55,11 @@ func resourceOpennebulaGroup() *schema.Resource {
 				},
 				Deprecated: "use opennebula_group_admins resource instead.",
 			},
-			"quotas": quotasSchema(),
+			"quotas": func() *schema.Schema {
+				s := oldQuotasSchema()
+				s.Deprecated = "Use opennebula_user_quota resource instead"
+				return s
+			}(),
 			"sunstone": {
 				Type:        schema.TypeSet,
 				Optional:    true,
@@ -209,7 +213,7 @@ func resourceOpennebulaGroupCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	if _, ok := d.GetOk("quotas"); ok {
-		quotasStr, err := generateQuotas(d)
+		quotasStr, err := generateOldQuotas(d)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -402,7 +406,7 @@ func resourceOpennebulaGroupRead(ctx context.Context, d *schema.ResourceData, me
 		return diags
 	}
 	if _, ok := d.GetOk("quotas"); ok {
-		err = flattenQuotasMapFromStructs(d, &group.QuotasList)
+		err = flattenOldQuotasMapFromStructs(d, &group.QuotasList)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -532,7 +536,7 @@ func resourceOpennebulaGroupUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	if d.HasChange("quotas") {
 		if _, ok := d.GetOk("quotas"); ok {
-			quotasStr, err := generateQuotas(d)
+			quotasStr, err := generateOldQuotas(d)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
