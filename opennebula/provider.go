@@ -84,11 +84,13 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"opennebula_acl":                              resourceOpennebulaACL(),
 			"opennebula_group":                            resourceOpennebulaGroup(),
+			"opennebula_group_quotas":                     resourceOpennebulaGroupQuotas(),
 			"opennebula_group_admins":                     resourceOpennebulaGroupAdmins(),
 			"opennebula_image":                            resourceOpennebulaImage(),
 			"opennebula_security_group":                   resourceOpennebulaSecurityGroup(),
 			"opennebula_template":                         resourceOpennebulaTemplate(),
 			"opennebula_user":                             resourceOpennebulaUser(),
+			"opennebula_user_quotas":                      resourceOpennebulaUserQuotas(),
 			"opennebula_virtual_data_center":              resourceOpennebulaVirtualDataCenter(),
 			"opennebula_virtual_machine":                  resourceOpennebulaVirtualMachine(),
 			"opennebula_virtual_network":                  resourceOpennebulaVirtualNetwork(),

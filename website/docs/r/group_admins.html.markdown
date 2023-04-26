@@ -60,7 +60,7 @@ The following arguments are supported:
 
 ## Import
 
-`opennebula_group_admins` can be imported using its ID:
+`opennebula_group_admins` can be imported using the group ID:
 
 ```shell
 terraform import opennebula_group_admins.example 123

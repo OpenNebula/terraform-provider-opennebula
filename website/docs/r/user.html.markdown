@@ -23,36 +23,6 @@ resource "opennebula_user" "example" {
   primary_group = "100"
   groups        = [101, 102]
 
-  quotas {
-    datastore_quotas {
-      id     = 1
-      images = 3
-      size   = 10000
-    }
-    vm_quotas {
-      cpu            = 3
-      running_cpu    = 3
-      memory         = 2048
-      running_memory = 2048
-    }
-    network_quotas {
-      id     = 10
-      leases = 6
-    }
-    network_quotas {
-      id     = 11
-      leases = 4
-    }
-    image_quotas {
-      id          = 8
-      running_vms = 1
-    }
-    image_quotas {
-      id          = 9
-      running_vms = 1
-    }
-  }
-
   tags = {
     environment = "example"
   }
@@ -63,6 +33,43 @@ resource "opennebula_user" "example" {
       key1 = "value1"
    }
   }
+
+  lifecycle {
+	  ignore_changes = [
+	    "quotas"
+	  ]
+	}
+}
+
+resource "opennebula_user_quotas" "example" {
+    user_id = opennebula_user.example.id
+    datastore {
+      id     = 1
+      images = 3
+      size   = 10000
+    }
+    vm {
+      cpu            = 3
+      running_cpu    = 3
+      memory         = 2048
+      running_memory = 2048
+    }
+    network {
+      id     = 10
+      leases = 6
+    }
+    network {
+      id     = 11
+      leases = 4
+    }
+    image {
+      id          = 8
+      running_vms = 1
+    }
+    image {
+      id          = 9
+      running_vms = 1
+    }
 }
 ```
 
@@ -75,7 +82,7 @@ The following arguments are supported:
 * `auth_driver` - (Optional) Authentication Driver for User management. DEfaults to 'core'.
 * `primary_group` - (Optional) Primary group ID of the User. Defaults to 0 (oneadmin).
 * `groups` - (Optional) List of secondary groups ID of the user.
-* `quotas` - (Optional) See [Quotas parameters](#quotas-parameters) below for details
+* `quotas` - (Deprecated) See [Quotas parameters](#quotas-parameters) below for details. Use `resource_opennebula_user_quotas` instead.
 * `ssh_public_key` - (Optional) SSH public key.
 * `tags` - (Optional) Group tags (Key = value)
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)

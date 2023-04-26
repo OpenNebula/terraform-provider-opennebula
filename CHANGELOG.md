@@ -1,3 +1,17 @@
+# 1.3.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `opennebula_user_quotas` (#448)
+* **New Resource**: `opennebula_group_quotas` (#447)
+
+DEPRECATION:
+
+* `quotas` section of `opennebula_user` resource (#448)
+* `quotas` section of `opennebula_group` resource (#447)
+
+# 1.2.2 (Unreleased)
+
 # 1.2.2 (May 31st, 2023)
 
 BUG FIXES:

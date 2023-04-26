@@ -22,18 +22,15 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_user.user", "password", "p@ssw0rd"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "auth_driver", "core"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "ssh_public_key", "xxx"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_user.user", "quotas.*", map[string]string{
-						"datastore_quotas.#":        "1",
-						"datastore_quotas.0.id":     "1",
-						"datastore_quotas.0.images": "3",
-						"datastore_quotas.0.size":   "100",
-						"image_quotas.#":            "0",
-						"network_quotas.#":          "0",
-						"vm_quotas.#":               "1",
-						"vm_quotas.0.cpu":           "4",
-						"vm_quotas.0.memory":        "8192",
-					}),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.0.id", "1"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.0.images", "3"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.0.size", "100"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "image.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "network.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "vm.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "vm.0.cpu", "4"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "vm.0.memory", "8192"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey1", "testvalue1"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey2", "testvalue2"),
 				),
@@ -45,18 +42,15 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_user.user", "password", "p@ssw0rd2"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "auth_driver", "core"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "ssh_public_key", "xxx"),
-					resource.TestCheckResourceAttr("opennebula_user.user", "quotas.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("opennebula_user.user", "quotas.*", map[string]string{
-						"datastore_quotas.#":        "1",
-						"datastore_quotas.0.id":     "1",
-						"datastore_quotas.0.images": "4",
-						"datastore_quotas.0.size":   "100",
-						"image_quotas.#":            "0",
-						"network_quotas.#":          "0",
-						"vm_quotas.#":               "1",
-						"vm_quotas.0.cpu":           "4",
-						"vm_quotas.0.memory":        "8192",
-					}),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.0.id", "1"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.0.images", "4"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "datastore.0.size", "100"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "image.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "network.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "vm.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "vm.0.cpu", "4"),
+					resource.TestCheckResourceAttr("opennebula_user_quotas.quotas", "vm.0.memory", "8192"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey2", "testvalue2"),
 					resource.TestCheckResourceAttr("opennebula_user.user", "tags.testkey3", "testvalue3"),
 				),
@@ -90,20 +84,29 @@ resource "opennebula_user" "user" {
   password = "p@ssw0rd"
   auth_driver = "core"
   ssh_public_key = "xxx"
-  quotas {
-      datastore_quotas {
-          id = 1
-          images = 3
-          size = 100
-      }
-      vm_quotas {
-          cpu = 4
-          memory = 8192
-      }
-  }
+
   tags = {
 	testkey1 = "testvalue1"
 	testkey2 = "testvalue2"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      "quotas"
+    ]
+  }
+}
+
+resource "opennebula_user_quotas" "quotas" {
+  user_id = opennebula_user.user.id
+  datastore {
+    id = 1
+    images = 3
+    size = 100
+  }
+  vm {
+    cpu = 4
+    memory = 8192
   }
 }
 `
@@ -114,20 +117,29 @@ resource "opennebula_user" "user" {
   password = "p@ssw0rd2"
   auth_driver = "core"
   ssh_public_key = "xxx"
-  quotas {
-      datastore_quotas {
-          id = 1
-          images = 4
-          size = 100
-      }
-      vm_quotas {
-          cpu = 4
-          memory = 8192
-      }
-  }
+
   tags = {
 	testkey2 = "testvalue2"
 	testkey3 = "testvalue3"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      "quotas"
+    ]
+  }
+}
+
+resource "opennebula_user_quotas" "quotas" {
+  user_id = opennebula_user.user.id
+  datastore {
+    id = 1
+    images = 4
+    size = 100
+  }
+  vm {
+    cpu = 4
+    memory = 8192
   }
 }
 `

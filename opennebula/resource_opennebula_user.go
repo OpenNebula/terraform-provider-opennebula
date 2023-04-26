@@ -75,7 +75,11 @@ func resourceOpennebulaUser() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
-			"quotas":           quotasSchema(),
+			"quotas": func() *schema.Schema {
+				s := oldQuotasSchema()
+				s.Deprecated = "Use opennebula_group_quota resource instead"
+				return s
+			}(),
 			"tags":             tagsSchema(),
 			"default_tags":     defaultTagsSchemaComputed(),
 			"tags_all":         tagsSchemaComputed(),
@@ -142,7 +146,7 @@ func resourceOpennebulaUserCreate(ctx context.Context, d *schema.ResourceData, m
 	uc := controller.User(userID)
 
 	if _, ok := d.GetOk("quotas"); ok {
-		quotasStr, err := generateQuotas(d)
+		quotasStr, err := generateOldQuotas(d)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -270,7 +274,7 @@ func resourceOpennebulaUserRead(ctx context.Context, d *schema.ResourceData, met
 		return diags
 	}
 
-	err = flattenQuotasMapFromStructs(d, &user.QuotasList)
+	err = flattenOldQuotasMapFromStructs(d, &user.QuotasList)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -440,7 +444,7 @@ func resourceOpennebulaUserUpdate(ctx context.Context, d *schema.ResourceData, m
 
 	if d.HasChange("quotas") {
 		if _, ok := d.GetOk("quotas"); ok {
-			quotasStr, err := generateQuotas(d)
+			quotasStr, err := generateOldQuotas(d)
 			if err != nil {
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
