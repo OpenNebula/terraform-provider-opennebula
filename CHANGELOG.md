@@ -1,6 +1,7 @@
-# 1.2.1 (Unreleased)
+# 1.2.1 (April 26th, 2023)
 
 FEATURES:
+
 * **New Data Source**: `opennebula_zone` (#417)
 * resources/opennebula_user: add `ssh_public_key` attribute (#416)
 
