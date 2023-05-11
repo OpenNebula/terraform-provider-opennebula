@@ -39,15 +39,13 @@ func TestAccGroup(t *testing.T) {
 						"elements.testkey1": "testvalue1",
 						"elements.testkey2": "testvalue2",
 					}),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.id", "1"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.images", "3"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.size", "100"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "image.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "network.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.cpu", "4"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.memory", "8192"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.0.id", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.0.images", "3"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.0.size", "100"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.vm", "vm.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.vm", "vm.0.cpu", "4"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.vm", "vm.0.memory", "8192"),
 				),
 			},
 			{
@@ -73,15 +71,13 @@ func TestAccGroup(t *testing.T) {
 						"elements.testkey2": "testvalue2",
 						"elements.testkey3": "testvalue3",
 					}),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.id", "1"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.images", "4"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "datastore.0.size", "100"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "image.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "network.#", "0"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.cpu", "4"),
-					resource.TestCheckResourceAttr("opennebula_group_quotas.quotas", "vm.0.memory", "8192"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.0.id", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.0.images", "4"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.datastore", "datastore.0.size", "100"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.vm", "vm.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.vm", "vm.0.cpu", "4"),
+					resource.TestCheckResourceAttr("opennebula_group_quotas.vm", "vm.0.memory", "8192"),
 				),
 			},
 			{
@@ -222,13 +218,17 @@ resource "opennebula_group" "group" {
 	  }
 }
 
-resource "opennebula_group_quotas" "quotas" {
+resource "opennebula_group_quotas" "datastore" {
 	group_id = opennebula_group.group.id
 	datastore {
 		id = 1
 		images = 3
 		size = 100
 	}
+}
+
+resource "opennebula_group_quotas" "vm" {
+	group_id = opennebula_group.group.id
 	vm {
 		cpu = 4
 		memory = 8192
@@ -269,13 +269,17 @@ resource "opennebula_group" "group" {
 	  }
 }
 
-resource "opennebula_group_quotas" "quotas" {
+resource "opennebula_group_quotas" "datastore" {
 	group_id = opennebula_group.group.id
 	datastore {
 		id = 1
 		images = 4
 		size = 100
 	}
+}
+
+resource "opennebula_group_quotas" "vm" {
+	group_id = opennebula_group.group.id
 	vm {
 		cpu = 4
 		memory = 8192
@@ -313,13 +317,17 @@ resource "opennebula_group" "group" {
 	  }
 }
 
-resource "opennebula_group_quotas" "quotas" {
+resource "opennebula_group_quotas" "datastore" {
 	group_id = opennebula_group.group.id
 	datastore {
 		id = 1
 		images = 4
 		size = 100
 	}
+}
+
+resource "opennebula_group_quotas" "vm" {
+	group_id = opennebula_group.group.id
 	vm {
 		cpu = 4
 		memory = 8192
@@ -373,13 +381,17 @@ resource "opennebula_group" "group" {
 	  }
 }
 
-resource "opennebula_group_quotas" "quotas" {
+resource "opennebula_group_quotas" "datastore" {
 	group_id = opennebula_group.group.id
 	datastore {
 		id = 1
 		images = 4
 		size = 100
 	}
+}
+
+resource "opennebula_group_quotas" "vm" {
+	group_id = opennebula_group.group.id
 	vm {
 		cpu = 4
 		memory = 8192
