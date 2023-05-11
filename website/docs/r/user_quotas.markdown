@@ -15,19 +15,27 @@ This resource allows you to manage the quotas for an user.
 ## Example Usage
 
 ```hcl
-resource "opennebula_user_quotas" "example" {
+resource "opennebula_user_quotas" "datastore_example" {
     user_id = opennebula_user.example.id
     datastore {
       id     = 1
       images = 5
       size   = 10000
     }
+}
+
+resource "opennebula_user_quotas" "vm_example" {
+    user_id = opennebula_user.example.id
     vm {
       cpu            = 3
       running_cpu    = 3
       memory         = 2048
       running_memory = 2048
     }
+}
+
+resource "opennebula_user_quotas" "network_example" {
+    user_id = opennebula_user.example.id
     network {
       id     = 10
       leases = 6
@@ -36,6 +44,10 @@ resource "opennebula_user_quotas" "example" {
       id     = 11
       leases = 4
     }
+}
+
+resource "opennebula_user_quotas" "image_example" {
+    user_id = opennebula_user.example.id
     image {
       id          = 8
       running_vms = 1
@@ -52,10 +64,10 @@ resource "opennebula_user_quotas" "example" {
 The following arguments are supported:
 
 * `user_id` - (Required) The related user ID.
-* `datastore` - (Optional) List of datastore quotas. See [Datastore quotas parameters](#datastore-quotas-parameters) below for details.
-* `network` - (Optional) List of network quotas. See [Network quotas parameters](#network-quotas-parameters) below for details.
-* `image` - (Optional) List of image quotas. See [Image quotas parameters](#image-quotas-parameters) below for details
-* `vm` - (Optional) See [Virtual Machine quotas parameters](#virtual-machine-quotas-parameters) below for details
+* `datastore` - (Optional) List of datastore quotas. See [Datastore quotas parameters](#datastore-quotas-parameters) below for details. Conflicts with `network`, `image`, `vm`.
+* `network` - (Optional) List of network quotas. See [Network quotas parameters](#network-quotas-parameters) below for details. Conflicts with `datastore`, `image`, `vm`.
+* `image` - (Optional) List of image quotas. See [Image quotas parameters](#image-quotas-parameters) below for details. Conflicts with `datastore`, `network`, `vm`.
+* `vm` - (Optional) See [Virtual Machine quotas parameters](#virtual-machine-quotas-parameters) below for details. Conflicts with `datastore`, `network`, `image`.
 
 #### Datastore quotas parameters
 
@@ -93,8 +105,8 @@ The following arguments are supported:
 
 ## Import
 
-`opennebula_user_quotas` can be imported using the user ID:
+`opennebula_user_quotas` can be imported using the user ID and the quotas section to import:
 
 ```shell
-terraform import opennebula_user_quotas.example 123
+terraform import opennebula_user_quotas.example 123:datastore
 ```

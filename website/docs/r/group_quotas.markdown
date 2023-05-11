@@ -23,12 +23,20 @@ resource "opennebula_group_quotas" "example" {
       images = 5
       size   = 10000
     }
-    vm{
+}
+
+resource "opennebula_group_quotas" "example" {
+    group_id = opennebula_group.example.id
+    vm {
       cpu            = 3
       running_cpu    = 3
       memory         = 2048
       running_memory = 2048
     }
+}
+
+resource "opennebula_group_quotas" "example" {
+    group_id = opennebula_group.example.id
     network {
       id     = 10
       leases = 6
@@ -37,6 +45,10 @@ resource "opennebula_group_quotas" "example" {
       id     = 11
       leases = 4
     }
+}
+
+resource "opennebula_group_quotas" "example" {
+    group_id = opennebula_group.example.id
     image {
       id          = 8
       running_vms = 1
@@ -53,10 +65,10 @@ resource "opennebula_group_quotas" "example" {
 The following arguments are supported:
 
 * `group_id` - (Required) The related group ID.
-* `datastore` - (Optional) List of datastore quotas. See [Datastore quotas parameters](#datastore-quotas-parameters) below for details.
-* `network` - (Optional) List of network quotas. See [Network quotas parameters](#network-quotas-parameters) below for details.
-* `image` - (Optional) List of image quotas. See [Image quotas parameters](#image-quotas-parameters) below for details
-* `vm` - (Optional) See [Virtual Machine quotas parameters](#virtual-machine-quotas-parameters) below for details
+* `datastore` - (Optional) List of datastore quotas. See [Datastore quotas parameters](#datastore-quotas-parameters) below for details. Conflicts with `network`, `image`, `vm`.
+* `network` - (Optional) List of network quotas. See [Network quotas parameters](#network-quotas-parameters) below for details. Conflicts with `datastore`, `image`, `vm`.
+* `image` - (Optional) List of image quotas. See [Image quotas parameters](#image-quotas-parameters) below for details. Conflicts with `datastore`, `network`, `vm`.
+* `vm` - (Optional) See [Virtual Machine quotas parameters](#virtual-machine-quotas-parameters) below for details. Conflicts with `datastore`, `network`, `image`.
 
 #### Datastore quotas parameters
 
@@ -94,8 +106,8 @@ The following arguments are supported:
 
 ## Import
 
-`opennebula_group_quotas` can be imported using the group ID:
+`opennebula_group_quotas` can be imported using the group ID and the quota section to import:
 
 ```shell
-terraform import opennebula_group_quotas.example 123
+terraform import opennebula_group_quotas.example 123:image
 ```

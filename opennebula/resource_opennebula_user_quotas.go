@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,7 +18,7 @@ func resourceOpennebulaUserQuotas() *schema.Resource {
 		UpdateContext: resourceOpennebulaUserQuotasUpdate,
 		DeleteContext: resourceOpennebulaUserQuotasDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceOpennebulaUserQuotasImportState,
 		},
 		Schema: mergeSchemas(map[string]*schema.Schema{
 			"user_id": {
@@ -191,4 +192,30 @@ func resourceOpennebulaUserQuotasDelete(ctx context.Context, d *schema.ResourceD
 	}
 
 	return nil
+}
+
+func resourceOpennebulaUserQuotasImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	fullID := d.Id()
+	parts := strings.Split(fullID, ":")
+
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("Invalid ID format. Expected: user_id:quotas_section")
+	}
+
+	userID, err := strconv.ParseInt(parts[0], 10, 0)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse user ID: %s", err)
+	}
+
+	d.SetId(fmt.Sprint(userID))
+	d.Set("user_id", userID)
+
+	quotaType := parts[1]
+	d.Set("type", quotaType)
+
+	if inArray(quotaType, validQuotaTypes) < 0 {
+		return nil, fmt.Errorf("Invalid quota type %q must be one of: %s", quotaType, strings.Join(validQuotaTypes, ","))
+	}
+
+	return []*schema.ResourceData{d}, nil
 }

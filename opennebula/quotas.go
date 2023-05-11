@@ -16,10 +16,22 @@ const (
 	NetFlag       = 2
 	VMFlag        = 4
 	ImgFlag       = 8
+
+	DatastoreQuota = "datastore"
+	NetworkQuota   = "network"
+	ImageQuota     = "image"
+	VMQuota        = "vm"
 )
+
+var validQuotaTypes = []string{DatastoreQuota, NetworkQuota, ImageQuota, VMQuota}
 
 func quotasMapSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"type": {
+			Type:     schema.TypeString,
+			Optional: false,
+			Computed: true,
+		},
 		"datastore": {
 			Type:        schema.TypeList,
 			Optional:    true,
@@ -45,6 +57,7 @@ func quotasMapSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			ConflictsWith: []string{"network", "image", "vm"},
 		},
 		"network": {
 			Type:        schema.TypeList,
@@ -65,6 +78,7 @@ func quotasMapSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			ConflictsWith: []string{"datastore", "image", "vm"},
 		},
 		"image": {
 			Type:        schema.TypeList,
@@ -85,6 +99,7 @@ func quotasMapSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			ConflictsWith: []string{"datastore", "network", "vm"},
 		},
 		"vm": {
 			Type:        schema.TypeList,
@@ -136,11 +151,14 @@ func quotasMapSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			ConflictsWith: []string{"datastore", "network", "image"},
 		},
 	}
 }
 
 func generateQuotas(d *schema.ResourceData, forceDefault bool) (string, error) {
+
+	// TODO: check if type match section
 
 	tpl := dyn.NewTemplate()
 
@@ -222,16 +240,10 @@ func generateQuotas(d *schema.ResourceData, forceDefault bool) (string, error) {
 	return tplStr, nil
 }
 
-func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasList) error {
+func flattenDatastoreQuota(d *schema.ResourceData, quotas []shared.DatastoreQuota) error {
 	var datastoreQuotas []map[string]interface{}
-	var imageQuotas []map[string]interface{}
-	var vmQuotas []map[string]interface{}
-	var networkQuotas []map[string]interface{}
-	var q uint8
-	q = 0
 
-	// Get datastore quotas
-	for _, qds := range quotas.Datastore {
+	for _, qds := range quotas {
 		ds := make(map[string]interface{})
 		ds["id"] = qds.ID
 		ds["images"] = qds.Images
@@ -239,62 +251,90 @@ func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasLi
 		if len(ds) > 0 {
 			datastoreQuotas = append(datastoreQuotas, ds)
 		}
-		q = q | DSFlag
 	}
+	return d.Set("datastore", datastoreQuotas)
+}
+
+func flattenNetworkQuota(d *schema.ResourceData, quotas []shared.NetworkQuota) error {
+	var networkQuotas []map[string]interface{}
 
 	// Get network quotas
-	for _, qn := range quotas.Network {
+	for _, qn := range quotas {
 		n := make(map[string]interface{})
 		n["id"] = qn.ID
 		n["leases"] = qn.Leases
 		if len(n) > 0 {
 			networkQuotas = append(networkQuotas, n)
 		}
-		q = q | NetFlag
 	}
+	return d.Set("network", networkQuotas)
+}
+
+func flattenVMQuota(d *schema.ResourceData, quotas *shared.VMQuota) error {
+	var vmQuotas []map[string]interface{}
+
 	// Get VM quotas
-	if quotas.VM != nil {
+	if quotas != nil {
 		vm := make(map[string]interface{})
 
-		vm["cpu"] = quotas.VM.CPU
-		vm["memory"] = quotas.VM.Memory
-		vm["running_cpu"] = quotas.VM.RunningCPU
-		vm["running_memory"] = quotas.VM.RunningMemory
-		vm["vms"] = quotas.VM.VMs
-		vm["running_vms"] = quotas.VM.RunningVMs
-		vm["system_disk_size"] = quotas.VM.SystemDiskSize
+		vm["cpu"] = quotas.CPU
+		vm["memory"] = quotas.Memory
+		vm["running_cpu"] = quotas.RunningCPU
+		vm["running_memory"] = quotas.RunningMemory
+		vm["vms"] = quotas.VMs
+		vm["running_vms"] = quotas.RunningVMs
+		vm["system_disk_size"] = quotas.SystemDiskSize
 
 		if len(vm) > 0 {
 			vmQuotas = append(vmQuotas, vm)
 		}
-		q = q | VMFlag
 	}
+	return d.Set("vm", vmQuotas)
+}
+
+func flattenImageQuota(d *schema.ResourceData, quotas []shared.ImageQuota) error {
+	var imageQuotas []map[string]interface{}
+
 	// Get Image quotas
-	for _, qimg := range quotas.Image {
+	for _, qimg := range quotas {
 		img := make(map[string]interface{})
 		img["id"] = qimg.ID
 		img["running_vms"] = qimg.RVMs
 		if len(img) > 0 {
 			imageQuotas = append(imageQuotas, img)
 		}
-		q = q | ImgFlag
+	}
+	return d.Set("image", imageQuotas)
+}
+
+func flattenQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.QuotasList) error {
+
+	// quotas resources defines only one kind of resource at a time
+	log.Printf("[INFO] === type: %s\n", d.Get("type").(string))
+
+	// what if type is not defined ?
+	quotasType := d.Get("type").(string)
+	if len(quotasType) == 0 {
+		if len(d.Get("datastore").([]interface{})) > 0 {
+			quotasType = DatastoreQuota
+		} else if len(d.Get("network").([]interface{})) > 0 {
+			quotasType = NetworkQuota
+		} else if len(d.Get("image").([]interface{})) > 0 {
+			quotasType = ImageQuota
+		} else if len(d.Get("vm").([]interface{})) > 0 {
+			quotasType = VMQuota
+		}
 	}
 
-	for q > 0 {
-		switch {
-		case q&DSFlag > 0:
-			d.Set("datastore", datastoreQuotas)
-			q = q ^ DSFlag
-		case q&NetFlag > 0:
-			d.Set("network", networkQuotas)
-			q = q ^ NetFlag
-		case q&VMFlag > 0:
-			d.Set("vm", vmQuotas)
-			q = q ^ VMFlag
-		case q&ImgFlag > 0:
-			d.Set("image", imageQuotas)
-			q = q ^ ImgFlag
-		}
+	switch quotasType {
+	case DatastoreQuota:
+		flattenDatastoreQuota(d, quotas.Datastore)
+	case NetworkQuota:
+		flattenNetworkQuota(d, quotas.Network)
+	case ImageQuota:
+		flattenImageQuota(d, quotas.Image)
+	case VMQuota:
+		flattenVMQuota(d, quotas.VM)
 	}
 
 	return nil
