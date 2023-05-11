@@ -93,8 +93,8 @@ The following arguments are supported:
 
 ## Import
 
-`opennebula_user_quotas` can be imported using the user ID:
+`opennebula_user_quotas` can be imported using the user ID and the quotas section to import:
 
 ```shell
-terraform import opennebula_user_quotas.example 123
+terraform import opennebula_user_quotas.example 123:datastore
 ```

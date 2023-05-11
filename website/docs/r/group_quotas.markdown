@@ -94,8 +94,8 @@ The following arguments are supported:
 
 ## Import
 
-`opennebula_group_quotas` can be imported using the group ID:
+`opennebula_group_quotas` can be imported using the group ID and the quota section to import:
 
 ```shell
-terraform import opennebula_group_quotas.example 123
+terraform import opennebula_group_quotas.example 123:image
 ```
