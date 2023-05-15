@@ -508,22 +508,22 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 
 		log.Printf("[INFO] Successfully updated Security Group template %s\n", securitygroup.Name)
 
-		//Commit changes to running VMs if desired
-		if rulesUpdate && d.Get("commit") == true {
-			// Only update outdated VMs not all
-			err = sgc.Commit(true)
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to commit rules",
-					Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
-				})
-				return diags
-			}
+	}
 
-			log.Printf("[INFO] Successfully commited Security Group %s changes to outdated Virtual Machines\n", securitygroup.Name)
+	//Commit changes to running VMs if desired
+	if rulesUpdate && d.Get("commit").(bool) == true {
+		// Only update outdated VMs not all
+		err = sgc.Commit(true)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to commit rules",
+				Detail:   fmt.Sprintf("security group (ID: %s): %s", d.Id(), err),
+			})
+			return diags
 		}
 
+		log.Printf("[INFO] Successfully commited Security Group %s changes to outdated Virtual Machines\n", securitygroup.Name)
 	}
 
 	if d.HasChange("name") {

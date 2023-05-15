@@ -20,14 +20,11 @@ func TestAccSecurityGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "name", "testsg"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "permissions", "642"),
-					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.#", "3"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.0.protocol", "ALL"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.0.rule_type", "OUTBOUND"),
-					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.protocol", "TCP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.protocol", "ICMP"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.rule_type", "INBOUND"),
-					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.1.range", "22"),
-					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.2.protocol", "ICMP"),
-					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "rule.2.rule_type", "INBOUND"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_security_group.mysecgroup", "tags.customer", "test"),
@@ -121,11 +118,6 @@ resource "opennebula_security_group" "mysecgroup" {
     rule {
         protocol = "ALL"
         rule_type = "OUTBOUND"
-    }
-    rule {
-        protocol = "TCP"
-        rule_type = "INBOUND"
-        range = "22"
     }
     rule {
         protocol = "ICMP"

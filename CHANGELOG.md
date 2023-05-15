@@ -4,6 +4,7 @@ BUG FIXES:
 
 * resources/virtual_network_address_range: fix failing import due to incorrect virtual network key
 * resources/opennebula_host: fix host type reading
+* resources/opennebula_security_group: fix rules not applied (#452)
 
 # 1.2.1 (April 26th, 2023)
 
