@@ -761,13 +761,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
-	if d.HasChange("cpumodel") {
+	if d.HasChange("cpu_model") {
 		newTpl.Del("CPU_MODEL")
-		cpumodel := d.Get("cpumodel").([]interface{})
+		cpu_model := d.Get("cpu_model").([]interface{})
 
-		for i := 0; i < len(cpumodel); i++ {
-			cpumodelconfig := cpumodel[i].(map[string]interface{})
-			newTpl.CPUModel(cpumodelconfig["model"].(string))
+		for i := 0; i < len(cpu_model); i++ {
+			cpu_modelconfig := cpu_model[i].(map[string]interface{})
+			newTpl.CPUModel(cpu_modelconfig["model"].(string))
 		}
 
 	}

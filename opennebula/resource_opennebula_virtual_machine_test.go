@@ -509,8 +509,8 @@ func TestAccVirtualMachineCPUModel(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpumodel.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpumodel.0.model", "host-passthrough"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu_model.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu_model.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "tags.env", "dev"),
@@ -602,7 +602,7 @@ resource "opennebula_virtual_machine" "test" {
     boot = ""
   }
 
-  cpumodel {
+  cpu_model {
     model = "host-passthrough"
   }
 

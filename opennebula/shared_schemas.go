@@ -89,7 +89,7 @@ func commonInstanceSchema() map[string]*schema.Schema {
 		"vcpu":         vcpuSchema(),
 		"memory":       memorySchema(),
 		"context":      contextSchema(),
-		"cpumodel":     cpumodelSchema(),
+		"cpu_model":    cpu_modelSchema(),
 		"graphics":     graphicsSchema(),
 		"os":           osSchema(),
 		"vmgroup":      vmGroupSchema(),
@@ -295,7 +295,7 @@ func contextSchema() *schema.Schema {
 	}
 }
 
-func cpumodelSchema() *schema.Schema {
+func cpu_modelSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
@@ -604,10 +604,10 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 	addOS(tpl, d.Get("os").([]interface{}))
 
 	//Generate CPU Model definition
-	cpumodel := d.Get("cpumodel").([]interface{})
-	for i := 0; i < len(cpumodel); i++ {
-		cpumodelconfig := cpumodel[i].(map[string]interface{})
-		tpl.CPUModel(cpumodelconfig["model"].(string))
+	cpu_model := d.Get("cpu_model").([]interface{})
+	for i := 0; i < len(cpu_model); i++ {
+		cpu_modelconfig := cpu_model[i].(map[string]interface{})
+		tpl.CPUModel(cpu_modelconfig["model"].(string))
 	}
 
 	//Generate VM Group definition
@@ -760,8 +760,8 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	arch, _ := vmTemplate.GetOS(vmk.Arch)
 	boot, _ := vmTemplate.GetOS(vmk.Boot)
 	// CPU Model
-	cpumodelMap := make([]map[string]interface{}, 0, 1)
-	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
+	cpu_modelMap := make([]map[string]interface{}, 0, 1)
+	cpu_model, _ := vmTemplate.GetCPUModel(vmk.Model)
 	// Graphics
 	graphMap := make([]map[string]interface{}, 0, 1)
 	listen, _ := vmTemplate.GetIOGraphic(vmk.Listen)
@@ -791,13 +791,13 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	}
 
 	// Set CPU Model to resource
-	if cpumodel != "" {
-		cpumodelMap = append(cpumodelMap, map[string]interface{}{
-			"model": cpumodel,
+	if cpu_model != "" {
+		cpu_modelMap = append(cpu_modelMap, map[string]interface{}{
+			"model": cpu_model,
 		})
 		_, inherited := inheritedVectors["CPU_MODEL"]
 		if !inherited {
-			err = d.Set("cpumodel", cpumodelMap)
+			err = d.Set("cpu_model", cpu_modelMap)
 			if err != nil {
 				return err
 			}

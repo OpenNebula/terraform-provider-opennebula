@@ -64,7 +64,7 @@ func TestAccTemplate(t *testing.T) {
 			{
 				Config: testAccTemplateCPUModel,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl-cpumodel"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl-cpu_model"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "permissions", "660"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "group", "oneadmin"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpu", "0.5"),
@@ -75,8 +75,8 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
-					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.#", "1"),
-					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpu_model.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "cpu_model.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -294,7 +294,7 @@ resource "opennebula_template" "template" {
 
 var testAccTemplateCPUModel = `
 resource "opennebula_template" "template" {
-  name = "terra-tpl-cpumodel"
+  name = "terra-tpl-cpu_model"
   permissions = "660"
   group = "oneadmin"
   cpu = "0.5"
@@ -313,7 +313,7 @@ resource "opennebula_template" "template" {
     type = "VNC"
   }
 
-  cpumodel {
+  cpu_model {
     model = "host-passthrough"
   }
 
