@@ -1,3 +1,9 @@
+# 1.2.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_host: fix host type reading
+
 # 1.2.1 (April 26th, 2023)
 
 FEATURES:
