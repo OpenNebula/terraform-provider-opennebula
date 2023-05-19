@@ -1,3 +1,9 @@
+# 1.2.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/virtual_network_address_range: fix failing import due to incorrect virtual network key
+
 # 1.2.1 (April 26th, 2023)
 
 FEATURES:
