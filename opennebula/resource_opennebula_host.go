@@ -19,7 +19,17 @@ import (
 	hostk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/host/keys"
 )
 
-var hostTypes = []string{"kvm", "qemu", "lxd", "lxc", "firecracker", "vcenter", "custom"}
+const (
+	hostKVM         = "kvm"
+	hostQEMU        = "qemu"
+	hostLXD         = "lxd"
+	hostLXC         = "lxc"
+	hostFirecracker = "firecracker"
+	hostVCenter     = "vcenter"
+	hostCustom      = "custom"
+)
+
+var hostTypes = []string{hostKVM, hostQEMU, hostLXD, hostLXC, hostFirecracker, hostVCenter, hostCustom}
 var defaultHostMinTimeout = 20
 var defaultHostTimeout = time.Duration(defaultHostMinTimeout) * time.Minute
 
@@ -313,6 +323,20 @@ func resourceOpennebulaHostRead(ctx context.Context, d *schema.ResourceData, met
 
 	d.SetId(fmt.Sprintf("%v", hostInfos.ID))
 	d.Set("name", hostInfos.Name)
+
+	hostType := hostCustom
+	if hostInfos.VMMAD == hostKVM && hostInfos.IMMAD == hostKVM {
+		hostType = hostKVM
+	} else if hostInfos.VMMAD == hostQEMU && hostInfos.IMMAD == hostQEMU {
+		hostType = hostQEMU
+	} else if hostInfos.VMMAD == hostLXD && hostInfos.IMMAD == hostLXD {
+		hostType = hostLXD
+	} else if hostInfos.VMMAD == hostLXC && hostInfos.IMMAD == hostLXC {
+		hostType = hostLXC
+	} else if hostInfos.VMMAD == hostFirecracker && hostInfos.IMMAD == hostFirecracker {
+		hostType = hostFirecracker
+	}
+	d.Set("type", hostType)
 
 	custom := d.Get("custom").(*schema.Set).List()
 	if len(custom) > 0 {
