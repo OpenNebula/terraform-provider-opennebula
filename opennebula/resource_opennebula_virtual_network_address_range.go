@@ -553,7 +553,7 @@ func resourceOpennebulaVirtualNetworkAddressRangeImportState(ctx context.Context
 	}
 
 	d.SetId(parts[1])
-	d.Set("vnet_id", vmID)
+	d.Set("virtual_network_id", vmID)
 
 	return []*schema.ResourceData{d}, nil
 }
