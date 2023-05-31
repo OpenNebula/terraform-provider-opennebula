@@ -1,4 +1,4 @@
-# 1.2.2 (Unreleased)
+# 1.2.2 (May 31st, 2023)
 
 BUG FIXES:
 
