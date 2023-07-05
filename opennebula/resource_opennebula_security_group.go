@@ -197,14 +197,10 @@ func changeSecurityGroupGroup(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if d.Get("group") != "" {
-		group := d.Get("group").(string)
-		gid, err = controller.Groups().ByName(group)
-		if err != nil {
-			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
-		}
-	} else {
-		gid = d.Get("gid").(int)
+	group := d.Get("group").(string)
+	gid, err = controller.Groups().ByName(group)
+	if err != nil {
+		return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 	}
 
 	err = sgc.Chown(-1, gid)
@@ -380,7 +376,7 @@ func resourceOpennebulaSecurityGroupCreate(ctx context.Context, d *schema.Resour
 		}
 	}
 
-	if d.Get("group") != "" || d.Get("gid") != "" {
+	if d.Get("group") != "" {
 		err = changeSecurityGroupGroup(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{

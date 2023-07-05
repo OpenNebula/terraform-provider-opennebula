@@ -126,11 +126,9 @@ func changeVirtualRouterGroup(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if d.Get("group") != "" {
-		gid, err = controller.Groups().ByName(d.Get("group").(string))
-		if err != nil {
-			return err
-		}
+	gid, err = controller.Groups().ByName(d.Get("group").(string))
+	if err != nil {
+		return err
 	}
 
 	err = vrc.Chown(-1, gid)
@@ -176,7 +174,7 @@ func resourceOpennebulaVirtualRouterCreate(ctx context.Context, d *schema.Resour
 		}
 	}
 
-	if d.Get("group") != "" || d.Get("gid") != "" {
+	if d.Get("group") != "" {
 		err = changeVirtualRouterGroup(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
