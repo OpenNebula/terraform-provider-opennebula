@@ -299,7 +299,7 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 		}
 	}
 
-	if d.Get("group") != "" || d.Get("gid") != "" {
+	if d.Get("group") != "" {
 		err = changeVmGroup(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{

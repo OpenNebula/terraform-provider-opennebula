@@ -311,7 +311,7 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 		}
 	}
 
-	if d.Get("group") != "" || d.Get("gid") != "" {
+	if d.Get("group") != "" {
 		err = changeTemplateGroup(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{

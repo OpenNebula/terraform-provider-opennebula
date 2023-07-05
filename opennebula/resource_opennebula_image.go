@@ -216,12 +216,10 @@ func changeImageGroup(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if d.Get("group") != "" {
-		group := d.Get("group").(string)
-		gid, err = controller.Groups().ByName(group)
-		if err != nil {
-			return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
-		}
+	group := d.Get("group").(string)
+	gid, err = controller.Groups().ByName(group)
+	if err != nil {
+		return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
 	}
 
 	err = ic.Chown(-1, gid)
