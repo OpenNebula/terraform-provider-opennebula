@@ -60,7 +60,7 @@ func resourceOpennebulaHost() *schema.Resource {
 				Description: "Type of the new host: kvm, qemu, lxd, lxc, firecracker, custom",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 
-					if inArray(v.(string), hostTypes) < 0 {
+					if !contains(v.(string), hostTypes) {
 						errors = append(errors, fmt.Errorf("host \"type\" must be one of: %s", strings.Join(hostTypes, ",")))
 					}
 

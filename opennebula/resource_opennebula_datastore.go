@@ -49,7 +49,7 @@ func resourceOpennebulaDatastore() *schema.Resource {
 					for k := range datastoreTypes {
 						keys = append(keys, k)
 					}
-					if inArray(value, keys) < 0 {
+					if !contains(value, keys) {
 						errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(keys, ",")))
 					}
 
