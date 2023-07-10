@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
+	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -85,14 +86,44 @@ func commonVMSchemas() map[string]*schema.Schema {
 
 func commonInstanceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"cpu":          cpuSchema(),
-		"vcpu":         vcpuSchema(),
-		"memory":       memorySchema(),
-		"context":      contextSchema(),
-		"cpumodel":     cpumodelSchema(),
-		"graphics":     graphicsSchema(),
-		"os":           osSchema(),
-		"vmgroup":      vmGroupSchema(),
+		"cpu":      cpuSchema(),
+		"vcpu":     vcpuSchema(),
+		"memory":   memorySchema(),
+		"context":  contextSchema(),
+		"cpumodel": cpumodelSchema(),
+		"graphics": graphicsSchema(),
+		"os":       osSchema(),
+		"vmgroup":  vmGroupSchema(),
+		"raw": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			MaxItems:    1,
+			Description: "Low-level hypervisor tuning",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"type": {
+						Type:     schema.TypeString,
+						Required: true,
+						ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+							validtypes := []string{"kvm", "lxd", "vmware"}
+							value := v.(string)
+
+							if !contains(value, validtypes) {
+								errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(validtypes, ",")))
+							}
+
+							return
+						},
+						Description: "Name of the hypervisor: kvm, lxd, vmware",
+					},
+					"data": {
+						Type:        schema.TypeString,
+						Required:    true,
+						Description: "Low-level data to pass to the hypervisor",
+					},
+				},
+			},
+		},
 		"tags":         tagsSchema(),
 		"default_tags": defaultTagsSchemaComputed(),
 		"tags_all":     tagsSchemaComputed(),
@@ -654,12 +685,82 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 
 	}
 
+	//Generate RAW definition
+	raw := d.Get("raw").([]interface{})
+	for i := 0; i < len(raw); i++ {
+		rawConfig := raw[i].(map[string]interface{})
+		rawVec := tpl.AddVector("RAW")
+		rawVec.AddPair("TYPE", rawConfig["type"].(string))
+		rawVec.AddPair("DATA", rawConfig["data"].(string))
+	}
+
 	descr, ok := d.GetOk("description")
 	if ok {
 		tpl.Add(vmk.Description, descr.(string))
 	}
 
 	return nil
+}
+
+func updateTemplate(d *schema.ResourceData, tpl *vm.Template) bool {
+
+	update := false
+
+	if d.HasChange("sched_requirements") {
+		schedRequirements := d.Get("sched_requirements").(string)
+
+		if len(schedRequirements) > 0 {
+			tpl.Placement(vmk.SchedRequirements, schedRequirements)
+		} else {
+			tpl.Del(string(vmk.SchedRequirements))
+		}
+		update = true
+	}
+
+	if d.HasChange("sched_ds_requirements") {
+		schedDSRequirements := d.Get("sched_ds_requirements").(string)
+
+		if len(schedDSRequirements) > 0 {
+			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
+		} else {
+			tpl.Del(string(vmk.SchedDSRequirements))
+		}
+		update = true
+	}
+
+	if d.HasChange("description") {
+
+		tpl.Del(string(vmk.Description))
+
+		description := d.Get("description").(string)
+
+		if len(description) > 0 {
+			tpl.Add(vmk.Description, description)
+		}
+
+		update = true
+	}
+
+	if d.HasChange("template_section") {
+		updateTemplateSection(d, &tpl.Template)
+		update = true
+	}
+
+	return update
+}
+
+func updateRaw(d *schema.ResourceData, tpl *dyn.Template) {
+	tpl.Del("RAW")
+
+	raw := d.Get("raw").([]interface{})
+	if len(raw) > 0 {
+		for i := 0; i < len(raw); i++ {
+			rawConfig := raw[i].(map[string]interface{})
+			rawVec := tpl.AddVector("RAW")
+			rawVec.AddPair("TYPE", rawConfig["type"].(string))
+			rawVec.AddPair("DATA", rawConfig["data"].(string))
+		}
+	}
 }
 
 func flattenNIC(nic shared.NIC) map[string]interface{} {
@@ -768,6 +869,8 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
 	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
+	// Raw
+	rawVec, _ := vmTemplate.GetVector("RAW")
 
 	// VM size
 	cpu, _ := vmTemplate.GetCPU()
@@ -835,6 +938,26 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 		_, inherited := inheritedVectors["GRAPHICS"]
 		if !inherited {
 			err = d.Set("graphics", graphMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if rawVec != nil {
+
+		rawMap := make([]map[string]interface{}, 0, 1)
+
+		hypType, _ := rawVec.GetStr("TYPE")
+		data, _ := rawVec.GetStr("DATA")
+
+		rawMap = append(rawMap, map[string]interface{}{
+			"type": hypType,
+			"data": data,
+		})
+
+		if _, ok := d.GetOk("raw"); ok {
+			err = d.Set("raw", rawMap)
 			if err != nil {
 				return err
 			}
