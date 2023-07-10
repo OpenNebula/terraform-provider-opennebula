@@ -58,36 +58,6 @@ func commonTemplateSchemas() map[string]*schema.Schema {
 				},
 			},
 			"disk": diskSchema(),
-			"raw": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
-				Description: "Low-level hypervisor tuning",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								validtypes := []string{"kvm", "lxd", "vmware"}
-								value := v.(string)
-
-								if inArray(value, validtypes) < 0 {
-									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(validtypes, ",")))
-								}
-
-								return
-							},
-							Description: "Name of the hypervisor: kvm, lxd, vmware",
-						},
-						"data": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Low-level data to pass to the hypervisor",
-						},
-					},
-				},
-			},
 			"reg_time": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -475,32 +445,6 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		diags = append(diags, diag)
 	}
 
-	rawVec, _ := tpl.Template.GetVector("RAW")
-	if rawVec != nil {
-
-		rawMap := make([]map[string]interface{}, 0, 1)
-
-		hypType, _ := rawVec.GetStr("TYPE")
-		data, _ := rawVec.GetStr("DATA")
-
-		rawMap = append(rawMap, map[string]interface{}{
-			"type": hypType,
-			"data": data,
-		})
-
-		if _, ok := d.GetOk("raw"); ok {
-			err = d.Set("raw", rawMap)
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to set attribute",
-					Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
-				})
-				return diags
-			}
-		}
-	}
-
 	if tpl.LockInfos != nil {
 		d.Set("lock", LockLevelToString(tpl.LockInfos.Locked))
 	}
@@ -714,50 +658,11 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	}
 
 	if d.HasChange("raw") {
-		newTpl.Del("RAW")
-
-		raw := d.Get("raw").([]interface{})
-		if len(raw) > 0 {
-			for i := 0; i < len(raw); i++ {
-				rawConfig := raw[i].(map[string]interface{})
-				rawVec := newTpl.AddVector("RAW")
-				rawVec.AddPair("TYPE", rawConfig["type"].(string))
-				rawVec.AddPair("DATA", rawConfig["data"].(string))
-			}
-		}
-	}
-
-	if d.HasChange("sched_requirements") {
-		schedRequirements := d.Get("sched_requirements").(string)
-
-		if len(schedRequirements) > 0 {
-			newTpl.Placement(vmk.SchedRequirements, schedRequirements)
-		} else {
-			newTpl.Del(string(vmk.SchedRequirements))
-		}
+		updateRaw(d, &newTpl.Template)
 		update = true
 	}
 
-	if d.HasChange("sched_ds_requirements") {
-		schedDSRequirements := d.Get("sched_ds_requirements").(string)
-
-		if len(schedDSRequirements) > 0 {
-			newTpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
-		} else {
-			newTpl.Del(string(vmk.SchedDSRequirements))
-		}
-		update = true
-	}
-
-	if d.HasChange("description") {
-		newTpl.Del(string(vmk.Description))
-
-		description := d.Get("description").(string)
-
-		if len(description) > 0 {
-			newTpl.Add(vmk.Description, description)
-		}
-
+	if updateTemplate(d, &newTpl) {
 		update = true
 	}
 
@@ -809,13 +714,6 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 				}
 			}
 		}
-
-		update = true
-	}
-
-	if d.HasChange("template_section") {
-
-		updateTemplateSection(d, &newTpl.Template)
 
 		update = true
 	}
@@ -1000,15 +898,6 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 	err := generateVMTemplate(d, tpl)
 	if err != nil {
 		return nil, err
-	}
-
-	//Generate RAW definition
-	raw := d.Get("raw").([]interface{})
-	for i := 0; i < len(raw); i++ {
-		rawConfig := raw[i].(map[string]interface{})
-		rawVec := tpl.AddVector("RAW")
-		rawVec.AddPair("TYPE", rawConfig["type"].(string))
-		rawVec.AddPair("DATA", rawConfig["data"].(string))
 	}
 
 	// add default tags if they aren't overriden
