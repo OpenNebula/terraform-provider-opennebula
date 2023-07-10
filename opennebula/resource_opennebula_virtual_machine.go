@@ -1225,45 +1225,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		},
 	}
 
-	if d.HasChange("sched_requirements") {
-		schedRequirements := d.Get("sched_requirements").(string)
-
-		if len(schedRequirements) > 0 {
-			tpl.Placement(vmk.SchedRequirements, schedRequirements)
-		} else {
-			tpl.Del(string(vmk.SchedRequirements))
-		}
-		update = true
-	}
-
-	if d.HasChange("sched_ds_requirements") {
-		schedDSRequirements := d.Get("sched_ds_requirements").(string)
-
-		if len(schedDSRequirements) > 0 {
-			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
-		} else {
-			tpl.Del(string(vmk.SchedDSRequirements))
-		}
-		update = true
-	}
-
-	if d.HasChange("description") {
-
-		tpl.Del(string(vmk.Description))
-
-		description := d.Get("description").(string)
-
-		if len(description) > 0 {
-			tpl.Add(vmk.Description, description)
-		}
-
-		update = true
-	}
-
-	if d.HasChange("template_section") {
-
-		updateTemplateSection(d, &tpl.Template)
-
+	if updateTemplate(d, tpl) {
 		update = true
 	}
 
@@ -1501,6 +1463,11 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				}
 			}
 		}
+	}
+
+	if d.HasChange("raw") {
+		updateRaw(d, &tpl.Template)
+		updateConf = true
 	}
 
 	if d.HasChange("cpu") || d.HasChange("vcpu") || d.HasChange("memory") {

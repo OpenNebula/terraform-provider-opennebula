@@ -4,6 +4,7 @@ FEATURES:
 
 * **New Resource**: `opennebula_user_quotas` (#448)
 * **New Resource**: `opennebula_group_quotas` (#447)
+* resources/opennebula_virtual_machine: add `raw` section and share its code with `opennebula_template` resource. (#464)
 
 DEPRECATION:
 

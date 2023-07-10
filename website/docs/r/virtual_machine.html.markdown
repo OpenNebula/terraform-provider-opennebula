@@ -99,6 +99,7 @@ The following arguments are supported:
 * `keep_nic_order` - (Optional) Indicates if the provider should keep NIC list ordering at update.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
+* `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule.
 * `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
 * `tags` - (Optional) Virtual Machine tags (Key = Value).
@@ -161,6 +162,13 @@ A NIC update will be triggered in adding or removing a `nic` section, or by a mo
 
 * `vmgroup_id` - (Required) ID of the VM group to use.
 * `role` - (Required) role of the VM group to use.
+
+### Raw parameters
+
+`raw` supports the following arguments:
+
+* `type` - (Required) - Hypervisor. Supported values: `kvm`, `lxd`, `vmware`.
+* `data` - (Required) - Raw data to pass to the hypervisor.
 
 ### Template section parameters
 
