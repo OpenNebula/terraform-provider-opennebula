@@ -74,7 +74,7 @@ func resourceOpennebulaVMGroup() *schema.Resource {
 								validpolicies := []string{"NONE", "AFFINED", "ANTI_AFFINED"}
 								value := v.(string)
 
-								if inArray(value, validpolicies) < 0 {
+								if !contains(value, validpolicies) {
 									errors = append(errors, fmt.Errorf("Policy value %q must be one of: %s", k, strings.Join(validpolicies, ",")))
 								}
 

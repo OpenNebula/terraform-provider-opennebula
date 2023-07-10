@@ -49,7 +49,7 @@ func resourceOpennebulaUser() *schema.Resource {
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 
-					if inArray(value, authTypes) < 0 {
+					if !contains(value, authTypes) {
 						errors = append(errors, fmt.Errorf("Auth driver %q must be one of: %s", k, strings.Join(locktypes, ",")))
 					}
 

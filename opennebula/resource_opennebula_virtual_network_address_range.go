@@ -47,7 +47,7 @@ func resourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 					validtypes := []string{"IP4", "IP6", "IP6_STATIC", "IP4_6", "IP4_6_STATIC", "ETHER"}
 					value := v.(string)
 
-					if inArray(value, validtypes) < 0 {
+					if !contains(value, validtypes) {
 						errors = append(errors, fmt.Errorf("Address Range type %q must be one of: %s", k, strings.Join(validtypes, ",")))
 					}
 

@@ -125,7 +125,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 					validtypes := []string{"dummy", "bridge", "fw", "ebtables", "802.1Q", "vxlan", "ovswitch"}
 					value := v.(string)
 
-					if inArray(value, validtypes) < 0 {
+					if !contains(value, validtypes) {
 						errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(validtypes, ",")))
 					}
 
@@ -296,7 +296,7 @@ func ARFields() map[string]*schema.Schema {
 				validtypes := []string{"IP4", "IP6", "IP6_STATIC", "IP4_6", "IP4_6_STATIC", "ETHER"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("Address Range type %q must be one of: %s", k, strings.Join(validtypes, ",")))
 				}
 
@@ -402,7 +402,7 @@ func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
 }
 
 func mandatoryVLAN(intype string) bool {
-	return inArray(intype, []string{"802.1Q", "vxlan"}) >= 0
+	return contains(intype, []string{"802.1Q", "vxlan"})
 }
 
 func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

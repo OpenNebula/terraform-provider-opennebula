@@ -100,7 +100,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 								validprotos := []string{"ALL", "TCP", "UDP", "ICMP", "IPSEC"}
 								value := v.(string)
 
-								if inArray(value, validprotos) < 0 {
+								if !contains(value, validprotos) {
 									errors = append(errors, fmt.Errorf("Protocol %q must be one of: %s", k, strings.Join(validprotos, ",")))
 								}
 
@@ -115,7 +115,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 								validtypes := []string{"INBOUND", "OUTBOUND"}
 								value := v.(string)
 
-								if inArray(value, validtypes) < 0 {
+								if !contains(value, validtypes) {
 									errors = append(errors, fmt.Errorf("Rule type %q must be one of: %s", k, strings.Join(validtypes, ",")))
 								}
 

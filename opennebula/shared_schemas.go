@@ -55,7 +55,7 @@ func commonVMSchemas() map[string]*schema.Schema {
 				Default:  "swap", //"recreate" or "swap",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := strings.ToUpper(v.(string))
-					if inArray(value, vmDiskOnChangeValues) == -1 {
+					if !contains(value, vmDiskOnChangeValues) {
 						errors = append(errors, fmt.Errorf("%q must be one of %s", k, strings.Join(vmDiskOnChangeValues, ", ")))
 					}
 					return
@@ -251,7 +251,7 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 				validtypes := []string{"swap", "fs"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(validtypes, ",")))
 				}
 
@@ -266,7 +266,7 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 				validtypes := []string{"raw", "qcow2"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("Format %q must be one of: %s", k, strings.Join(validtypes, ",")))
 				}
 
@@ -424,7 +424,7 @@ func lockSchema() *schema.Schema {
 		ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 			value := v.(string)
 
-			if inArray(value, locktypes) < 0 {
+			if !contains(value, locktypes) {
 				errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(locktypes, ",")))
 			}
 

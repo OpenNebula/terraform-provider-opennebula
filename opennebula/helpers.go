@@ -11,14 +11,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func inArray(val string, array []string) (index int) {
-	var ok bool
-	for i := range array {
-		if ok = array[i] == val; ok {
-			return i
+func contains(value string, values []string) bool {
+	for i := range values {
+		if values[i] == value {
+			return true
 		}
 	}
-	return -1
+	return false
 }
 
 func ArrayToString(list []interface{}, delim string) string {
