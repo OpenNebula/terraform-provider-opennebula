@@ -213,7 +213,7 @@ func resourceOpennebulaUserQuotasImportState(ctx context.Context, d *schema.Reso
 	quotaType := parts[1]
 	d.Set("type", quotaType)
 
-	if inArray(quotaType, validQuotaTypes) < 0 {
+	if !contains(quotaType, validQuotaTypes) {
 		return nil, fmt.Errorf("Invalid quota type %q must be one of: %s", quotaType, strings.Join(validQuotaTypes, ","))
 	}
 

@@ -112,7 +112,7 @@ func FeaturesFields() map[string]*schema.Schema {
 				validtypes := []string{"YES", "NO"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("PAE must be one of: %s", strings.Join(validtypes, ", ")))
 				}
 
@@ -127,7 +127,7 @@ func FeaturesFields() map[string]*schema.Schema {
 				validtypes := []string{"YES", "NO"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("ACPI must be one of: %s", strings.Join(validtypes, ", ")))
 				}
 
@@ -142,7 +142,7 @@ func FeaturesFields() map[string]*schema.Schema {
 				validtypes := []string{"YES", "NO"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("APIC must be one of: %s", strings.Join(validtypes, ", ")))
 				}
 
@@ -157,7 +157,7 @@ func FeaturesFields() map[string]*schema.Schema {
 				validtypes := []string{"YES", "NO"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("LOCALTIME must be one of: %s", strings.Join(validtypes, ", ")))
 				}
 
@@ -177,7 +177,7 @@ func FeaturesFields() map[string]*schema.Schema {
 				validtypes := []string{"YES", "NO"}
 				value := v.(string)
 
-				if inArray(value, validtypes) < 0 {
+				if !contains(value, validtypes) {
 					errors = append(errors, fmt.Errorf("GUEST_AGENT must be one of: %s", strings.Join(validtypes, ", ")))
 				}
 

@@ -134,7 +134,7 @@ func resourceOpennebulaImage() *schema.Resource {
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 
-					if inArray(value, imagetypes) < 0 {
+					if !contains(value, imagetypes) {
 						errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(imagetypes, ",")))
 					}
 
@@ -494,7 +494,7 @@ func resourceOpennebulaImageRead(ctx context.Context, d *schema.ResourceData, me
 	}
 	d.Set("path", image.Path)
 
-	if inArray(image.Type, imagetypes) >= 0 {
+	if contains(image.Type, imagetypes) {
 		d.Set("type", image.Type)
 	}
 

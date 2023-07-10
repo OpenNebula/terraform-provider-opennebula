@@ -102,7 +102,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
 
-								if inArray(value, yesNo) < 0 {
+								if !contains(value, yesNo) {
 									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
 								}
 
@@ -116,7 +116,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
 
-								if inArray(value, yesNo) < 0 {
+								if !contains(value, yesNo) {
 									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
 								}
 
@@ -130,7 +130,7 @@ func resourceOpennebulaGroup() *schema.Resource {
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
 
-								if inArray(value, apiListOrder) < 0 {
+								if !contains(value, apiListOrder) {
 									errors = append(errors, fmt.Errorf("Type %q must be one of: %s", k, strings.Join(apiListOrder, ",")))
 								}
 
