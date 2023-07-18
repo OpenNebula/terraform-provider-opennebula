@@ -15,6 +15,14 @@ BUG FIXES:
 
 * data/opennebula_template: fix filtering and documentation (#470)
 * resources/opennebula_virtual_machine: fix a check on context
+* resources/opennebula_image: remove useless group checks (#460)
+* resources/opennebula_security_group: remove useless group checks (#460)
+* resources/opennebula_template: remove useless group checks (#460)
+* resources/opennebula_virtual_machine: remove useless group checks (#460)
+* resources/opennebula_virtual_network: remove useless group checks (#460)
+* resources/opennebula_virtual_router: remove useless group checks (#460)
+* resources/opennebula_virtual_router_instance: remove useless group checks (#460)
+* resources/opennebula_vm_group: remove useless group checks (#460)
 
 # 1.2.2 (May 31st, 2023)
 
