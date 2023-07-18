@@ -33,7 +33,7 @@ func dataOpennebulaTemplates() *schema.Resource {
 				"order": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "Ordering of the sort: asc or desc",
+					Description: "Ordering of the sort: ASC or DESC",
 				},
 				"templates": {
 					Type:        schema.TypeList,
