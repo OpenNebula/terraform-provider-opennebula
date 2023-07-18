@@ -17,7 +17,7 @@ data "opennebula_templates" "example" {
   name_regex = "test.*"
   has_cpu    = true
   sort_on    = "register_date"
-  sort_on    = "ASC"
+  order      = "ASC"
 }
 ```
 
@@ -32,7 +32,7 @@ data "opennebula_templates" "example" {
 * `has_memory` - (Optional) Indicate if a memory value has been defined.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB.
 * `tags` - (Optional) Template tags (Key = Value).
-* `order` - (Optional) Ordering of the sort: asc or desc.
+* `order` - (Optional) Ordering of the sort: ASC or DESC.
 
 ## Attribute Reference
 
