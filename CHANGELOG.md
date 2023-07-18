@@ -13,6 +13,7 @@ DEPRECATION:
 BUG FIXES:
 
 * data/opennebula_template: fix filtering and documentation (#470)
+* resources/opennebula_virtual_machine: fix a check on context
 
 # 1.2.2 (May 31st, 2023)
 

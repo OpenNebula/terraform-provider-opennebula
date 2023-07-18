@@ -2190,8 +2190,12 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 	log.Printf("Number of CONTEXT vars: %d", len(context))
 	log.Printf("CONTEXT Map: %s", context)
 
+	var tplContext *dyn.Vector
 	if templateContent != nil {
-		tplContext, _ := templateContent.GetVector(vmk.ContextVec)
+		tplContext, _ = templateContent.GetVector(vmk.ContextVec)
+	}
+
+	if tplContext != nil {
 
 		// Update existing context:
 		// - add new pairs
