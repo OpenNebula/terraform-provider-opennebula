@@ -129,7 +129,6 @@ func commonTemplatesFilter(d *schema.ResourceData, meta interface{}) ([]*templat
 	}
 
 	// filter templates with user defined criterias
-	id := d.Get("id")
 	name, nameOk := d.GetOk("name")
 	hasCPU := d.Get("has_cpu").(bool)
 	hasVCPU := d.Get("has_vcpu").(bool)
@@ -142,10 +141,6 @@ func commonTemplatesFilter(d *schema.ResourceData, meta interface{}) ([]*templat
 
 	match := make([]*templateSc.Template, 0, 1)
 	for i, template := range templates.Templates {
-
-		if id != -1 && template.ID != id {
-			continue
-		}
 
 		if nameOk && template.Name != name {
 			continue
@@ -186,19 +181,31 @@ func commonTemplatesFilter(d *schema.ResourceData, meta interface{}) ([]*templat
 
 func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Template, error) {
 
-	match, err := commonTemplatesFilter(d, meta)
+	matched, err := commonTemplatesFilter(d, meta)
 	if err != nil {
 		return nil, err
 	}
 
+	newMatched := make([]*templateSc.Template, 0)
+
+	id := d.Get("id").(int)
+	if id != -1 {
+		for _, tpl := range matched {
+			if tpl.ID != id {
+				continue
+			}
+			newMatched = append(newMatched, tpl)
+		}
+	}
+
 	// the template datasource should match at most one element
-	if len(match) == 0 {
+	if len(newMatched) == 0 {
 		return nil, fmt.Errorf("no templates match the constraints")
-	} else if len(match) > 1 {
+	} else if len(newMatched) > 1 {
 		return nil, fmt.Errorf("several templates match the constraints")
 	}
 
-	return match[0], nil
+	return newMatched[0], nil
 }
 
 func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

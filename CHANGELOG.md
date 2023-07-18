@@ -10,7 +10,9 @@ DEPRECATION:
 * `quotas` section of `opennebula_user` resource (#448)
 * `quotas` section of `opennebula_group` resource (#447)
 
-# 1.2.2 (Unreleased)
+BUG FIXES:
+
+* data/opennebula_template: fix filtering and documentation (#470)
 
 # 1.2.2 (May 31st, 2023)
 
