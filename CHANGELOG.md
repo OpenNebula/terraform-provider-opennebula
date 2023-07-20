@@ -8,8 +8,11 @@ FEATURES:
 
 DEPRECATION:
 
-* `quotas` section of `opennebula_user` resource (#448)
-* `quotas` section of `opennebula_group` resource (#447)
+* resources/opennebula_user: `quotas` section (#448)
+* resources/opennebula_group: `quotas` section (#447)
+* resources/opennebula_cluster: `hosts`, `datastores`, and `virtual_networks` are not optional anymore but computed (#439)
+* resources/opennebula_virtual_network: `clusters` (#439)
+* resources/opennebula_datastore: `cluster_id` (#439)
 
 BUG FIXES:
 
