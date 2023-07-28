@@ -1,4 +1,4 @@
-# 1.3.0 (Unreleased)
+# 1.3.0 (July 28th, 2023)
 
 FEATURES:
 
