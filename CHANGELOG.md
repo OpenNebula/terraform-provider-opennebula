@@ -1,3 +1,9 @@
+# 1.3.0 (Unreleased)
+
+BUG FIXES:
+
+* data/opennebula_template: fix filtering (#479)
+
 # 1.3.0 (July 28th, 2023)
 
 FEATURES:
@@ -16,7 +22,7 @@ DEPRECATION:
 
 BUG FIXES:
 
-* data/opennebula_template: fix filtering and documentation (#470)
+* data/opennebula_templates: fix filtering and documentation (#470)
 * resources/opennebula_virtual_machine: fix a check on context
 * resources/opennebula_image: remove useless group checks (#460)
 * resources/opennebula_security_group: remove useless group checks (#460)
