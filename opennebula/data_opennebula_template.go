@@ -186,16 +186,20 @@ func templateFilter(d *schema.ResourceData, meta interface{}) (*templateSc.Templ
 		return nil, err
 	}
 
-	newMatched := make([]*templateSc.Template, 0)
+	var newMatched []*templateSc.Template
 
 	id := d.Get("id").(int)
 	if id != -1 {
+		newMatched = make([]*templateSc.Template, 0)
+
 		for _, tpl := range matched {
 			if tpl.ID != id {
 				continue
 			}
 			newMatched = append(newMatched, tpl)
 		}
+	} else {
+		newMatched = matched
 	}
 
 	// the template datasource should match at most one element
