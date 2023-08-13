@@ -102,7 +102,7 @@ The following arguments are supported:
 * `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule.
 * `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
-* `tags` - (Optional) Virtual Machine tags (Key = Value).
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `timeout` - (Deprecated) Timeout (in Minutes) for VM availability. Defaults to 3 minutes.
 * `lock` - (Optional) Lock the VM with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.

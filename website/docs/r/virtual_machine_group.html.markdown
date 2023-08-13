@@ -48,7 +48,7 @@ The following arguments are supported:
 * `permissions` - (Optional) Permissions applied on virtual machine group. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin.
 * `role` - (Required) List of roles. See [Role parameters](#role-parameters) below for details.
 * `group` - (Optional) Name of the group which owns the virtual machine group. Defaults to the caller primary group.
-* `tags` - (Optional) Virtual Machine group tags.
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Role parameters

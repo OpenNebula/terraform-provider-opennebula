@@ -60,7 +60,7 @@ The following arguments are supported:
 * `commit` - (Optional) Flag to commit changes on Virtual Machine on security group update. Defaults to `true`.
 * `rule` - (Required) List of rules. See [Rule parameters](#rule-parameters) below for details
 * `group` - (Optional) Name of the group which owns the security group. Defaults to the caller primary group.
-* `tags` - (Optional) Security group tags (Key = Value).
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Rule parameters

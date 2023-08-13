@@ -31,10 +31,10 @@ resource "opennebula_group" "example" {
   }
 
   lifecycle {
-	  ignore_changes = [
-	    "quotas"
-	  ]
-	}
+   ignore_changes = [
+     "quotas"
+   ]
+ }
 }
 
 resource "opennebula_group_quotas" "example" {
@@ -78,7 +78,7 @@ The following arguments are supported:
 * `quotas` - (Deprecated) See [Quotas parameters](#quotas-parameters) below for details. Use `resource_opennebula_group_quotas` instead.
 * `sunstone` - (Optional) Allow users and group admins to access specific views. See [Sunstone parameters](#sunstone-parameters) below for details
 * `opennebula` - (Optional) OpenNebula core configuration. See [Opennebula parameters](#opennebula-parameters) below for details
-* `tags` - (Optional) Group tags (Key = value)
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Quotas parameters

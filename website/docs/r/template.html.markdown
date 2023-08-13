@@ -101,7 +101,7 @@ The following arguments are supported:
 * `user_inputs` - (Optional) Ask the user instantiating the template to define the values described.
 * `sched_requirements` - (Optional) Scheduling requirements to deploy the resource following specific rule
 * `sched_ds_requirements` - (Optional) Storage placement requirements to deploy the resource following specific rule.
-* `tags` - (Optional) Template tags (Key = Value).
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 * `lock` - (Optional) Lock the template with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)

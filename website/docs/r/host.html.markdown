@@ -62,7 +62,7 @@ The following arguments are supported:
 * `cluster_id` - (Optional) ID of the cluster the host is part of.
 * `custom` - (Optional) If `type="custom"` this section should be defined, see [Custom](#custom) section for details.
 * `overcommit` - (Optional) This section allow to increase the allocatable capacity of the host. See [Overcommit](#overcommit)
-* `tags` - (Optional) Host tags (Key = value)
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 
 ### Custom
 
