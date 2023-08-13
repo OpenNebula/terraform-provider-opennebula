@@ -51,7 +51,7 @@ The following arguments are supported:
 * `compatible_system_datastore` - (Optional) Specify the compatible system datastores.
 * `ceph` - (Optional) See [Ceph](#ceph) section for details.
 * `custom` - (Optional) See [Custom](#custom) section for details.
-* `tags` - (Optional) Datastore tags (Key = value).
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 
 ### Ceph
 

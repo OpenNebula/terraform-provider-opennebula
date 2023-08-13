@@ -134,7 +134,7 @@ The following arguments are supported:
 * `driver` - (Optional) OpenNebula Driver to use.
 * `format` - (Optional) Image format. Example: `raw`, `qcow2`.
 * `group` - (Optional) Name of the group which owns the image. Defaults to the caller primary group.
-* `tags` - (Optional) Image tags (Key = value)
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `timeout` - (Deprecated) Timeout (in Minutes) for Image availability. Defaults to 10 minutes.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 

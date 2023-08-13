@@ -35,10 +35,10 @@ resource "opennebula_user" "example" {
   }
 
   lifecycle {
-	  ignore_changes = [
-	    "quotas"
-	  ]
-	}
+   ignore_changes = [
+     "quotas"
+   ]
+ }
 }
 
 resource "opennebula_user_quotas" "example" {
@@ -84,7 +84,7 @@ The following arguments are supported:
 * `groups` - (Optional) List of secondary groups ID of the user.
 * `quotas` - (Deprecated) See [Quotas parameters](#quotas-parameters) below for details. Use `resource_opennebula_user_quotas` instead.
 * `ssh_public_key` - (Optional) SSH public key.
-* `tags` - (Optional) Group tags (Key = value)
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Quotas parameters

@@ -35,7 +35,7 @@ resource "opennebula_cluster" "example" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the cluster.
-* `tags` - (Optional) Cluster tags (Key = value)
+* `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
 ### Template section parameters
@@ -63,3 +63,6 @@ The following attribute is exported:
 ```shell
 terraform import opennebula_cluster.example 123
 ```
+
+<https://registry.terraform.io/docs/providers/aws/r/iam_service_linked_role.html>
+/docs/providers/aws/r/iam_service_linked_role.html
