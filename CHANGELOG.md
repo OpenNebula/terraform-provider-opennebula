@@ -4,6 +4,10 @@ BUG FIXES:
 
 * data/opennebula_template: fix filtering (#479)
 
+ENHANCEMENTS:
+
+* provider: `insecure` attribute now also skips TLS verification for the flow client (#482)
+
 # 1.3.0 (July 28th, 2023)
 
 FEATURES:

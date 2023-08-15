@@ -209,10 +209,11 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	flowEndpoint, ok := d.GetOk("flow_endpoint")
 	if ok {
-		flowClient := goca.NewDefaultFlowClient(
+		flowClient := goca.NewFlowClient(
 			goca.NewFlowConfig(username.(string),
 				password.(string),
-				flowEndpoint.(string)))
+				flowEndpoint.(string)),
+			&http.Client{Transport: tr})
 
 		cfg.Controller = goca.NewGenericController(oneClient, flowClient)
 		return cfg, nil
