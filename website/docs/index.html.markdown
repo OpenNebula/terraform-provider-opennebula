@@ -41,7 +41,7 @@ The configuration of the OpenNebula Provider can be set by the `provider` block 
 ### Provider attributes
 
 * `endpoint` - (Required) The URL of OpenNebula XML-RPC Endpoint API (for example, `http://example.com:2633/RPC2`).
-* `flow_endpoint` - (Optional) The OneFlow HTTP Endpoint API (for example, `http://example.com:2474/RPC2`).
+* `flow_endpoint` - (Optional) The OneFlow HTTP Endpoint API (for example, `http://example.com:2474`).
 * `username` - (Required) The OpenNebula username.
 * `password` - (Required) The Opennebula password matching the username.
 * `insecure` - (Optional) Allow insecure connexion (skip TLS verification).
@@ -63,7 +63,7 @@ The provider can also read the following environment variables if no value is se
 
 ```bash
 export OPENNEBULA_ENDPOINT="https://example.com:2633/RPC2"
-export OPENNEBULA_FLOW_ENDPOINT="https://example.com:2474/RPC2"
+export OPENNEBULA_FLOW_ENDPOINT="https://example.com:2474"
 export OPENNEBULA_USERNAME="me"
 export OPENNEBULA_PASSWORD="p@s5w0rD"
 export OPENNEBULA_INSECURE="true"
