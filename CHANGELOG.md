@@ -1,4 +1,4 @@
-# 1.3.0 (Unreleased)
+# 1.3.1 (Unreleased)
 
 BUG FIXES:
 
@@ -7,6 +7,7 @@ BUG FIXES:
 ENHANCEMENTS:
 
 * provider: `insecure` attribute now also skips TLS verification for the flow client (#482)
+* opennebula_service: allows timeout to be user configurable (#467)
 
 # 1.3.0 (July 28th, 2023)
 

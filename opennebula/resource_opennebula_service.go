@@ -16,6 +16,11 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/service"
 )
 
+var (
+	defaultServiceTimeoutMin = 20
+	defaultServiceTimeout    = time.Duration(defaultVMTimeoutMin) * time.Minute
+)
+
 func resourceOpennebulaService() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceOpennebulaServiceCreate,
@@ -23,6 +28,10 @@ func resourceOpennebulaService() *schema.Resource {
 		Exists:        resourceOpennebulaServiceExists,
 		UpdateContext: resourceOpennebulaServiceUpdate,
 		DeleteContext: resourceOpennebulaServiceDelete,
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(defaultServiceTimeout),
+			Delete: schema.DefaultTimeout(defaultServiceTimeout),
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -235,7 +244,8 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 		}
 	}
 
-	_, err = waitForServiceState(ctx, d, meta, "running")
+	timeout := d.Timeout(schema.TimeoutCreate)
+	_, err = waitForServiceState(ctx, d, meta, "running", timeout)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -375,7 +385,8 @@ func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData
 
 	}
 
-	_, err = waitForServiceState(ctx, d, meta, "done")
+	timeout := d.Timeout(schema.TimeoutDelete)
+	_, err = waitForServiceState(ctx, d, meta, "done", timeout)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -648,7 +659,7 @@ func changeServiceName(d *schema.ResourceData, meta interface{}, sc *goca.Servic
 	return nil
 }
 
-func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta interface{}, state string) (interface{}, error) {
+func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta interface{}, state string, timeout time.Duration) (interface{}, error) {
 	var service *service.Service
 	var err error
 
@@ -709,7 +720,7 @@ func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta inter
 				return service, "anythingelse", nil
 			}
 		},
-		Timeout:    3 * time.Minute,
+		Timeout:    timeout,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
