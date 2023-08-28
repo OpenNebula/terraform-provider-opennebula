@@ -293,17 +293,13 @@ func resourceOpennebulaMarketPlace() *schema.Resource {
 func getMarketPlaceController(d *schema.ResourceData, meta interface{}) (*goca.MarketPlaceController, error) {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var gc *goca.MarketPlaceController
 
-	if d.Id() != "" {
-		gid, err := strconv.ParseUint(d.Id(), 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		gc = controller.MarketPlace(int(gid))
+	marketID, err := strconv.ParseUint(d.Id(), 10, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	return gc, nil
+	return controller.MarketPlace(int(marketID)), nil
 }
 
 func resourceOpennebulaMarketPlaceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
