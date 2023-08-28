@@ -107,6 +107,7 @@ func Provider() *schema.Provider {
 			"opennebula_host":                             resourceOpennebulaHost(),
 			"opennebula_datastore":                        resourceOpennebulaDatastore(),
 			"opennebula_marketplace":                      resourceOpennebulaMarketPlace(),
+			"opennebula_marketplace_appliance":            resourceOpennebulaMarketPlaceApp(),
 		},
 
 		ConfigureContextFunc: providerConfigure,

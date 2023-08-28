@@ -4,6 +4,8 @@ FEATURES:
 
 * **New Resource**: `opennebula_marketplace` (#414)
 * ***New Data Source**: `opennebula_marketplace` (#414)
+* **New Resource**: `opennebula_marketplace_appliance` (#476)
+* **New Data Source**: `opennebula_marketplace_appliance` (#476)
 
 # 1.3.1 (September 11st, 2023)
 
