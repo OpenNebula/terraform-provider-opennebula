@@ -1,4 +1,4 @@
-# 1.3.1 (Unreleased)
+# 1.3.1 (September 11st, 2023)
 
 BUG FIXES:
 
