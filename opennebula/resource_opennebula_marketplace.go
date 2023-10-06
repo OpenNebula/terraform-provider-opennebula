@@ -1019,6 +1019,20 @@ func resourceOpennebulaMarketPlaceUpdate(ctx context.Context, d *schema.Resource
 
 	}
 
+	if d.HasChange("permissions") {
+		if perms, ok := d.GetOk("permissions"); ok {
+			err = mpc.Chmod(permissionUnix(perms.(string)))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to change permissions",
+					Detail:   fmt.Sprintf("marketplace (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+		}
+	}
+
 	if d.HasChange("disabled") {
 		disabled := d.Get("disabled").(bool)
 		err := mpc.Enable(!disabled)

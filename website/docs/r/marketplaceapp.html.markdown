@@ -40,6 +40,7 @@ The following arguments are supported:
 * `type` - (Required) Type of the new host: IMAGE, VMTEMPLATE, SERVICE_TEMPLATE.
 * `origin_id` - (Optional) The ID of the source image. Default to `-1`.
 * `description` - (Optional) Text description of the appliance.
+* `permissions` - (Optional) Permissions applied to the appliance. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `publisher` - (Optional) Publisher of the appliance.
 * `version` - (Optional) A string indicating the appliance version.
 * `vmtemplate64` - (Optional) Creates this template pointing to the base image.

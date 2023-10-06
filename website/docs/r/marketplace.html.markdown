@@ -40,6 +40,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the marketplace.
 * `description` - (Optional) The description of the marketplace.
+* `permissions` - (Optional) Permissions applied to the appliance. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `one` - (Optional) See [One](#One) section for details.
 * `http` - (Optional) See [Http](#Http) section for details.
 * `s3` - (Optional) See [S3](#S3) section for details.
