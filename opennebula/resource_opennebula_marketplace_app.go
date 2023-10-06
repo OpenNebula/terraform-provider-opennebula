@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -170,9 +171,27 @@ func resourceOpennebulaMarketPlaceAppCreate(ctx context.Context, d *schema.Resou
 	if val, ok := d.GetOk("origin_id"); ok {
 		tpl.Add(appk.OriginID, val.(int))
 	}
-	if val, ok := d.GetOk("type"); ok {
-		tpl.Add(appk.Type, val.(string))
+
+	val, ok := d.GetOk("type")
+	if ok {
+		valStr := val.(string)
+		requiredVersion, _ := version.NewVersion("6.0.0")
+		if config.OneVersion.LessThan(requiredVersion) {
+			if valStr != AppTypeImage {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Marketplace appliance type error",
+					Detail:   "Other type than IMAGE not supported before OpenNebula 6.0",
+				})
+				return diags
+			} else {
+				tpl.Add(appk.Type, valStr)
+			}
+		} else {
+			tpl.Add(appk.Type, valStr)
+		}
 	}
+
 	if val, ok := d.GetOk("description"); ok {
 		tpl.Add(appk.Description, val.(string))
 	}
@@ -452,6 +471,8 @@ func flattenMarketPlaceAppTemplate(d *schema.ResourceData, meta interface{}, app
 
 func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
+	config := meta.(*Configuration)
+
 	var diags diag.Diagnostics
 
 	ac, err := getMarketPlaceAppController(d, meta)
@@ -462,10 +483,6 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 			Detail:   err.Error(),
 		})
 		return diags
-	}
-
-	if d.HasChange("") {
-
 	}
 
 	// template management
@@ -512,12 +529,27 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 	}
 
 	if d.HasChange("type") {
-		newTpl.Del(string(appk.Type))
 
-		appType := d.Get("type").(int)
-		newTpl.AddPair(string(appk.Type), appType)
+		appType := d.Get("type").(string)
+		requiredVersion, _ := version.NewVersion("6.0.0")
 
-		update = true
+		if config.OneVersion.GreaterThanOrEqual(requiredVersion) {
+			newTpl.Del(string(appk.Type))
+
+			newTpl.AddPair(string(appk.Type), appType)
+
+			update = true
+		} else {
+			if appType != AppTypeImage {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Marketplace appliance type error",
+					Detail:   "Other type than IMAGE not supported before OpenNebula 6.0",
+				})
+				return diags
+			}
+		}
+
 	}
 
 	if d.HasChange("description") {
