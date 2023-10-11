@@ -162,6 +162,9 @@ Minimum 1 item. Maximum 8 items.
 * `model` - (Optional) Nic model driver. Example: `virtio`.
 * `physical_device` - (Optional) Physical device hosting the virtual network.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
+* `network_mode_auto` - (Optional) A boolean letting the scheduler pick the Virtual Networks the VM NICs will be attached to.
+* `sched_requirements` - (Optional) A boolean expression to select virtual networks (evaluates to true) to attach the NIC.
+* `sched_rank` - (Optional) Arithmetic expression to sort the suitable Virtual Networks for this NIC.
 
 Minimum 1 item. Maximum 8 items.
 

@@ -217,12 +217,18 @@ func vmDiskResize(ctx context.Context, vmc *goca.VMController, timeout time.Dura
 // vmNICAttach is an helper that synchronously attach a nic
 func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, nicTpl *shared.NIC) (int, error) {
 
-	networkID, err := nicTpl.GetI(shared.NetworkID)
-	if err != nil {
-		return -1, fmt.Errorf("NIC template doesn't have a network ID")
+	isNetworkMode := false
+	networkMode, netModeErr := nicTpl.Get(shared.NetworkMode)
+	networkID, netIDErr := nicTpl.GetI(shared.NetworkID)
+	if netIDErr == nil {
+		log.Printf("[DEBUG] Attach NIC to network (ID:%d)", networkID)
+	} else {
+		if netModeErr != nil {
+			return -1, fmt.Errorf("NIC template neither have a network ID or a network mode")
+		}
+		log.Printf("[DEBUG] Attach NIC with network mode %s", networkMode)
+		isNetworkMode = true
 	}
-
-	log.Printf("[DEBUG] Attach NIC to network (ID:%d)", networkID)
 
 	// Retrieve NIC list
 	vm, err := vmc.Info(false)
@@ -237,7 +243,11 @@ func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 
 	err = vmc.AttachNIC(nicTpl.String())
 	if err != nil {
-		return -1, fmt.Errorf("can't attach network with ID:%d: %s\n", networkID, err)
+		if isNetworkMode {
+			return -1, fmt.Errorf("can't attach NIC (mode:%s): %s\n", networkMode, err)
+		} else {
+			return -1, fmt.Errorf("can't attach network (ID:%d): %s\n", networkID, err)
+		}
 	}
 
 	// wait before checking NIC list
@@ -277,7 +287,11 @@ func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 
 		vmerr, _ := vm.UserTemplate.Get(vmk.Error)
 
-		return -1, fmt.Errorf("network %d: %s", networkID, vmerr)
+		if isNetworkMode {
+			return -1, fmt.Errorf("network (mode:%s): %s\n", networkMode, vmerr)
+		} else {
+			return -1, fmt.Errorf("network (ID:%d): %s", networkID, vmerr)
+		}
 
 	} else {
 
@@ -314,7 +328,12 @@ func vmNICAttach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 			break
 		}
 		if attachedNIC == nil {
-			return -1, fmt.Errorf("network %d: can't find the nic", networkID)
+
+			if isNetworkMode {
+				return -1, fmt.Errorf("network (mode %s): can't find the NIC\n", networkMode)
+			} else {
+				return -1, fmt.Errorf("network (ID:%d): can't find the NIC", networkID)
+			}
 		}
 	}
 
