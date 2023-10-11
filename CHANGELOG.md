@@ -7,6 +7,10 @@ FEATURES:
 * **New Resource**: `opennebula_marketplace_appliance` (#476)
 * **New Data Source**: `opennebula_marketplace_appliance` (#476)
 
+BUG FIXES:
+
+* resources/opennebula_virtual_machine: fix `cpumodel` update (#463)
+
 # 1.3.1 (September 11st, 2023)
 
 BUG FIXES:
