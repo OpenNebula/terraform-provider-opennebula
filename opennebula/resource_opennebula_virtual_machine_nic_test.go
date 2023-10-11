@@ -60,11 +60,11 @@ func TestAccVirtualMachineNICUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "keep_nic_order", "false"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "5"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.112"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.1.computed_ip", "172.16.100.132"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.2.computed_ip", "172.16.100.113"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.3.computed_ip", "172.16.100.133"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.4.computed_ip", "172.16.100.133"),
 				),
 			},
 			{
@@ -72,11 +72,11 @@ func TestAccVirtualMachineNICUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "keep_nic_order", "true"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "4"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.#", "5"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.0.computed_ip", "172.16.100.112"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.1.computed_ip", "172.16.100.134"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.2.computed_ip", "172.16.100.113"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.3.computed_ip", "172.16.100.133"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "nic.4.computed_ip", "172.16.100.133"),
 				),
 			},
 			{
@@ -105,7 +105,7 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_ip", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_model", "virtio"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_virtio_queues", "2"),
@@ -116,7 +116,7 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 				Config: testAccVirtualMachineTemplateNICAdd,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_ip", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_model", "virtio"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_virtio_queues", "2"),
@@ -130,7 +130,7 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 				Config: testAccVirtualMachineTemplateNIC,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_ip", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_model", "virtio"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "template_nic.0.computed_virtio_queues", "2"),
@@ -446,6 +446,9 @@ var testAccVirtualMachineTemplateConfigMultipleNICs = testNICVNetResources + `
 		ip         = "172.16.100.113"
 	  }
 	  nic {
+		network_mode_auto = true
+	  }
+	  nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.133"
 	  }
@@ -496,6 +499,9 @@ var testAccVirtualMachineTemplateConfigMultipleNICsOrderedUpdate = testNICVNetRe
 	  nic {
 		network_id = opennebula_virtual_network.network2.id
 		ip         = "172.16.100.113"
+	  }
+	  nic {
+		network_mode_auto = true
 	  }
 	  nic {
 		network_id = opennebula_virtual_network.network1.id
@@ -568,6 +574,9 @@ resource "opennebula_template" "template" {
 	  model = "virtio"
 	  virtio_queues = "2"
     }
+	nic {
+		network_mode_auto = true
+	}
 
     os {
       arch = "x86_64"

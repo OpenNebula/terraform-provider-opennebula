@@ -207,7 +207,8 @@ func nicFields() map[string]*schema.Schema {
 		},
 		"network_id": {
 			Type:     schema.TypeInt,
-			Required: true,
+			Optional: true,
+			Default:  -1,
 		},
 		"network": {
 			Type:     schema.TypeString,
@@ -223,6 +224,18 @@ func nicFields() map[string]*schema.Schema {
 			Elem: &schema.Schema{
 				Type: schema.TypeInt,
 			},
+		},
+		"network_mode_auto": {
+			Type:     schema.TypeBool,
+			Optional: true,
+		},
+		"sched_requirements": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"sched_rank": {
+			Type:     schema.TypeString,
+			Optional: true,
 		},
 	}
 }
@@ -536,7 +549,10 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 	for k, v := range nicConfig {
 
 		if k == "network_id" {
-			nic.Add(shared.NetworkID, strconv.Itoa(v.(int)))
+			networkID := v.(int)
+			if networkID != -1 {
+				nic.Add(shared.NetworkID, strconv.Itoa(networkID))
+			}
 			continue
 		}
 
@@ -558,6 +574,15 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 		case "security_groups":
 			nicSecGroups := ArrayToString(v.([]interface{}), ",")
 			nic.Add(shared.SecurityGroups, nicSecGroups)
+		case "network_mode_auto":
+			if v.(bool) {
+				nic.Add(shared.NetworkMode, "auto")
+			}
+		case "sched_requirements":
+			nic.Add(shared.SchedRequirements, v.(string))
+		case "sched_rank":
+			nic.Add(shared.SchedRank, v.(string))
+
 		}
 	}
 
@@ -774,8 +799,17 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	model, _ := nic.Get(shared.Model)
 	virtioQueues, _ := nic.GetStr("VIRTIO_QUEUES")
 	networkId, _ := nic.GetI(shared.NetworkID)
-	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 
+	networkModeBool := false
+	networkMode, err := nic.Get(shared.NetworkMode)
+	if err == nil && networkMode == "auto" {
+		networkModeBool = true
+	}
+
+	schedReqs, _ := nic.Get(shared.SchedRequirements)
+	schedRank, _ := nic.Get(shared.SchedRank)
+
+	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
 	if len(securityGroupsArray) > 0 {
 		sgString := strings.Split(securityGroupsArray, ",")
 		for _, s := range sgString {
@@ -785,14 +819,17 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"ip":              ip,
-		"mac":             mac,
-		"network_id":      networkId,
-		"physical_device": physicalDevice,
-		"network":         network,
-		"model":           model,
-		"virtio_queues":   virtioQueues,
-		"security_groups": sg,
+		"ip":                 ip,
+		"mac":                mac,
+		"network_id":         networkId,
+		"physical_device":    physicalDevice,
+		"network":            network,
+		"model":              model,
+		"virtio_queues":      virtioQueues,
+		"security_groups":    sg,
+		"network_mode_auto":  networkModeBool,
+		"sched_requirements": schedReqs,
+		"sched_rank":         schedRank,
 	}
 }
 

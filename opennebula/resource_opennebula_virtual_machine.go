@@ -902,6 +902,21 @@ func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[
 		NICMap["security_groups"] = NICMap["computed_security_groups"]
 	}
 
+	networkMode, err := NIC.Get(shared.NetworkMode)
+	if err == nil && networkMode == "auto" {
+		NICMap["network_mode_auto"] = true
+	}
+
+	schedReqs, err := NIC.Get(shared.SchedRequirements)
+	if err == nil {
+		NICMap["sched_requirements"] = schedReqs
+	}
+
+	schedRank, err := NIC.Get(shared.SchedRank)
+	if err == nil {
+		NICMap["sched_rank"] = schedRank
+	}
+
 	return NICMap
 }
 
@@ -940,6 +955,10 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 
 	model, _ := NIC.Get(shared.Model)
 	virtioQueues, _ := NIC.GetStr("VIRTIO_QUEUES")
+	schedRequirements, _ := NIC.Get(shared.SchedRequirements)
+	schedRank, _ := NIC.Get(shared.SchedRank)
+	networkMode, _ := NIC.Get(shared.NetworkMode)
+
 	securityGroupsArray, _ := NIC.Get(shared.SecurityGroups)
 
 	if NICConfig["security_groups"] != nil && len(NICConfig["security_groups"].([]interface{})) > 0 {
@@ -976,7 +995,10 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 		emptyOrEqual(NICConfig["mac"], mac) &&
 		emptyOrEqual(NICConfig["physical_device"], physicalDevice) &&
 		emptyOrEqual(NICConfig["model"], model) &&
-		emptyOrEqual(NICConfig["virtio_queues"], virtioQueues)
+		emptyOrEqual(NICConfig["virtio_queues"], virtioQueues) &&
+		emptyOrEqual(NICConfig["sched_requirements"], schedRequirements) &&
+		emptyOrEqual(NICConfig["sched_rank"], schedRank) &&
+		(NICConfig["network_mode_auto"].(bool) == false || networkMode == "auto")
 }
 
 func matchNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
@@ -1051,8 +1073,13 @@ NICLoop:
 			match = true
 			nicMap = flattenVMNICComputed(nicConfig, nic)
 
-			networkID, _ := nic.GetI(shared.NetworkID)
-			nicMap["network_id"] = networkID
+			networkIDCfg := nicConfig["network_id"].(int)
+			if networkIDCfg == -1 {
+				nicMap["network_id"] = -1
+			} else {
+				networkID, _ := nic.GetI(shared.NetworkID)
+				nicMap["network_id"] = networkID
+			}
 
 			nicList = append(nicList, nicMap)
 
@@ -1863,7 +1890,11 @@ func updateNIC(ctx context.Context, d *schema.ResourceData, meta interface{}) er
 		"security_groups",
 		"model",
 		"virtio_queues",
-		"physical_device")
+		"physical_device",
+		"network_mode_auto",
+		"sched_requirements",
+		"sched_rank",
+	)
 
 	// in case of NICs updated in the middle of the NIC list
 	// they would be reattached at the end of the list (we don't have in place XML-RPC update method).

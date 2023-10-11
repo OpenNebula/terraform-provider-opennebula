@@ -8,6 +8,11 @@ FEATURES:
 * **New Data Source**: `opennebula_marketplace_appliance` (#476)
 * resources/opennebula_virtual_router_nic: add floating IP allocation (#510)
 
+ENHANCEMENTS:
+
+* resources/opennebula_virtual_machine: add `nic` scheduling attributes: `network_mode_auto`, `sched_requirements`, `sched_rank`. (#477)
+* resources/opennebula_template: add `nic` scheduling attributes: `network_mode_auto`, `sched_requirements`, `sched_rank`. (#477)
+
 BUG FIXES:
 
 * resources/opennebula_virtual_machine: fix `cpumodel` update (#463)
