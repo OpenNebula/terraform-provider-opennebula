@@ -382,6 +382,16 @@ func graphicsSchema() *schema.Schema {
 					Optional: true,
 					Default:  "en-us",
 				},
+				"passwd": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"graphics.0.random_passwd"},
+				},
+				"random_passwd": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"graphics.0.passwd"},
+				},
 			},
 		},
 	}
@@ -619,6 +629,11 @@ func addGraphic(tpl *vm.Template, graphics []interface{}) {
 				tpl.AddIOGraphic(vmk.Port, v.(string))
 			case "keymap":
 				tpl.AddIOGraphic(vmk.Keymap, v.(string))
+			case "passwd":
+				tpl.AddIOGraphic(vmk.Passwd, v.(string))
+			case "random_passwd":
+				// Convert bool to string
+				tpl.AddIOGraphic(vmk.RandomPassword, map[bool]string{true: "YES", false: "NO"}[v.(bool)])
 			}
 
 		}
@@ -906,6 +921,8 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
 	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
+	passwd, _ := vmTemplate.GetIOGraphic(vmk.Passwd)
+	random_passwd, _ := vmTemplate.GetIOGraphic(vmk.RandomPassword)
 	// Raw
 	rawVec, _ := vmTemplate.GetVector("RAW")
 
@@ -967,10 +984,12 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	// Set graphics to resource
 	if port != "" {
 		graphMap = append(graphMap, map[string]interface{}{
-			"listen": listen,
-			"port":   port,
-			"type":   t,
-			"keymap": keymap,
+			"listen":        listen,
+			"port":          port,
+			"type":          t,
+			"keymap":        keymap,
+			"passwd":        passwd,
+			"random_passwd": random_passwd,
 		})
 		_, inherited := inheritedVectors["GRAPHICS"]
 		if !inherited {
