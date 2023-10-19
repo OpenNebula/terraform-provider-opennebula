@@ -117,6 +117,8 @@ The following arguments are supported:
 * `listen` - (Required) Binding address.
 * `port` - (Optional) Binding Port.
 * `keymap` - (Optional) Keyboard mapping.
+* `passwd` - (Optional) VNC's password, conflicts with random_passwd.
+* `random_passwd` - (Optional) Randomized VNC's password, conflicts with passwd.
 
 ### OS parameters
 

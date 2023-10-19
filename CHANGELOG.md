@@ -12,6 +12,8 @@ ENHANCEMENTS:
 
 * resources/opennebula_virtual_machine: add `nic` scheduling attributes: `network_mode_auto`, `sched_requirements`, `sched_rank`. (#477)
 * resources/opennebula_template: add `nic` scheduling attributes: `network_mode_auto`, `sched_requirements`, `sched_rank`. (#477)
+* resources/opennebula_virtual_machine: adds `passwd` and `random_passwd` fields to `graphics` section. (#498)
+* resources/opennebula_template: adds `passwd` and `random_passwd` fields to `graphics` section. (#498)
 
 BUG FIXES:
 
