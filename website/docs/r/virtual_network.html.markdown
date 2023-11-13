@@ -45,7 +45,7 @@ resource "opennebula_virtual_network" "example" {
   dns             = "172.16.100.1"
   gateway         = "172.16.100.1"
   security_groups = [0]
-  clusters_ids    = [0]
+  cluster_ids    = [0]
 
   ar {
     ar_type = "IP4"
