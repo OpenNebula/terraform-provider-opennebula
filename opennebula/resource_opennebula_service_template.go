@@ -54,7 +54,8 @@ func resourceOpennebulaServiceTemplate() *schema.Resource {
 						return false
 					}
 
-					return reflect.DeepEqual(old_template, new_template)
+					// Custom deepEqual func to avoid empty fields #468
+					return deepEqualIgnoreEmpty(old_template, new_template)
 				},
 			},
 			"permissions": {
@@ -564,4 +565,31 @@ func changeServiceTemplateName(d *schema.ResourceData, meta interface{}, stc *go
 	}
 
 	return nil
+}
+
+func deepEqualIgnoreEmpty(old_template, new_template *srv_tmpl.ServiceTemplate) bool {
+	old_map := structToMap(old_template)
+	new_map := structToMap(new_template)
+
+	for key, oldValue := range old_map {
+		// Ignore empty fields since they are not returned by the OCA
+		if isEmptyValue(reflect.ValueOf(oldValue)) {
+			continue
+		}
+
+		// If the field is not present or not equal in the new template, return false
+		newValue, ok := new_map[key]
+		if !ok || !reflect.DeepEqual(oldValue, newValue) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func structToMap(obj interface{}) map[string]interface{} {
+	jsonBytes, _ := json.Marshal(obj)
+	var mapObj map[string]interface{}
+	json.Unmarshal(jsonBytes, &mapObj)
+	return mapObj
 }
