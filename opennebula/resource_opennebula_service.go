@@ -314,7 +314,17 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 	var networks = make(map[string]int)
 	for _, val := range sv.Template.Body.NetworksVals {
 		for k, v := range val {
-			networks[k] = int(v.(map[string]interface{})["id"].(float64))
+			s := v.(map[string]interface{})["id"].(string)
+			networkID, err := strconv.ParseUint(s, 10, 0)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to parse network ID",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+			networks[k] = int(networkID)
 		}
 	}
 	d.Set("networks", networks)
@@ -379,10 +389,8 @@ func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData
 				Summary:  "Failed to recover",
 				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 			})
+			return diags
 		}
-
-		return diags
-
 	}
 
 	timeout := d.Timeout(schema.TimeoutDelete)

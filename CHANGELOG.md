@@ -11,6 +11,7 @@ BUG FIXES:
 
 * resources/opennebula_virtual_machine: fix `cpumodel` update (#463)
 * resources/opennebula_service_template: improve `service_template` idempotency (#468)
+* resources/opennebula_service: fix service crashes (#469)
 
 # 1.3.1 (September 11st, 2023)
 
