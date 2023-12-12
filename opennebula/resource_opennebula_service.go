@@ -315,7 +315,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 	for _, val := range sv.Template.Body.NetworksVals {
 		for k, v := range val {
 			s := v.(map[string]interface{})["id"].(string)
-			networkID, err := strconv.ParseUint(s, 10, 0)
+			networkID, err := strconv.ParseInt(s, 10, 0)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
