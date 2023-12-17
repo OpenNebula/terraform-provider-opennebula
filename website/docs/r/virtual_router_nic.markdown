@@ -89,7 +89,13 @@ resource "opennebula_virtual_network" "example" {
   clusters        = [0]
 }
 
-resource "opennebula_virtual_router_nic" "example" {
+resource "opennebula_virtual_router_nic" "example1" {
+  floating_ip       = true
+  virtual_router_id = opennebula_virtual_router.example.id
+  network_id        = opennebula_virtual_network.example.id
+}
+
+resource "opennebula_virtual_router_nic" "example2" {
   virtual_router_id = opennebula_virtual_router.example.id
   network_id        = opennebula_virtual_network.example.id
 }
@@ -105,6 +111,7 @@ The following arguments are supported:
 * `virtio_queues` - (Optional) Virtio multi-queue size. Only if `model` is `virtio`.
 * `physical_device` - (Optional) Physical device hosting the virtual network.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
+* `floating_ip` - (Optional) Allocate floating IP for the NIC. Defaults to `false`.
 
 ## Attribute Reference
 
@@ -115,6 +122,7 @@ The following attribute are exported:
 * `virtio_queues` - Virtio multi-queue size. Only if `model` is `virtio`.
 * `physical_device` - Physical device hosting the virtual network.
 * `security_groups` - List of security group IDs to use on the virtual network.
+* `floating_ip` - Allocate floating IP for the NIC. Defaults to `false`.
 
 ## Import
 
