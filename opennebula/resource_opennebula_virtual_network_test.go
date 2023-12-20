@@ -190,14 +190,17 @@ func TestAccVirtualNetwork(t *testing.T) {
 			{
 				Config: testAccVirtualNetworkReservationConfig,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "name", "terravnetres"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_size", "5"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_first_ip", "172.16.100.115"),
-					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "permissions", "660"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "uid"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "gid"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "uname"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation", "gname"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "name", "terravnetres"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "reservation_size", "5"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "reservation_first_ip", "172.16.100.115"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "permissions", "660"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "gname"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation2", "name", "zero_ar_id"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation2", "reservation_size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation2", "reservation_first_ip", "172.16.100.3"),
 					testAccCheckVirtualNetworkPermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -563,13 +566,23 @@ resource "opennebula_virtual_network_address_range" "test4" {
 	size               = 2
 }
 
-resource "opennebula_virtual_network" "reservation" {
+resource "opennebula_virtual_network" "reservation1" {
     name = "terravnetres"
     description = "my terraform vnet"
     reservation_vnet = opennebula_virtual_network.test.id
     reservation_size = 5
 	reservation_ar_id = opennebula_virtual_network_address_range.test.id
 	reservation_first_ip = "172.16.100.115"
+    security_groups = [0]
+    permissions = 660
+}
+
+resource "opennebula_virtual_network" "reservation2" {
+    name = "zero_ar_id"
+    reservation_vnet = opennebula_virtual_network.test.id
+    reservation_size = 2
+	reservation_ar_id = 0
+	reservation_first_ip = "172.16.100.3"
     security_groups = [0]
     permissions = 660
 }
