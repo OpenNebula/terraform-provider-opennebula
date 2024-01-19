@@ -38,6 +38,7 @@ func resourceOpennebulaMarketPlaceApp() *schema.Resource {
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(defaultMarketAppTimeout),
 			Update: schema.DefaultTimeout(defaultMarketAppTimeout),
+			Delete: schema.DefaultTimeout(defaultMarketAppTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -807,6 +808,17 @@ func resourceOpennebulaMarketPlaceAppDelete(ctx context.Context, d *schema.Resou
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to delete",
+			Detail:   fmt.Sprintf("marketplace appliance (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	timeout := d.Timeout(schema.TimeoutDelete)
+	_, err = waitForMarketAppStates(ctx, ac, timeout, []string{app.Ready.String(), app.Locked.String(), app.Init.String(), app.Locked.String(), app.Disabled.String()}, []string{"notfound"})
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to wait marketplace appliance to be removed",
 			Detail:   fmt.Sprintf("marketplace appliance (ID: %s): %s", d.Id(), err),
 		})
 		return diags
