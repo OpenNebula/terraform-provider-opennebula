@@ -287,7 +287,7 @@ func resourceOpennebulaMarketPlaceAppCreate(ctx context.Context, d *schema.Resou
 	ac := controller.MarketPlaceApp(appID)
 
 	timeout := d.Timeout(schema.TimeoutCreate)
-	_, err = waitForMarketAppStates(ctx, ac, timeout, []string{app.Init.String(), app.Ready.String()}, []string{app.Ready.String()})
+	_, err = waitForMarketAppStates(ctx, ac, timeout, []string{app.Init.String(), app.Ready.String(), app.Locked.String()}, []string{app.Ready.String()})
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
