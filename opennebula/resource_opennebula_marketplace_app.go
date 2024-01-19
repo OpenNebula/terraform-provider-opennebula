@@ -556,7 +556,7 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 	if d.HasChange("description") {
 		newTpl.Del(string(appk.Description))
 
-		description := d.Get("description").(int)
+		description := d.Get("description").(string)
 		newTpl.AddPair(string(appk.Description), description)
 
 		update = true
@@ -565,7 +565,7 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 	if d.HasChange("publisher") {
 		newTpl.Del(string(appk.Publisher))
 
-		publisher := d.Get("publisher").(int)
+		publisher := d.Get("publisher").(string)
 		newTpl.AddPair(string(appk.Publisher), publisher)
 
 		update = true
@@ -574,7 +574,7 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 	if d.HasChange("version") {
 		newTpl.Del(string(appk.Version))
 
-		version := d.Get("version").(int)
+		version := d.Get("version").(string)
 		newTpl.AddPair(string(appk.Version), version)
 
 		update = true
@@ -583,7 +583,7 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 	if d.HasChange("vmtemplate64") {
 		newTpl.Del(string(appk.VMTemplate64))
 
-		vmTemplate := d.Get("vmtemplate64").(int)
+		vmTemplate := d.Get("vmtemplate64").(string)
 		newTpl.AddPair(string(appk.VMTemplate64), vmTemplate)
 
 		update = true
@@ -592,7 +592,7 @@ func resourceOpennebulaMarketPlaceAppUpdate(ctx context.Context, d *schema.Resou
 	if d.HasChange("apptemplate64") {
 		newTpl.Del(string(appk.AppTemplate64))
 
-		appTemplate := d.Get("apptemplate64").(int)
+		appTemplate := d.Get("apptemplate64").(string)
 		newTpl.AddPair(string(appk.AppTemplate64), appTemplate)
 
 		update = true

@@ -137,7 +137,7 @@ resource "opennebula_marketplace_appliance" "example" {
     permissions = "642"
 	type = "VMTEMPLATE"
 	description = "this is an appliance"
-	version = "0.2.0"
+	version = "1.0.0"
   
 	tags = {
 	  custom1 = "value2"

@@ -4,7 +4,7 @@ FEATURES:
 
 * **New Resource**: `opennebula_marketplace` (#414)
 * **New Data Source**: `opennebula_marketplace` (#414)
-* **New Resource**: `opennebula_marketplace_appliance` (#476, #517, #518)
+* **New Resource**: `opennebula_marketplace_appliance` (#476, #517, #518, #521)
 * **New Data Source**: `opennebula_marketplace_appliance` (#476)
 * resources/opennebula_virtual_router_nic: add floating IP allocation (#510)
 
