@@ -20,7 +20,7 @@ terraform {
   required_providers {
     opennebula = {
       source = "OpenNebula/opennebula"
-      version = "~> 1.3"
+      version = "~> 1.4"
     }
   }
 }
@@ -30,7 +30,7 @@ provider "opennebula" {
 }
 
 resource "opennebula_group" "group" {
-  # ...
+  name = "OpenNebula"
 }
 ```
 

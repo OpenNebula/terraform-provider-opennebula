@@ -1,4 +1,4 @@
-# 1.4.0 (Unreleased)
+# 1.4.0 (January 22nd, 2024)
 
 FEATURES:
 

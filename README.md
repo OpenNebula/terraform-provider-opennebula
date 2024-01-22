@@ -23,24 +23,26 @@
 
 ## Example usage
 
-Configure the OpenNebula Provider:
-
 ```hcl
+terraform {
+  required_providers {
+    opennebula = {
+      source = "OpenNebula/opennebula"
+      version = "~> 1.4"
+    }
+  }
+}
+
 provider "opennebula" {
-  endpoint      = "<ENDPOINT URL>"
-  flow_endpoint = "<FLOW ENDPOINT URL>"
-  username      = "<USERNAME>"
-  password      = "<PASSWORD OR TOKEN>"
+  endpoint      = "https://example.com:2633/RPC2"
 }
-```
 
-Create OpenNebula resources:
-
-```hcl
 resource "opennebula_group" "group" {
-  # ...
+  name = "OpenNebula"
 }
 ```
+
+More details [here](./website/docs/index.html.markdown).
 
 ## OpenNebula versions support
 

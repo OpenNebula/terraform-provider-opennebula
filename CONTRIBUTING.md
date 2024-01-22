@@ -100,7 +100,7 @@ If you are intereseted working on an issue, open a new Pull Request as _Draft_ a
 
 ### Stale Issues and Pull Requests
 
-Issues and Pull Requests are automaticaly labeled as `stale` after 55 days. Without any action, the Issue or the Pull request is closed 5 days after.
+Issues and Pull Requests are automaticaly labeled as `stale` after 30 days. Without any action, the Issue or the Pull request is closed 5 days after.
 
 ### Quality
 
