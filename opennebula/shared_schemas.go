@@ -388,7 +388,7 @@ func graphicsSchema() *schema.Schema {
 					ConflictsWith: []string{"graphics.0.random_passwd"},
 				},
 				"random_passwd": {
-					Type:          schema.TypeString,
+					Type:          schema.TypeBool,
 					Optional:      true,
 					ConflictsWith: []string{"graphics.0.passwd"},
 				},
@@ -921,8 +921,8 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	port, _ := vmTemplate.GetIOGraphic(vmk.Port)
 	t, _ := vmTemplate.GetIOGraphic(vmk.GraphicType)
 	keymap, _ := vmTemplate.GetIOGraphic(vmk.Keymap)
-	passwd, _ := vmTemplate.GetIOGraphic(vmk.Passwd)
-	random_passwd, _ := vmTemplate.GetIOGraphic(vmk.RandomPassword)
+	randomPasswd, _ := vmTemplate.GetIOGraphic(vmk.RandomPassword)
+
 	// Raw
 	rawVec, _ := vmTemplate.GetVector("RAW")
 
@@ -988,8 +988,7 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 			"port":          port,
 			"type":          t,
 			"keymap":        keymap,
-			"passwd":        passwd,
-			"random_passwd": random_passwd,
+			"random_passwd": randomPasswd == "YES",
 		})
 		_, inherited := inheritedVectors["GRAPHICS"]
 		if !inherited {
