@@ -1,3 +1,9 @@
+# 1.4.1 (Unreleased)
+
+FEATURES:
+
+* resources/opennebula_virtual_network: allow to modify the user owning the resource (#529)
+
 # 1.4.0 (January 22nd, 2024)
 
 FEATURES:

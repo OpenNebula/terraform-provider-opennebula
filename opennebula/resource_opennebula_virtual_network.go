@@ -256,6 +256,11 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 					Type: schema.TypeInt,
 				},
 			},
+			"user": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Name of the user that onws the Virtual Network, If empty, it uses caller group",
+			},
 			"group": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -362,10 +367,10 @@ func getVirtualNetworkController(d *schema.ResourceData, meta interface{}) (*goc
 	return controller.VirtualNetwork(int(imgID)), nil
 }
 
-func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
+func changVNetOwner(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Configuration)
 	controller := config.Controller
-	var gid int
+	var gid, uid int
 
 	vnc, err := getVirtualNetworkController(d, meta)
 	if err != nil {
@@ -373,14 +378,28 @@ func changeVNetGroup(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	group := d.Get("group").(string)
-	gid, err = controller.Groups().ByName(group)
-	if err != nil {
-		return fmt.Errorf("Can't find a group with name `%s`: %s", group, err)
+	if len(group) > 0 {
+		gid, err = controller.Groups().ByName(group)
+		if err != nil {
+			return fmt.Errorf("can't find a group with name `%s`: %s", group, err)
+		}
+	} else {
+		gid = -1
 	}
 
-	err = vnc.Chown(-1, gid)
+	user := d.Get("user").(string)
+	if len(user) > 0 {
+		uid, err = controller.Users().ByName(user)
+		if err != nil {
+			return fmt.Errorf("can't find a group with name `%s`: %s", user, err)
+		}
+	} else {
+		uid = -1
+	}
+
+	err = vnc.Chown(uid, gid)
 	if err != nil {
-		return fmt.Errorf("Can't find a group with ID `%d`: %s", gid, err)
+		return fmt.Errorf("can't set the owners to user:`%d` group:`%d` %s", uid, gid, err)
 	}
 
 	return nil
@@ -607,12 +626,12 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		}
 	}
 
-	if d.Get("group") != "" {
-		err := changeVNetGroup(d, meta)
+	if d.Get("group") != "" || d.Get("user") != "" {
+		err := changVNetOwner(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to change group",
+				Summary:  "Failed to change user and group",
 				Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
 			})
 			return diags
@@ -1507,8 +1526,8 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		log.Printf("[INFO] Successfully updated Vnet\n")
 	}
 
-	if d.HasChange("group") {
-		err = changeVNetGroup(d, meta)
+	if d.HasChange("group") || d.HasChange("user") {
+		err = changVNetOwner(d, meta)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,

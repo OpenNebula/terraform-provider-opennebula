@@ -93,6 +93,7 @@ The following arguments are supported:
 * `search_domain` - (Optional) Default search domains for DNS resolution. Conflicts with `reservation_vnet` and `reservation_size`.
 * `ar` - (Deprecated) List of address ranges. See [Address Range Parameters](#address-range-parameters) below for more details. Conflicts with `reservation_vnet` and `reservation_size`.
 * `hold_ips` - (Deprecated) Hold Ips from any Address Range of the Virtual Network. The IP must be available to be held`. Conflicts with`reservation_vnet` and `reservation_size`.
+* `user` - (Optional) Name of the user which owns the virtual network.
 * `group` - (Optional) Name of the group which owns the virtual network. Defaults to the caller primary group.
 * `tags` - (Optional) Map of tags (`key=value`) assigned to the resource. Override matching tags present in the `default_tags` atribute when configured in the `provider` block. See [tags usage related documentation](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs#using-tags) for more information.
 * `lock` - (Optional) Lock the virtual network with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
