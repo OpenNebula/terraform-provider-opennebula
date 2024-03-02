@@ -355,7 +355,6 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 	}
 	d.Set("networks", networks)
 
-
 	// Retrieve roles
 	var roles []map[string]interface{}
 	for _, role := range sv.Template.Body.Roles {
