@@ -602,9 +602,11 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 func addOS(tpl *vm.Template, os []interface{}) {
 
 	for i := 0; i < len(os); i++ {
-		osconfig := os[i].(map[string]interface{})
-		tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
-		tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+		if os[i] != nil {
+			osconfig := os[i].(map[string]interface{})
+			tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
+			tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+		}
 	}
 
 }
@@ -612,30 +614,32 @@ func addOS(tpl *vm.Template, os []interface{}) {
 func addGraphic(tpl *vm.Template, graphics []interface{}) {
 
 	for i := 0; i < len(graphics); i++ {
-		graphicsconfig := graphics[i].(map[string]interface{})
+		if graphics[i] != nil {
+			graphicsconfig := graphics[i].(map[string]interface{})
 
-		for k, v := range graphicsconfig {
+			for k, v := range graphicsconfig {
 
-			if isEmptyValue(reflect.ValueOf(v)) {
-				continue
+				if isEmptyValue(reflect.ValueOf(v)) {
+					continue
+				}
+
+				switch k {
+				case "listen":
+					tpl.AddIOGraphic(vmk.Listen, v.(string))
+				case "type":
+					tpl.AddIOGraphic(vmk.GraphicType, v.(string))
+				case "port":
+					tpl.AddIOGraphic(vmk.Port, v.(string))
+				case "keymap":
+					tpl.AddIOGraphic(vmk.Keymap, v.(string))
+				case "passwd":
+					tpl.AddIOGraphic(vmk.Passwd, v.(string))
+				case "random_passwd":
+					// Convert bool to string
+					tpl.AddIOGraphic(vmk.RandomPassword, map[bool]string{true: "YES", false: "NO"}[v.(bool)])
+				}
+
 			}
-
-			switch k {
-			case "listen":
-				tpl.AddIOGraphic(vmk.Listen, v.(string))
-			case "type":
-				tpl.AddIOGraphic(vmk.GraphicType, v.(string))
-			case "port":
-				tpl.AddIOGraphic(vmk.Port, v.(string))
-			case "keymap":
-				tpl.AddIOGraphic(vmk.Keymap, v.(string))
-			case "passwd":
-				tpl.AddIOGraphic(vmk.Passwd, v.(string))
-			case "random_passwd":
-				// Convert bool to string
-				tpl.AddIOGraphic(vmk.RandomPassword, map[bool]string{true: "YES", false: "NO"}[v.(bool)])
-			}
-
 		}
 
 	}
@@ -648,6 +652,10 @@ func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 	log.Printf("Number of disks: %d", len(disks))
 
 	for i := 0; i < len(disks); i++ {
+		if disks[i] == nil {
+			continue
+		}
+
 		diskconfig := disks[i].(map[string]interface{})
 
 		// ConflictsWith can't be used among attributes of a nested part: disk, nic etc.
@@ -687,17 +695,21 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 	//Generate CPU Model definition
 	cpumodel := d.Get("cpumodel").([]interface{})
 	for i := 0; i < len(cpumodel); i++ {
-		cpumodelconfig := cpumodel[i].(map[string]interface{})
-		tpl.CPUModel(cpumodelconfig["model"].(string))
+		if cpumodel[i] != nil {
+			cpumodelconfig := cpumodel[i].(map[string]interface{})
+			tpl.CPUModel(cpumodelconfig["model"].(string))
+		}
 	}
 
 	//Generate VM Group definition
 	vmgroup := d.Get("vmgroup").([]interface{})
 	for i := 0; i < len(vmgroup); i++ {
-		vmgconfig := vmgroup[i].(map[string]interface{})
-		vmgroupTpl := tpl.AddVector("VMGROUP")
-		vmgroupTpl.AddPair("VMGROUP_ID", vmgconfig["vmgroup_id"].(int))
-		vmgroupTpl.AddPair("ROLE", vmgconfig["role"].(string))
+		if vmgroup[i] != nil {
+			vmgconfig := vmgroup[i].(map[string]interface{})
+			vmgroupTpl := tpl.AddVector("VMGROUP")
+			vmgroupTpl.AddPair("VMGROUP_ID", vmgconfig["vmgroup_id"].(int))
+			vmgroupTpl.AddPair("ROLE", vmgconfig["role"].(string))
+		}
 	}
 
 	vmcpu, ok := d.GetOk("cpu")
@@ -738,10 +750,12 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 	//Generate RAW definition
 	raw := d.Get("raw").([]interface{})
 	for i := 0; i < len(raw); i++ {
-		rawConfig := raw[i].(map[string]interface{})
-		rawVec := tpl.AddVector("RAW")
-		rawVec.AddPair("TYPE", rawConfig["type"].(string))
-		rawVec.AddPair("DATA", rawConfig["data"].(string))
+		if raw[i] != nil {
+			rawConfig := raw[i].(map[string]interface{})
+			rawVec := tpl.AddVector("RAW")
+			rawVec.AddPair("TYPE", rawConfig["type"].(string))
+			rawVec.AddPair("DATA", rawConfig["data"].(string))
+		}
 	}
 
 	descr, ok := d.GetOk("description")
