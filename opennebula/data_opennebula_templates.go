@@ -7,11 +7,15 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	templateSc "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/template"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+var orderTypes = []string{"ASC", "DESC"}
+var sortOnTemplatesValues = []string{"id", "name", "cpu", "vcpu", "memory", "register_date"}
 
 func dataOpennebulaTemplates() *schema.Resource {
 	return &schema.Resource{
@@ -28,12 +32,30 @@ func dataOpennebulaTemplates() *schema.Resource {
 				"sort_on": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "Attribute used to sort the templates list, it has to be an ",
+					Description: "Attribute used to sort the templates list, only works on integer attributes.",
+					ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+						value := strings.ToUpper(v.(string))
+
+						if !contains(value, sortOnTemplatesValues) {
+							errors = append(errors, fmt.Errorf("type %q must be one of: %s", k, strings.Join(sortOnTemplatesValues, ",")))
+						}
+
+						return
+					},
 				},
 				"order": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "Ordering of the sort: ASC or DESC",
+					ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+						value := strings.ToUpper(v.(string))
+
+						if !contains(value, orderTypes) {
+							errors = append(errors, fmt.Errorf("type %q must be one of: %s", k, strings.Join(orderTypes, ",")))
+						}
+
+						return
+					},
 				},
 				"templates": {
 					Type:        schema.TypeList,
@@ -46,7 +68,7 @@ func dataOpennebulaTemplates() *schema.Resource {
 								Type:        schema.TypeInt,
 								Optional:    false,
 								Computed:    true,
-								Description: "Name of the Template",
+								Description: "ID of the Template",
 							},
 							"name": {
 								Type:        schema.TypeString,
@@ -209,38 +231,76 @@ func datasourceOpennebulaTemplatesRead(ctx context.Context, d *schema.ResourceDa
 		templatesMaps = append(templatesMaps, templateMap)
 	}
 
-	sortOnAttr := d.Get("sort_on").(string)
-	ordering := d.Get("order").(string)
-	var orderingFn func(int, int) bool
-	switch ordering {
-	case "ASC":
-		orderingFn = func(i, j int) bool {
-			return templatesMaps[i][sortOnAttr].(int) > templatesMaps[j][sortOnAttr].(int)
-		}
-	case "DESC":
-		orderingFn = func(i, j int) bool {
-			return templatesMaps[i][sortOnAttr].(int) < templatesMaps[j][sortOnAttr].(int)
-		}
-	}
-
-	// will crash if sortOnAttr is the name of an attributes with another type than integer
-	sort.Slice(templatesMaps, func(i, j int) bool {
-		return orderingFn(i, j)
-	})
+	var sortOnAttr, ordering string
 	nameRegStr := d.Get("name_regex").(string)
+	sortOnAttr = d.Get("sort_on").(string)
+
+	if len(sortOnAttr) > 0 && len(templatesMaps) > 1 {
+		ordering = d.Get("order").(string)
+		var orderingFn func(int, int) bool
+		switch ordering {
+		case "ASC":
+			switch templatesMaps[0][sortOnAttr].(type) {
+			case int:
+				orderingFn = func(i, j int) bool {
+					return templatesMaps[i][sortOnAttr].(int) > templatesMaps[j][sortOnAttr].(int)
+				}
+			case string:
+				orderingFn = func(i, j int) bool {
+					return templatesMaps[i][sortOnAttr].(string) > templatesMaps[j][sortOnAttr].(string)
+				}
+			case float64:
+				orderingFn = func(i, j int) bool {
+					return templatesMaps[i][sortOnAttr].(float64) > templatesMaps[j][sortOnAttr].(float64)
+				}
+			default:
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "can't sort templates",
+					Detail:   fmt.Sprintf("%s attribute type comparison is not handled", sortOnAttr),
+				})
+				return diags
+			}
+		case "DESC":
+			switch templatesMaps[0][sortOnAttr].(type) {
+			case int:
+				orderingFn = func(i, j int) bool {
+					return templatesMaps[i][sortOnAttr].(int) < templatesMaps[j][sortOnAttr].(int)
+				}
+			case string:
+				orderingFn = func(i, j int) bool {
+					return templatesMaps[i][sortOnAttr].(string) < templatesMaps[j][sortOnAttr].(string)
+				}
+			case float64:
+				orderingFn = func(i, j int) bool {
+					return templatesMaps[i][sortOnAttr].(float64) < templatesMaps[j][sortOnAttr].(float64)
+				}
+			default:
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "can't sort templates",
+					Detail:   fmt.Sprintf("%s attribute type comparison is not handled", sortOnAttr),
+				})
+				return diags
+			}
+		}
+
+		// will crash if sortOnAttr is the name of an attributes with another type than integer
+		sort.Slice(templatesMaps, func(i, j int) bool {
+			return orderingFn(i, j)
+		})
+	}
 
 	d.SetId(fmt.Sprintf("%x", sha512.Sum512([]byte(ordering+sortOnAttr+nameRegStr))))
 
 	err = d.Set("templates", templatesMaps)
 	if err != nil {
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "failed to set templates",
-				Detail:   err.Error(),
-			})
-			return diags
-		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to set templates",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
 	return nil

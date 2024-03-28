@@ -1,3 +1,9 @@
+# 1.5.0 (Unreleased)
+
+FEATURES:
+
+* **New Data Source**: `opennebula_virtual_machines` (#485)
+
 # 1.4.1 (Unreleased)
 
 FEATURES:
