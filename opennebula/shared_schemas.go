@@ -632,8 +632,11 @@ func addGraphic(tpl *vm.Template, graphics []interface{}) {
 			case "passwd":
 				tpl.AddIOGraphic(vmk.Passwd, v.(string))
 			case "random_passwd":
-				// Convert bool to string
-				tpl.AddIOGraphic(vmk.RandomPassword, map[bool]string{true: "YES", false: "NO"}[v.(bool)])
+				// only set random_passwd if it's set to true -- older OpenNebula versions will consider any
+				// non-zero string as a yes
+				if v.(bool) {
+					tpl.AddIOGraphic(vmk.RandomPassword, "YES")
+				}
 			}
 
 		}
