@@ -68,6 +68,24 @@ func commonTemplateSchemas() map[string]*schema.Schema {
 				Optional:    true,
 				Description: "Provides the template creator with the possibility to dynamically ask the user instantiating the template for dynamic values that must be defined.",
 			},
+			"cpu_cost": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Computed:    true,
+				Description: "CPU cost per physical CPU",
+			},
+			"disk_cost": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Computed:    true,
+				Description: "Disk cost per GB of disk",
+			},
+			"mem_cost": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Computed:    true,
+				Description: "Memory cost per GB of memory",
+			},
 		},
 	)
 }

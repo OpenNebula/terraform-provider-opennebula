@@ -105,6 +105,9 @@ The following arguments are supported:
 * `template` - (Deprecated) Text describing the OpenNebula template object, in Opennebula's XML string format.
 * `lock` - (Optional) Lock the template with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
+* `cpu_cost` - (Optional) CPU cost per time (float)
+* `mem_cost` - (Optional) Memory cost per time (float)
+* `disk_cost` - (Optional) Disk cost per time (float)
 
 ### Graphics parameters
 

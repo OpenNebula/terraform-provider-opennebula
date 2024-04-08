@@ -248,6 +248,9 @@ resource "opennebula_template" "template" {
   vcpu = "1"
   memory = "512"
   description = "Template created for provider acceptance tests"
+  cpu_cost = 0.001
+  mem_cost = 0.001
+  disk_cost = 0.001
 
   features {
     virtio_scsi_queues = 1
