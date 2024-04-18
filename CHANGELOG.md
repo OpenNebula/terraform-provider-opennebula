@@ -4,6 +4,10 @@ FEATURES:
 
 * resources/opennebula_virtual_network: allow to modify the user owning the resource (#529)
 
+ENHANCEMENTS:
+
+* resources/opennebula_template: enable disk and nic update (#491)
+
 # 1.4.0 (January 22nd, 2024)
 
 FEATURES:

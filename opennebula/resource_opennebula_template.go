@@ -718,6 +718,25 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
+	if d.HasChange("disk") {
+		newTpl.Del("DISK")
+
+		err := addDisks(d, &newTpl)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update disks",
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+	}
+
+	if d.HasChange("nic") {
+		newTpl.Del("NIC")
+		addNICs(d, &newTpl)
+	}
+
 	if d.HasChange("tags") {
 
 		oldTagsIf, newTagsIf := d.GetChange("tags")
