@@ -641,7 +641,7 @@ func addGraphic(tpl *vm.Template, graphics []interface{}) {
 	}
 }
 
-func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
+func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 
 	//Generate DISK definition
 	disks := d.Get("disk").([]interface{})
@@ -666,6 +666,16 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 
 		disk := makeDiskVector(diskconfig)
 		tpl.Elements = append(tpl.Elements, disk)
+	}
+
+	return nil
+}
+
+func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
+
+	err := addDisks(d, tpl)
+	if err != nil {
+		return err
 	}
 
 	//Generate GRAPHICS definition
