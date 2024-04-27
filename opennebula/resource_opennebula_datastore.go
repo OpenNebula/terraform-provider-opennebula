@@ -416,9 +416,11 @@ func addCephAttributes(attrs map[string]interface{}, tpl *datastore.Template) {
 		hosts := hostsIf.(*schema.Set).List()
 
 		var hostsStr strings.Builder
-		for _, host := range hosts {
+		for i, host := range hosts {
 			hostsStr.WriteString(host.(string))
-			hostsStr.WriteString(" ")
+			if i < len(hosts)-1 {
+				hostsStr.WriteString(" ")
+			}
 		}
 		tpl.Add("CEPH_HOST", hostsStr.String())
 	}
