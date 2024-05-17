@@ -605,16 +605,20 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 
 		var diags diag.Diagnostics
 
-		// read template ID from which the VM was created
-		templateID, _ := vmInfos.Template.GetInt("TEMPLATE_ID")
-		d.Set("template_id", templateID)
+		// NOTE: The template_id attribute is not defined for Virtual Router instances (VMs).
+		if _, ok := d.GetOk("template_id"); ok {
+			// read template ID from which the VM was created
+			templateID, _ := vmInfos.Template.GetInt("TEMPLATE_ID")
+			d.Set("template_id", templateID)
+
+			if _, ok := d.GetOk("template_nic"); !ok {
+				d.Set("template_nic", []interface{}{})
+			}
+		}
 
 		// add empty values for import
 		if _, ok := d.GetOk("template_disk"); !ok {
 			d.Set("template_disk", []interface{}{})
-		}
-		if _, ok := d.GetOk("template_nic"); !ok {
-			d.Set("template_nic", []interface{}{})
 		}
 		if _, ok := d.GetOk("template_tags"); !ok {
 			d.Set("template_tags", map[string]interface{}{})
@@ -632,14 +636,19 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 			})
 			return diags
 		}
-		err = flattenVMNIC(d, &vmInfos.Template)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to flatten NICs",
-				Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
-			})
-			return diags
+
+		// In case of Virtual Router instances (which are just VMs) there's never anything to "flatten",
+		// that's because NICs are attached with a help of dedicated resources.
+		if _, ok := d.GetOk("nic"); ok {
+			err = flattenVMNIC(d, &vmInfos.Template)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to flatten NICs",
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
 		}
 
 		return nil
