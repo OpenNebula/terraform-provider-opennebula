@@ -291,7 +291,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
-		generateVMNIC(d, vmTpl)
+		addNICs(d, vmTpl)
 
 		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
 
@@ -357,7 +357,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
-		generateVMNIC(d, vmTpl)
+		addNICs(d, vmTpl)
 
 		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
 
@@ -2259,7 +2259,7 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 	return tpl, nil
 }
 
-func generateVMNIC(d *schema.ResourceData, tpl *vm.Template) {
+func addNICs(d *schema.ResourceData, tpl *vm.Template) {
 	//Generate NIC definition
 	nics := d.Get("nic").([]interface{})
 	log.Printf("Number of NICs: %d", len(nics))

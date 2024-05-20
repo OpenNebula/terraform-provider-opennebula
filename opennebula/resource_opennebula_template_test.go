@@ -29,6 +29,11 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.size", "16"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.0.ip", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
@@ -72,6 +77,11 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.size", "16"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.0.ip", "172.16.100.131"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
@@ -111,6 +121,11 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.size", "32"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.0.ip", "172.16.100.132"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
@@ -153,6 +168,11 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "en-us"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.listen", "0.0.0.0"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "disk.0.size", "32"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template", "nic.0.ip", "172.16.100.132"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
@@ -239,7 +259,26 @@ func testAccCheckTemplateDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccTemplateConfigBasic = `
+var testTemplateNICVNetResources = `
+
+resource "opennebula_virtual_network" "network" {
+	name = "test-net1"
+	type            = "dummy"
+	bridge          = "onebr"
+	mtu             = 1500
+	ar {
+	  ar_type = "IP4"
+	  size    = 12
+	  ip4     = "172.16.100.130"
+	}
+	permissions = "642"
+	group = "oneadmin"
+	security_groups = [0]
+	cluster_ids = [0]
+  }
+`
+
+var testAccTemplateConfigBasic = testTemplateNICVNetResources + `
 resource "opennebula_template" "template" {
   name = "terra-tpl"
   permissions = "660"
@@ -263,6 +302,17 @@ resource "opennebula_template" "template" {
     keymap = "en-us"
     listen = "0.0.0.0"
     type = "VNC"
+  }
+
+  disk {
+	volatile_type = "swap"
+	size          = 16
+	target        = "vda"
+  }
+
+  nic {
+	network_id = opennebula_virtual_network.network.id
+	ip = "172.16.100.131"
   }
 
   os {
@@ -292,7 +342,7 @@ resource "opennebula_template" "template" {
 }
 `
 
-var testAccTemplateCPUModel = `
+var testAccTemplateCPUModel = testTemplateNICVNetResources + `
 resource "opennebula_template" "template" {
   name = "terra-tpl-cpumodel"
   permissions = "660"
@@ -311,6 +361,17 @@ resource "opennebula_template" "template" {
     keymap = "en-us"
     listen = "0.0.0.0"
     type = "VNC"
+  }
+
+  disk {
+	volatile_type = "swap"
+	size          = 16
+	target        = "vda"
+  }
+
+  nic {
+	network_id = opennebula_virtual_network.network.id
+	ip = "172.16.100.131"
   }
 
   cpumodel {
@@ -340,7 +401,7 @@ resource "opennebula_template" "template" {
 }
 `
 
-var testAccTemplateConfigUpdate = `
+var testAccTemplateConfigUpdate = testTemplateNICVNetResources + `
 resource "opennebula_template" "template" {
   name = "terratplupdate"
   permissions = "642"
@@ -367,6 +428,17 @@ resource "opennebula_template" "template" {
 	type = "VNC"
   }
 
+  disk {
+	volatile_type = "swap"
+	size          = 32
+	target        = "vda"
+  }
+
+  nic {
+	network_id = opennebula_virtual_network.network.id
+	ip = "172.16.100.132"
+  }
+
   os {
 	arch = "x86_64"
 	boot = ""
@@ -391,7 +463,7 @@ resource "opennebula_template" "template" {
 }
 `
 
-var testAccTemplateConfigDelete = `
+var testAccTemplateConfigDelete = testTemplateNICVNetResources + `
 resource "opennebula_template" "template" {
   name = "terratplupdate"
   permissions = "642"
@@ -410,6 +482,17 @@ resource "opennebula_template" "template" {
 	keymap = "en-us"
 	listen = "0.0.0.0"
 	type = "VNC"
+  }
+
+  disk {
+	volatile_type = "swap"
+	size          = 32
+	target        = "vda"
+  }
+
+  nic {
+	network_id = opennebula_virtual_network.network.id
+	ip = "172.16.100.132"
   }
 
   os {
