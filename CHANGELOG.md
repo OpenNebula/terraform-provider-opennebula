@@ -4,6 +4,7 @@ FEATURES:
 
 * resources/opennebula_virtual_network: allow to modify the user owning the resource (#529)
 * resources/opennebula_virtual_machine: add nil checks before type casting (#530)
+* resources/opennebula_virtual_router_nic: add floating_only nic argument (#547)
 
 ENHANCEMENTS:
 
