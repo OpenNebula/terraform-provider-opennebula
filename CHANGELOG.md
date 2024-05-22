@@ -4,10 +4,15 @@ FEATURES:
 
 * resources/opennebula_virtual_network: allow to modify the user owning the resource (#529)
 * resources/opennebula_virtual_machine: add nil checks before type casting (#530)
+* resources/opennebula_virtual_router_nic: add floating_only nic argument (#547)
 
 ENHANCEMENTS:
 
 * resources/opennebula_template: enable disk and nic update (#491)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_router_instance: fix re-contextualization (#537)
 
 # 1.4.0 (January 22nd, 2024)
 
