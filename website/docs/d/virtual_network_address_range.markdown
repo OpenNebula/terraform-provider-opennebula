@@ -15,25 +15,31 @@ Use this data source to retrieve address range information for a virtual network
 ```hcl
 data "opennebula_virtual_network_address_range" "example" {
   virtual_network_id = 123
+  id                 = "0"
 }
 ```
 ## Argument Reference
 
 * `virtual_network_id` - (Required) ID of the virtual network.
-
-## Argument Reference
-
-* `virtual_network_id` - (Required) ID of the virtual network.
+* `id` - (Required) ID of the address range.
 
 ## Attribute Reference
 
 The following attributes are exported:
 
-* `address_ranges` - A list of address ranges for the specified virtual network, each containing the following attributes:
-  * `ar_type` - Type of the Address Range: IP4, IP6.
-  * `ip4` - Start IPv4 of the range to be allocated.
-  * `size` - Count of addresses in the IP range.
-  * `mac` - Start MAC of the range to be allocated.
-  * `global_prefix` - Global prefix for IP6 or IP4_6.
-  * `held_ips` - List of IPs held in this address range.
-  * `custom` - Custom attributes for the address range.
+* ar_type - Type of the Address Range: IP4, IP6, IP4_6. Default is 'IP4'.
+* ip4 - Start IPv4 of the range to be allocated.
+* ip4_end - End IPv4 of the range to be allocated.
+* ip6 - Start IPv6 of the range to be allocated.
+* ip6_end - End IPv6 of the range to be allocated.
+* ip6_global - Global IPv6 of the range to be allocated.
+* ip6_global_end - End Global IPv6 of the range to be allocated.
+* ip6_ula - ULA IPv6 of the range to be allocated.
+* ip6_ula_end - End ULA IPv6 of the range to be allocated.
+* size - Count of addresses in the IP range.
+* mac - Start MAC of the range to be allocated.
+* mac_end - End MAC of the range to be allocated.
+* global_prefix - Global prefix for IP6 or IP4_6.
+* ula_prefix - ULA prefix for IP6 or IP4_6.
+* held_ips - List of IPs held in this address range.
+* custom - Custom attributes for the address range.
