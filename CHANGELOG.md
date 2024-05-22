@@ -13,6 +13,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * resources/opennebula_virtual_router_instance: fix re-contextualization (#537)
+* resources/opennebula_datastore: fix trailing space in CEPH_HOST (#543)
 
 # 1.4.0 (January 22nd, 2024)
 
