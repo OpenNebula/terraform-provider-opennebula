@@ -6,6 +6,7 @@ FEATURES:
 * resources/opennebula_virtual_machine: add nil checks before type casting (#530)
 * resources/opennebula_virtual_router_nic: add floating_only nic argument (#547)
 * resources/opennebula_virtual_machine: add method, gateway, dns arguments for nics (#548)
+* resources/opennebula_service: add service role scaling (#553)
 
 ENHANCEMENTS:
 
