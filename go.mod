@@ -3,7 +3,7 @@ module github.com/OpenNebula/terraform-provider-opennebula
 go 1.18
 
 require (
-	github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20230912160253-4673721a21ca
+	github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20240528115224-c53e48565a10
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1

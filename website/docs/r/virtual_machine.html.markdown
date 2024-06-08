@@ -57,6 +57,9 @@ resource "opennebula_virtual_machine" "example" {
     model           = "virtio"
     network_id      = var.vnetid
     security_groups = [opennebula_security_group.example.id]
+
+    # NOTE: To make this work properly ensure /etc/one/oned.conf contains: INHERIT_VNET_ATTR="DNS"
+    dns = "1.1.1.1"
   }
 
   vmgroup {
@@ -153,6 +156,9 @@ A disk update will be triggered in adding or removing a `disk` section, or by a 
 * `virtio_queues` - (Optional) Virtio multi-queue size. Only if `model` is `virtio`.
 * `physical_device` - (Optional) Physical device hosting the virtual network.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
+* `method` - (Optional) Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `gateway` - (Optional) Default gateway set for the NIC.
+* `dns` - (Optional) DNS server set for the NIC. **Please make sure `INHERIT_VNET_ATTR="DNS"` is added to `/etc/one/oned.conf`.**
 * `network_mode_auto` - (Optional) A boolean letting the scheduler pick the Virtual Networks the VM NICs will be attached to. Can only be used at VM creation.
 * `sched_requirements` - (Optional) A boolean expression to select virtual networks (evaluates to true) to attach the NIC,  when `network_mode_auto` is true. Can only be used at VM creation.
 * `sched_rank` - (Optional) Arithmetic expression to sort the suitable Virtual Networks for this NIC, when `network_mode_auto` is true. Can only be used at VM creation.
@@ -211,6 +217,9 @@ The following attribute are exported:
 * `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
+* `computed_method` - Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `computed_gateway` - Default gateway set for the NIC.
+* `computed_dns` - DNS server set for the NIC.
 
 ### Template disk
 
@@ -230,6 +239,9 @@ The following attribute are exported:
 * `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
+* `computed_method` - Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `computed_gateway` - Default gateway set for the NIC.
+* `computed_dns` - DNS server set for the NIC.
 
 ### Disk
 

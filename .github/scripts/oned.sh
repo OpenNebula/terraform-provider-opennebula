@@ -28,7 +28,9 @@ sed '/DATASTORE_MAD/,+3 d' -i /etc/one/oned.conf
 echo 'IM_MAD = [ NAME="dummy", SUNSTONE_NAME="Dummy", EXECUTABLE="one_im_sh", ARGUMENTS="-r 3 -t 15 -w 90 dummy", THREADS=0]' >> /etc/one/monitord.conf
 echo 'VM_MAD = [ NAME="dummy", SUNSTONE_NAME="Testing", EXECUTABLE="one_vmm_dummy",TYPE="xml" ]' >> /etc/one/oned.conf
 echo 'DATASTORE_MAD = [ EXECUTABLE = "one_datastore", ARGUMENTS  = "-t 15 -d dummy,fs,lvm,ceph,dev,iscsi_libvirt,vcenter -s dummy,shared,ssh,ceph,fs_lvm,fs_lvm_ssh,qcow2,vcenter"]' >> /etc/one/oned.conf
-
+echo 'INHERIT_VNET_ATTR = "DNS"' >> /etc/one/oned.conf
+echo 'INHERIT_VNET_ATTR = "GATEWAY"' >> /etc/one/oned.conf
+echo 'INHERIT_VNET_ATTR = "METHOD"' >> /etc/one/oned.conf
 
 # start oned
 sudo systemctl start opennebula

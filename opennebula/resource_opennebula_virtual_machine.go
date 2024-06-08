@@ -104,6 +104,18 @@ func nicComputedVMFields() map[string]*schema.Schema {
 				Type: schema.TypeInt,
 			},
 		},
+		"computed_method": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_gateway": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_dns": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
 	}
 
 }
@@ -876,6 +888,10 @@ func flattenNICComputed(nic shared.NIC, ignoreSGIDs []int) map[string]interface{
 		sg = append(sg, int(sgInt))
 	}
 
+	method, _ := nic.Get(shared.Method)
+	gateway, _ := nic.Get(shared.Gateway)
+	dns, _ := nic.Get(shared.DNS)
+
 	return map[string]interface{}{
 		"nic_id":                   nicID,
 		"network":                  network,
@@ -885,6 +901,9 @@ func flattenNICComputed(nic shared.NIC, ignoreSGIDs []int) map[string]interface{
 		"computed_model":           model,
 		"computed_virtio_queues":   virtioQueues,
 		"computed_security_groups": sg,
+		"computed_method":          method,
+		"computed_gateway":         gateway,
+		"computed_dns":             dns,
 	}
 }
 
@@ -909,6 +928,15 @@ func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[
 	}
 	if len(NICConfig["security_groups"].([]interface{})) > 0 {
 		NICMap["security_groups"] = NICMap["computed_security_groups"]
+	}
+	if len(NICConfig["method"].(string)) > 0 {
+		NICMap["method"] = NICMap["computed_method"]
+	}
+	if len(NICConfig["gateway"].(string)) > 0 {
+		NICMap["gateway"] = NICMap["computed_gateway"]
+	}
+	if len(NICConfig["dns"].(string)) > 0 {
+		NICMap["dns"] = NICMap["computed_dns"]
 	}
 
 	networkMode, err := NIC.Get(shared.NetworkMode)
@@ -1000,11 +1028,18 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 
 	}
 
+	method, _ := NIC.Get(shared.Method)
+	gateway, _ := NIC.Get(shared.Gateway)
+	dns, _ := NIC.Get(shared.DNS)
+
 	return emptyOrEqual(NICConfig["ip"], ip) &&
 		emptyOrEqual(NICConfig["mac"], mac) &&
 		emptyOrEqual(NICConfig["physical_device"], physicalDevice) &&
 		emptyOrEqual(NICConfig["model"], model) &&
 		emptyOrEqual(NICConfig["virtio_queues"], virtioQueues) &&
+		emptyOrEqual(NICConfig["method"], method) &&
+		emptyOrEqual(NICConfig["gateway"], gateway) &&
+		emptyOrEqual(NICConfig["dns"], dns) &&
 		emptyOrEqual(NICConfig["sched_requirements"], schedRequirements) &&
 		emptyOrEqual(NICConfig["sched_rank"], schedRank) &&
 		(NICConfig["network_mode_auto"].(bool) == false || networkMode == "auto")
@@ -1036,11 +1071,18 @@ func matchNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 		}
 	}
 
+	method, _ := NIC.Get(shared.Method)
+	gateway, _ := NIC.Get(shared.Gateway)
+	dns, _ := NIC.Get(shared.DNS)
+
 	return ip == NICConfig["computed_ip"].(string) &&
 		mac == NICConfig["computed_mac"].(string) &&
 		physicalDevice == NICConfig["computed_physical_device"].(string) &&
 		model == NICConfig["computed_model"].(string) &&
-		virtioQueues == NICConfig["computed_virtio_queues"].(string)
+		virtioQueues == NICConfig["computed_virtio_queues"].(string) &&
+		method == NICConfig["computed_method"].(string) &&
+		gateway == NICConfig["computed_gateway"].(string) &&
+		dns == NICConfig["computed_dns"].(string)
 }
 
 // flattenVMNIC is similar to flattenNIC but deal with computed_* attributes
@@ -1900,6 +1942,9 @@ func updateNIC(ctx context.Context, d *schema.ResourceData, meta interface{}) er
 		"model",
 		"virtio_queues",
 		"physical_device",
+		"method",
+		"gateway",
+		"dns",
 		"network_mode_auto",
 		"sched_requirements",
 		"sched_rank",
