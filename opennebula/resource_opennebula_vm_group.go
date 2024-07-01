@@ -338,7 +338,7 @@ func flattenVMGroupRoles(d *schema.ResourceData, vmgRoles []vmgroup.Role) error 
 			hostAntiAffString := strings.Split(vmgr.HostAntiAffined, ",")
 			for _, h := range hostAntiAffString {
 				hostAntiAffInt, _ := strconv.ParseInt(h, 10, 0)
-				hAntiAff = append(hAff, int(hostAntiAffInt))
+				hAntiAff = append(hAntiAff, int(hostAntiAffInt))
 			}
 		}
 		roles = append(roles, map[string]interface{}{
