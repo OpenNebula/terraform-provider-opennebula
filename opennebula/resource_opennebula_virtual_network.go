@@ -802,15 +802,19 @@ func generateVn(d *schema.ResourceData) (string, error) {
 	tpl.Add(vnk.Name, vnname)
 	tpl.Add(vnk.VNMad, vnmad)
 
-	if mandatoryVLAN(vnmad) {
-		if d.Get("automatic_vlan_id") == true {
-			tpl.Add("AUTOMATIC_VLAN_ID", "YES")
-		} else if vlanid, ok := d.GetOk("vlan_id"); ok {
-			tpl.Add(vnk.VlanID, vlanid.(string))
-		} else {
-			return "", fmt.Errorf("You must specify a 'vlan_id' or set the flag 'automatic_vlan_id'")
-		}
+	vlanSet := false
+	if d.Get("automatic_vlan_id").(bool) {
+		tpl.Add("AUTOMATIC_VLAN_ID", "YES")
+		vlanSet = true
+	} else if vlanid, ok := d.GetOk("vlan_id"); ok {
+		tpl.Add(vnk.VlanID, vlanid.(string))
+		vlanSet = true
 	}
+
+	if mandatoryVLAN(vnmad) && !vlanSet {
+		return "", fmt.Errorf("you must specify a 'vlan_id' or set the flag 'automatic_vlan_id'")
+	}
+
 	if vnbridge, ok := d.GetOk("bridge"); ok {
 		tpl.Add(vnk.Bridge, vnbridge.(string))
 	}
