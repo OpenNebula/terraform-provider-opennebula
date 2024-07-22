@@ -496,7 +496,7 @@ func testAccTerminateVM(name string) resource.TestCheckFunc {
 			return err
 		}
 
-		err = controller.VM(id).TerminateHard()
+		err = controller.VM(id).Terminate()
 		if err != nil {
 			return err
 		}
@@ -505,9 +505,7 @@ func testAccTerminateVM(name string) resource.TestCheckFunc {
 }
 
 // waitForVMState waits until the VM with vmId has the desiredState.
-// returns an error and a boolean to indicate success.
-// If the timeout is reached or there is an error, success is false
-// success is true if the VM has reached the state within the timeout window
+// returns an error if timeout is reached.
 func waitForVMState(vmId int, desiredState vm.State, timeout time.Duration) error {
 	config := testAccProvider.Meta().(*Configuration)
 	controller := config.Controller
