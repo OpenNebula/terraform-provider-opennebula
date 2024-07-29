@@ -101,6 +101,13 @@ func vrNICAttach(ctx context.Context, timeout time.Duration, controller *goca.Co
 		updatedNICsLoop:
 			for i, nic := range updatedNICs {
 
+				// For VRouter NICs, floating IPs are set using the "IP" field, but it is represented
+				// as the "VROUTER_IP" field.
+				if vrouterIP, err := nic.GetStr("VROUTER_IP"); err == nil {
+					if _, err = nic.GetStr("IP"); err != nil {
+						nic.Add("IP", vrouterIP)
+					}
+				}
 				for _, pair := range nicTpl.Pairs {
 
 					value, err := nic.GetStr(pair.Key())
