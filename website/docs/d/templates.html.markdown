@@ -25,6 +25,7 @@ data "opennebula_templates" "example" {
 ## Argument Reference
 
 * `name_regex` - (Optional) Filter templates by name with a RE2 regular expression.
+* `sort_on` - (Optional) Attribute used to sort the template list among: `id`, `name`, `cpu`, `vcpu`, `memory`, `register_date`.
 * `has_cpu` - (Optional) Indicate if a CPU value has been defined.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM.
 * `has_vcpu` - (Optional) Indicate if a VCPU value has been defined.
