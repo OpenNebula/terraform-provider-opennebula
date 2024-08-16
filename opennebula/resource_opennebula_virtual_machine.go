@@ -538,7 +538,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 
 	// TODO: fix it after 5.10 release
 	// Force the "decrypt" bool to false to keep ONE 5.8 behavior
-	vm, err := vmc.Info(false)
+	vmInfo, err := vmc.Info(false)
 	if err != nil {
 		if NoExists(err) {
 			log.Printf("[WARN] Removing virtual machine %s from state because it no longer exists in", d.Get("name"))
@@ -552,16 +552,21 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		})
 		return diags
 	}
-	d.SetId(fmt.Sprintf("%v", vm.ID))
-	d.Set("name", vm.Name)
-	d.Set("uid", vm.UID)
-	d.Set("gid", vm.GID)
-	d.Set("uname", vm.UName)
-	d.Set("gname", vm.GName)
-	d.Set("state", vm.StateRaw)
-	d.Set("lcmstate", vm.LCMStateRaw)
+	d.SetId(fmt.Sprintf("%v", vmInfo.ID))
+	d.Set("name", vmInfo.Name)
+	d.Set("uid", vmInfo.UID)
+	d.Set("gid", vmInfo.GID)
+	d.Set("uname", vmInfo.UName)
+	d.Set("gname", vmInfo.GName)
+	d.Set("state", vmInfo.StateRaw)
+	d.Set("lcmstate", vmInfo.LCMStateRaw)
+	if vm.State(vmInfo.StateRaw) == vm.Done {
+		log.Printf("[WARN] Replacing virtual machine %s (id: %s) because VM is 'Done'; ", d.Get("name"), d.Id())
+		d.SetId("")
+		return nil
+	}
 	//TODO fix this:
-	err = d.Set("permissions", permissionsUnixString(*vm.Permissions))
+	err = d.Set("permissions", permissionsUnixString(*vmInfo.Permissions))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -572,7 +577,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 	}
 
 	if customVM != nil {
-		customDiags := customVM(ctx, d, vm)
+		customDiags := customVM(ctx, d, vmInfo)
 		if len(customDiags) > 0 {
 			return customDiags
 		}
@@ -583,7 +588,7 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 	if inheritedVectorsIf != nil {
 		inheritedVectors = inheritedVectorsIf.(map[string]interface{})
 	}
-	err = flattenTemplate(d, inheritedVectors, &vm.Template)
+	err = flattenTemplate(d, inheritedVectors, &vmInfo.Template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -599,14 +604,14 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		inheritedTags = inheritedTagsIf.(map[string]interface{})
 	}
 
-	flattenDiags := flattenVMUserTemplate(d, meta, inheritedTags, &vm.UserTemplate.Template)
+	flattenDiags := flattenVMUserTemplate(d, meta, inheritedTags, &vmInfo.UserTemplate.Template)
 	for _, diag := range flattenDiags {
 		diag.Detail = fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err)
 		diags = append(diags, diag)
 	}
 
-	if vm.LockInfos != nil {
-		d.Set("lock", LockLevelToString(vm.LockInfos.Locked))
+	if vmInfo.LockInfos != nil {
+		d.Set("lock", LockLevelToString(vmInfo.LockInfos.Locked))
 	}
 
 	return diags

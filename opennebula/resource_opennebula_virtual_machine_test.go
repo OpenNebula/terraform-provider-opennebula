@@ -2,10 +2,12 @@ package opennebula
 
 import (
 	"fmt"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	"os"
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -313,6 +315,36 @@ func TestAccVirtualMachinePending(t *testing.T) {
 	})
 }
 
+func TestAccVirtualMachineDoneTriggerRecreation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccVirtualMachineDone,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "virtual_machine_done"),
+					testAccTerminateVM("virtual_machine_done"),
+				),
+			},
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeTestCheckFunc(
+					func(state *terraform.State) error {
+						if !state.Empty() && len(state.RootModule().Resources) != 0 {
+							return fmt.Errorf("expected state to be empty")
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccVirtualMachineResize(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -451,6 +483,52 @@ func testAccSetDSdummy() resource.TestCheckFunc {
 			controller.Datastore(1).Update(dstpl.String(), 1)
 		}
 		return nil
+	}
+}
+
+func testAccTerminateVM(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
+
+		id, err := controller.VMs().ByName(name)
+		if err != nil {
+			return err
+		}
+
+		err = controller.VM(id).Terminate()
+		if err != nil {
+			return err
+		}
+		return waitForVMState(id, vm.Done, time.Minute*5)
+	}
+}
+
+// waitForVMState waits until the VM with vmId has the desiredState.
+// returns an error if timeout is reached.
+func waitForVMState(vmId int, desiredState vm.State, timeout time.Duration) error {
+	config := testAccProvider.Meta().(*Configuration)
+	controller := config.Controller
+	interval := time.NewTicker(5 * time.Second)
+	deadline := time.NewTimer(timeout)
+
+	// Ensure ticker and timer are stopped after use
+	defer interval.Stop()
+	defer deadline.Stop()
+
+	for {
+		select {
+		case <-interval.C:
+			info, err := controller.VM(vmId).Info(false)
+			if err != nil {
+				return err
+			}
+			if vm.State(info.StateRaw) == desiredState {
+				return nil
+			}
+		case <-deadline.C:
+			return fmt.Errorf("timeout waiting for vm id '%d' to reach desired state %s\n", vmId, desiredState)
+		}
 	}
 }
 
@@ -842,6 +920,32 @@ resource "opennebula_virtual_machine" "test" {
   memory = 128
   cpu = 0.1
   pending = true
+
+  context = {
+    NETWORK  = "YES"
+    SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+}
+`
+
+var testAccVirtualMachineDone = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "virtual_machine_done"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
 
   context = {
     NETWORK  = "YES"
