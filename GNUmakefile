@@ -3,10 +3,13 @@ GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=opennebula
 
-default: build
+default: install
+
+install: fmtcheck
+	go install
 
 build: fmtcheck
-	go install
+	go build -o terraform-provider-opennebula
 
 test: fmtcheck
 	go test -i $(TEST) || exit 1
@@ -57,5 +60,5 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck  test-compile website website-test
+.PHONY: install build test testacc vet fmt fmtcheck errcheck  test-compile website website-test
 
