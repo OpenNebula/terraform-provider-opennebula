@@ -550,6 +550,49 @@ resource "opennebula_virtual_router_nic" "nic1" {
 `
 var testAccVirtualRouterUpdateNICs = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
 
+resource "opennebula_virtual_router_instance" "test" {
+	name        = "testacc-vr-virtual-machine"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.1
+
+	virtual_router_id = opennebula_virtual_router.test.id
+}
+
+
+resource "opennebula_virtual_router_instance" "test2" {
+	name        = "testacc-vr-virtual-machine-2"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.1
+
+	virtual_router_id = opennebula_virtual_router.test.id
+}
+
+resource "opennebula_virtual_router" "test" {
+  name = "testacc-vr"
+  permissions = "642"
+  group = "oneadmin"
+
+  instance_template_id = opennebula_virtual_router_instance_template.test.id
+
+  tags = {
+    customer = "1"
+  }
+}
+
+resource "opennebula_virtual_router_nic" "nic2" {
+	virtual_router_id = opennebula_virtual_router.test.id
+	network_id        = opennebula_virtual_network.network3.id
+}
+
+resource "opennebula_virtual_router_nic" "nic1" {
+	floating_ip       = false
+	virtual_router_id = opennebula_virtual_router.test.id
+	network_id        = opennebula_virtual_network.network1.id
+}
 `
 
 var testAccVirtualRouterAddNICsWithIPs = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
