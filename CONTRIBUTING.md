@@ -11,7 +11,7 @@ Thanks for getting involved in the Terraform Provider for OpenNebula. Here are a
 
 ### Local development of the provider
 
-To develop and use this provider locally, you can leverage th [`dev_override`](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers) feature of the terraform CLI.
+To develop and use this provider locally, you can leverage the [`dev_override`](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers) feature of the terraform CLI.
 To do so, create a `$HOME/.terraformrc` file if it doesn't exist yet (see the [`terraform` CLI documentation](https://developer.hashicorp.com/terraform/cli/config/config-file#locations) for different consideration for Windows systems) with the following content:
 
 ```hcl
