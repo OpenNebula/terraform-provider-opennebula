@@ -1,3 +1,9 @@
+# 1.4.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_datastore: remove DS_MAD for Ceph SYSTEM datastore (#537)
+
 # 1.4.1 (Unreleased)
 
 FEATURES:
