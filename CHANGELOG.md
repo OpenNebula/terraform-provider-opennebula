@@ -1,3 +1,9 @@
+# 1.4.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_vm_group: fix anti affinity reading (#497)
+
 # 1.4.1 (Unreleased)
 
 FEATURES:
