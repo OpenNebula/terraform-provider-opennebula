@@ -91,6 +91,7 @@ resource "opennebula_virtual_network" "example" {
 
 resource "opennebula_virtual_router_nic" "example1" {
   floating_ip       = true
+  floating_only     = true
   virtual_router_id = opennebula_virtual_router.example.id
   network_id        = opennebula_virtual_network.example.id
 }
@@ -112,6 +113,7 @@ The following arguments are supported:
 * `physical_device` - (Optional) Physical device hosting the virtual network.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
 * `floating_ip` - (Optional) Allocate floating IP for the NIC. Defaults to `false`.
+* `floating_only` - (Optional) Do not allocate IP for the NIC. Defaults to `false`.
 
 ## Attribute Reference
 
@@ -123,6 +125,7 @@ The following attribute are exported:
 * `physical_device` - Physical device hosting the virtual network.
 * `security_groups` - List of security group IDs to use on the virtual network.
 * `floating_ip` - Allocate floating IP for the NIC. Defaults to `false`.
+* `floating_only` - (Optional) Do not allocate IP for the NIC. Defaults to `false`.
 
 ## Import
 
