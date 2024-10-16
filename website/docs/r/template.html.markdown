@@ -42,6 +42,10 @@ resource "opennebula_template" "example" {
     boot = "disk0"
   }
 
+  cpumodel {
+    model = "host-passthrough"
+  }
+
   disk {
     image_id = opennebula_image.example.id
     size     = 10000
@@ -92,6 +96,7 @@ The following arguments are supported:
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if `template_****id` is not set**.
 * `features` - (Optional) See [Features parameters](#features-parameters) below for details.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
+* `cpumodel` - (Optional) See [CPUmodel parameters](#cpumodel-parameters) below for details.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-parameters) below for details.
@@ -136,6 +141,12 @@ The following arguments are supported:
 * `guest_agent` - (Optional) Enables the QEMU Guest Agent communication. This only creates the socket inside the VM, the Guest Agent itself must be installed and started in the VM. (Can be `YES` or `NO`)
 * `virtio_scsi_queues` - (Optional) Numer of vCPU queues for the virtio-scsi controller.
 * `iothreads` - (Optional) umber of iothreads for virtio disks. By default threads will be assign to disk by round robin algorithm. Disk thread id can be forced by disk IOTHREAD attribute.
+
+### CPUModel parameters
+
+`cpumodel` supports the following argument:
+
+* `model` - (Required) CPU model to be used on the virtual machine.
 
 ### Disk parameters
 
@@ -204,7 +215,7 @@ The following attribute are exported:
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
 
-## Import
+## Import 
 
 `opennebula_template` can be imported using its ID:
 
