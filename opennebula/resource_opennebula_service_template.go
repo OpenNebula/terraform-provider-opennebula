@@ -382,7 +382,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 		stemplate.Template = newSTemplate.Template
 
 		// Apply the changes
-		err = stc.Update(stemplate,true)
+		err = stc.Update(stemplate, true)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
