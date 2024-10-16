@@ -9,33 +9,36 @@ Thanks for getting involved in the Terraform Provider for OpenNebula. Here are a
 * [Install Go](https://go.dev/doc/install)
 * [Install Terraform](https://learn.hashicorp.com/terraform/getting-started/install)
 
-### Building from sources
+### Local development of the provider
 
-```shell
-export tf_arch=darwin_arm64
-export tf_one_version=0.0.1
+To develop and use this provider locally, you can leverage the [`dev_override`](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers) feature of the terraform CLI.
+To do so, create a `$HOME/.terraformrc` file if it doesn't exist yet (see the [`terraform` CLI documentation](https://developer.hashicorp.com/terraform/cli/config/config-file#locations) for different consideration for Windows systems) with the following content:
 
-# Clone terraform-provider-opennebula
-git clone git@github.com:OpenNebula/terraform-provider-opennebula.git
-
-# Create directory under Terraform plugins directory
-mkdir -p ${HOME}/.terraform.d/plugins/one.test/one/opennebula/${tf_one_version}/${tf_arch}
-
-# Create a link to the Provider binary
-ln -s $(pwd)/terraform-provider-opennebula/terraform-provider-opennebula ${HOME}/.terraform.d/plugins/one.test/one/opennebula/${tf_one_version}/${tf_arch}
-
-# Build the Provider
-cd terraform-provider-opennebula
-go build
+```hcl
+provider_installation {
+  dev_overrides {
+    "OpenNebula/opennebula" = "[LOCAL_PATH_TO_THIS_REPO]"
+  }
+  direct {}
+}
 ```
 
-Now you can create a new `main.tf` file:
+This configuration will not apply any change for `terraform init` or your `.terraform.lock.hcl`. From the Terraform documentation:
+```text
+With development overrides in effect, the terraform init command will still attempt to select a suitable published
+version of your provider to install and record in the dependency lock file for future use, but other commands like
+terraform apply will disregard the lock file's entry and will use the given directory instead.
+```
 
+This configuration will check for the `terraform-provider-opennebula` binary at the given directory. You can generate it using `make build`
+
+Example:
 ```hcl
 terraform {
   required_providers {
     opennebula = {
-      source  = "one.test/one/opennebula"
+      source = "OpenNebula/opennebula" # use the real provider as source
+      version = "1.4.0"
     }
   }
 }
@@ -44,37 +47,30 @@ provider "opennebula" {
   # ...
 }
 
-resource "opennebula_image" "image" {
+data opennebula_datastore "my_datastore" {
   # ...
 }
 ```
 
-During the `terraform init`, the provider should be initialized as `unauthenticated`:
+Applying changes for the above simple terraform module shows the override in action:
+```txt
+$> terraform apply
+╷
+│ Warning: Provider development overrides are in effect
+│ 
+│ The following provider development overrides are set in the CLI configuration:
+│  - opennebula/opennebula in [LOCAL_PATH_TO_THIS_REPO]
+│ 
+│ The behavior may therefore not match any released version of the provider and applying changes may cause the state to become incompatible with published releases.
+╵
+data.opennebula_datastore.my_datastore: Reading...
+data.opennebula_datastore.my_datastore: Read complete after 0s
 
-```text
-$ terraform init
+No changes. Your infrastructure matches the configuration.
 
-Initializing the backend...
+Terraform has compared your real infrastructure against your configuration and found no differences, so no changes are needed.
 
-Initializing provider plugins...
-- Finding latest version of one.test/one/opennebula...
-- Installing one.test/one/opennebula v0.0.1...
-- Installed one.test/one/opennebula v0.0.1 (unauthenticated)
-
-Terraform has created a lock file .terraform.lock.hcl to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.
-
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
-
-If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your working directory. If you forget, other
-commands will detect it and remind you to do so if necessary.
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 ```
 
 ## Issues and Pull Requests
