@@ -80,6 +80,7 @@ func Provider() *schema.Provider {
 			"opennebula_datastore":             dataOpennebulaDatastore(),
 			"opennebula_zone":                  dataOpennebulaZone(),
 			"opennebula_marketplace":           dataOpennebulaMarketplace(),
+			"opennebula_virtual_machines":      dataOpennebulaVirtualMachines(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
