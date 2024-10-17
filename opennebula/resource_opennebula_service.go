@@ -318,7 +318,33 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 	var networks = make(map[string]int)
 	for _, val := range sv.Template.Body.NetworksVals {
 		for k, v := range val {
-			s := v.(map[string]interface{})["id"].(string)
+			if v == nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Network ID is nil",
+					Detail:   fmt.Sprintf("service (ID: %s): Network ID is nil", d.Id()),
+				})
+				return diags
+			}
+			idInterface, ok := v.(map[string]interface{})["id"]
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Network ID is missing",
+					Detail:   fmt.Sprintf("service (ID: %s): Network ID is missing", d.Id()),
+				})
+				return diags
+			}
+			idFloat, ok := idInterface.(float64)
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert network ID to float64",
+					Detail:   fmt.Sprintf("service (ID: %s): Failed to convert network ID to float64", d.Id()),
+				})
+				return diags
+			}
+			s := strconv.Itoa(int(idFloat))
 			networkID, err := strconv.ParseInt(s, 10, 0)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
