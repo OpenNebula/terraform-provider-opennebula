@@ -302,6 +302,7 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 
 		if dsType == "IMAGE" {
 			tpl.Add("TM_MAD", "ceph")
+			tpl.Add("DS_MAD", "ceph")
 		} else if dsType == "SYSTEM" {
 			if cephAttrsMap["local_storage"].(bool) {
 				tpl.Add("TM_MAD", "ssh")
@@ -379,7 +380,6 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 
 func addCephAttributes(attrs map[string]interface{}, tpl *datastore.Template) {
 
-	tpl.Add("DS_MAD", "ceph")
 	tpl.Add("DISK_TYPE", "RBD")
 
 	poolName := attrs["pool_name"].(string)
