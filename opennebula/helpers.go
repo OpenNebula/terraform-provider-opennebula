@@ -3,6 +3,7 @@ package opennebula
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/errors"
@@ -142,4 +143,16 @@ func mergeSchemas(schema map[string]*schema.Schema, schemas ...map[string]*schem
 	}
 
 	return schema
+}
+
+func ParseIntFromInterface(i interface{}) (int, error) {
+	switch v := i.(type) {
+	case float64:
+		return int(v), nil
+	case string:
+		if r, err := strconv.ParseInt(v, 10, 32); err == nil {
+			return int(r), nil
+		}
+	}
+	return -1, fmt.Errorf("Does not look like a number")
 }
