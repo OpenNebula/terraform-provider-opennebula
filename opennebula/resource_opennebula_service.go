@@ -124,7 +124,7 @@ func resourceOpennebulaService() *schema.Resource {
 			"roles": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Map with the role dinamically generated information",
+				Description: "Map with the role dynamically generated information",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cardinality": {
@@ -335,17 +335,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 				})
 				return diags
 			}
-			idFloat, ok := idInterface.(float64)
-			if !ok {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to convert network ID to float64",
-					Detail:   fmt.Sprintf("service (ID: %s): Failed to convert network ID to float64", d.Id()),
-				})
-				return diags
-			}
-			s := strconv.Itoa(int(idFloat))
-			networkID, err := strconv.ParseInt(s, 10, 0)
+			networkID, err := ParseIntFromInterface(idInterface)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -354,7 +344,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 				})
 				return diags
 			}
-			networks[k] = int(networkID)
+			networks[k] = networkID
 		}
 	}
 	d.Set("networks", networks)
