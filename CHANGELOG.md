@@ -4,6 +4,7 @@ BUG FIXES:
 
 * resources/opennebula_vm_group: fix anti affinity reading (#497)
 * resources/opennebula_datastore: remove DS_MAD for Ceph SYSTEM datastore (#542)
+* resources/opennebula_datastore: fix compatible_system_datastore parsing (#552)
 
 # 1.4.1 (Unreleased)
 
