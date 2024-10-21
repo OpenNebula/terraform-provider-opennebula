@@ -225,6 +225,18 @@ func nicFields() map[string]*schema.Schema {
 				Type: schema.TypeInt,
 			},
 		},
+		"method": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"gateway": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"dns": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"network_mode_auto": {
 			Type:     schema.TypeBool,
 			Optional: true,
@@ -584,6 +596,12 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 		case "security_groups":
 			nicSecGroups := ArrayToString(v.([]interface{}), ",")
 			nic.Add(shared.SecurityGroups, nicSecGroups)
+		case "method":
+			nic.Add(shared.Method, v.(string))
+		case "gateway":
+			nic.Add(shared.Gateway, v.(string))
+		case "dns":
+			nic.Add(shared.DNS, v.(string))
 		case "network_mode_auto":
 			if v.(bool) {
 				nic.Add(shared.NetworkMode, "auto")
@@ -592,7 +610,6 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 			nic.Add(shared.SchedRequirements, v.(string))
 		case "sched_rank":
 			nic.Add(shared.SchedRank, v.(string))
-
 		}
 	}
 
@@ -602,9 +619,11 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 func addOS(tpl *vm.Template, os []interface{}) {
 
 	for i := 0; i < len(os); i++ {
-		osconfig := os[i].(map[string]interface{})
-		tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
-		tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+		if os[i] != nil {
+			osconfig := os[i].(map[string]interface{})
+			tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
+			tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+		}
 	}
 
 }
@@ -612,45 +631,49 @@ func addOS(tpl *vm.Template, os []interface{}) {
 func addGraphic(tpl *vm.Template, graphics []interface{}) {
 
 	for i := 0; i < len(graphics); i++ {
-		graphicsconfig := graphics[i].(map[string]interface{})
+		if graphics[i] != nil {
+			graphicsconfig := graphics[i].(map[string]interface{})
 
-		for k, v := range graphicsconfig {
+			for k, v := range graphicsconfig {
 
-			if isEmptyValue(reflect.ValueOf(v)) {
-				continue
-			}
-
-			switch k {
-			case "listen":
-				tpl.AddIOGraphic(vmk.Listen, v.(string))
-			case "type":
-				tpl.AddIOGraphic(vmk.GraphicType, v.(string))
-			case "port":
-				tpl.AddIOGraphic(vmk.Port, v.(string))
-			case "keymap":
-				tpl.AddIOGraphic(vmk.Keymap, v.(string))
-			case "passwd":
-				tpl.AddIOGraphic(vmk.Passwd, v.(string))
-			case "random_passwd":
-				// only set random_passwd if it's set to true -- older OpenNebula versions will consider any
-				// non-zero string as a yes
-				if v.(bool) {
-					tpl.AddIOGraphic(vmk.RandomPassword, "YES")
+				if isEmptyValue(reflect.ValueOf(v)) {
+					continue
 				}
+
+     	  switch k {
+			  case "listen":
+				  tpl.AddIOGraphic(vmk.Listen, v.(string))
+			  case "type":
+				  tpl.AddIOGraphic(vmk.GraphicType, v.(string))
+			  case "port":
+				  tpl.AddIOGraphic(vmk.Port, v.(string))
+			  case "keymap":
+				  tpl.AddIOGraphic(vmk.Keymap, v.(string))
+			  case "passwd":
+				  tpl.AddIOGraphic(vmk.Passwd, v.(string))
+			  case "random_passwd":
+				  // only set random_passwd if it's set to true -- older OpenNebula versions will consider any
+				  // non-zero string as a yes
+				  if v.(bool) {
+					  tpl.AddIOGraphic(vmk.RandomPassword, "YES")
+				  }
+			  }   
 			}
-
 		}
-
 	}
 }
 
-func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
+func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 
 	//Generate DISK definition
 	disks := d.Get("disk").([]interface{})
 	log.Printf("Number of disks: %d", len(disks))
 
 	for i := 0; i < len(disks); i++ {
+		if disks[i] == nil {
+			continue
+		}
+
 		diskconfig := disks[i].(map[string]interface{})
 
 		// ConflictsWith can't be used among attributes of a nested part: disk, nic etc.
@@ -671,6 +694,16 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 		tpl.Elements = append(tpl.Elements, disk)
 	}
 
+	return nil
+}
+
+func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
+
+	err := addDisks(d, tpl)
+	if err != nil {
+		return err
+	}
+
 	//Generate GRAPHICS definition
 	addGraphic(tpl, d.Get("graphics").([]interface{}))
 
@@ -680,17 +713,21 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 	//Generate CPU Model definition
 	cpumodel := d.Get("cpumodel").([]interface{})
 	for i := 0; i < len(cpumodel); i++ {
-		cpumodelconfig := cpumodel[i].(map[string]interface{})
-		tpl.CPUModel(cpumodelconfig["model"].(string))
+		if cpumodel[i] != nil {
+			cpumodelconfig := cpumodel[i].(map[string]interface{})
+			tpl.CPUModel(cpumodelconfig["model"].(string))
+		}
 	}
 
 	//Generate VM Group definition
 	vmgroup := d.Get("vmgroup").([]interface{})
 	for i := 0; i < len(vmgroup); i++ {
-		vmgconfig := vmgroup[i].(map[string]interface{})
-		vmgroupTpl := tpl.AddVector("VMGROUP")
-		vmgroupTpl.AddPair("VMGROUP_ID", vmgconfig["vmgroup_id"].(int))
-		vmgroupTpl.AddPair("ROLE", vmgconfig["role"].(string))
+		if vmgroup[i] != nil {
+			vmgconfig := vmgroup[i].(map[string]interface{})
+			vmgroupTpl := tpl.AddVector("VMGROUP")
+			vmgroupTpl.AddPair("VMGROUP_ID", vmgconfig["vmgroup_id"].(int))
+			vmgroupTpl.AddPair("ROLE", vmgconfig["role"].(string))
+		}
 	}
 
 	vmcpu, ok := d.GetOk("cpu")
@@ -731,10 +768,12 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 	//Generate RAW definition
 	raw := d.Get("raw").([]interface{})
 	for i := 0; i < len(raw); i++ {
-		rawConfig := raw[i].(map[string]interface{})
-		rawVec := tpl.AddVector("RAW")
-		rawVec.AddPair("TYPE", rawConfig["type"].(string))
-		rawVec.AddPair("DATA", rawConfig["data"].(string))
+		if raw[i] != nil {
+			rawConfig := raw[i].(map[string]interface{})
+			rawVec := tpl.AddVector("RAW")
+			rawVec.AddPair("TYPE", rawConfig["type"].(string))
+			rawVec.AddPair("DATA", rawConfig["data"].(string))
+		}
 	}
 
 	descr, ok := d.GetOk("description")
@@ -836,6 +875,10 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 		}
 	}
 
+	method, _ := nic.Get(shared.Method)
+	gateway, _ := nic.Get(shared.Gateway)
+	dns, _ := nic.Get(shared.DNS)
+
 	return map[string]interface{}{
 		"ip":                 ip,
 		"mac":                mac,
@@ -845,6 +888,9 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 		"model":              model,
 		"virtio_queues":      virtioQueues,
 		"security_groups":    sg,
+		"method":             method,
+		"gateway":            gateway,
+		"dns":                dns,
 		"network_mode_auto":  networkModeBool,
 		"sched_requirements": schedReqs,
 		"sched_rank":         schedRank,

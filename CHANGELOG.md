@@ -1,3 +1,29 @@
+# 1.4.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_vm_group: fix anti affinity reading (#497)
+* resources/opennebula_datastore: remove DS_MAD for Ceph SYSTEM datastore (#542)
+
+# 1.4.1 (Unreleased)
+
+FEATURES:
+
+* resources/opennebula_virtual_network: allow to modify the user owning the resource (#529)
+* resources/opennebula_virtual_machine: add nil checks before type casting (#530)
+* resources/opennebula_virtual_router_nic: add floating_only nic argument (#547)
+* resources/opennebula_virtual_machine: add method, gateway, dns arguments for nics (#548)
+* resources/opennebula_service: add service role scaling (#553)
+
+ENHANCEMENTS:
+
+* resources/opennebula_template: enable disk and nic update (#491)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_router_instance: fix re-contextualization (#537)
+* resources/opennebula_datastore: fix trailing space in CEPH_HOST (#543)
+
 # 1.4.0 (January 22nd, 2024)
 
 FEATURES:

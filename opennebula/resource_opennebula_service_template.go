@@ -37,7 +37,7 @@ func resourceOpennebulaServiceTemplate() *schema.Resource {
 			"template": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
+				ForceNew:    false,
 				Description: "Service Template body in json format",
 				// Check JSON structure diffs, not binary diffs
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -361,6 +361,38 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 			Detail:   fmt.Sprintf("service template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
+	}
+
+	if d.HasChange("template") {
+		newTemplate := d.Get("template").(string)
+
+		// Unmarshal the new template
+		newSTemplate := &srv_tmpl.ServiceTemplate{}
+		err := json.Unmarshal([]byte(newTemplate), newSTemplate)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to parse the new template",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
+
+		// Update the template
+		stemplate.Template = newSTemplate.Template
+
+		// Apply the changes
+		err = stc.Update(stemplate, true)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update the service template",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
+
+		log.Printf("[INFO] Successfully updated the template for service template ID %x\n", stemplate.ID)
 	}
 
 	if d.HasChange("name") {

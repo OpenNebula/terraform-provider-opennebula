@@ -2,11 +2,14 @@ package opennebula
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	ver "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -31,6 +34,7 @@ func resourceOpennebulaService() *schema.Resource {
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(defaultServiceTimeout),
 			Delete: schema.DefaultTimeout(defaultServiceTimeout),
+			Update: schema.DefaultTimeout(defaultServiceTimeout),
 		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -52,7 +56,7 @@ func resourceOpennebulaService() *schema.Resource {
 			"extra_template": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
+				ForceNew:    false,
 				Description: "Extra template information in json format to be added to the service template during instantiate.",
 			},
 			"permissions": {
@@ -120,7 +124,7 @@ func resourceOpennebulaService() *schema.Resource {
 			"roles": {
 				Type:        schema.TypeList,
 				Computed:    true,
-				Description: "Map with the role dinamically generated information",
+				Description: "Map with the role dynamically generated information",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cardinality": {
@@ -314,8 +318,24 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 	var networks = make(map[string]int)
 	for _, val := range sv.Template.Body.NetworksVals {
 		for k, v := range val {
-			s := v.(map[string]interface{})["id"].(string)
-			networkID, err := strconv.ParseInt(s, 10, 0)
+			if v == nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Network ID is nil",
+					Detail:   fmt.Sprintf("service (ID: %s): Network ID is nil", d.Id()),
+				})
+				return diags
+			}
+			idInterface, ok := v.(map[string]interface{})["id"]
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Network ID is missing",
+					Detail:   fmt.Sprintf("service (ID: %s): Network ID is missing", d.Id()),
+				})
+				return diags
+			}
+			networkID, err := ParseIntFromInterface(idInterface)
 			if err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -324,7 +344,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 				})
 				return diags
 			}
-			networks[k] = int(networkID)
+			networks[k] = networkID
 		}
 	}
 	d.Set("networks", networks)
@@ -587,6 +607,81 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
 	}
 
+	if d.HasChange("extra_template") {
+		extra_template := make(map[string]interface{})
+		if v, ok := d.GetOk("extra_template"); ok {
+			if err := json.Unmarshal([]byte(v.(string)), &extra_template); err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to parse extra template",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+		}
+
+		type roleDesc struct {
+			name           string
+			oldCardinality int
+			newCardinality int
+			wantScale      bool
+		}
+
+		desc := []roleDesc{}
+
+		for _, role := range service.Template.Body.Roles {
+			desc = append(desc, roleDesc{
+				name:           role.Name,
+				oldCardinality: role.Cardinality,
+			})
+		}
+
+		if roles, ok := extra_template["roles"]; ok {
+			for k := 0; k < len(desc) && k < len(roles.([]interface{})); k++ {
+				if v, ok := roles.([]interface{})[k].(map[string]interface{})["cardinality"]; ok {
+					desc[k].newCardinality = int(v.(float64))
+					desc[k].wantScale = desc[k].newCardinality != desc[k].oldCardinality
+				}
+			}
+		}
+
+		minVersion, _ := ver.NewVersion("6.8.0")
+
+		for _, v := range desc {
+			if v.wantScale {
+				if config.OneVersion.LessThan(minVersion) {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Role scaling is unsupported for this environment",
+						Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+					})
+					return diags
+				}
+
+				if err := sc.Scale(v.name, v.newCardinality, false); err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to scale role",
+						Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+					})
+					return diags
+				}
+
+				timeout := d.Timeout(schema.TimeoutUpdate)
+				if _, err := waitForServiceState(ctx, d, meta, "running", timeout); err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to wait service to be in RUNNING state",
+						Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+					})
+					return diags
+				}
+			}
+		}
+
+		log.Printf("[INFO] Successfully scaled roles of Service %s\n", service.Name)
+	}
+
 	return resourceOpennebulaServiceRead(ctx, d, meta)
 }
 
@@ -680,7 +775,8 @@ func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta inter
 	log.Printf("Waiting for Service (%s) to be in state %s", d.Id(), state)
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"anythingelse"}, Target: []string{state},
+		Pending: []string{"anythingelse", "cooldown"},
+		Target:  []string{state},
 		Refresh: func() (interface{}, string, error) {
 			log.Println("Refreshing Service state...")
 			if d.Id() != "" {
@@ -734,5 +830,4 @@ func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	return stateConf.WaitForStateContext(ctx)
-
 }
