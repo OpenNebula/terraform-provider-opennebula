@@ -641,23 +641,23 @@ func addGraphic(tpl *vm.Template, graphics []interface{}) {
 				}
 
 				switch k {
-					case "listen":
-						tpl.AddIOGraphic(vmk.Listen, v.(string))
-					case "type":
-						tpl.AddIOGraphic(vmk.GraphicType, v.(string))
-					case "port":
-						tpl.AddIOGraphic(vmk.Port, v.(string))
-					case "keymap":
-						tpl.AddIOGraphic(vmk.Keymap, v.(string))
-					case "passwd":
-						tpl.AddIOGraphic(vmk.Passwd, v.(string))
-					case "random_passwd":
-						// only set random_passwd if it's set to true -- older OpenNebula versions will consider any
-						// non-zero string as a yes
-						if v.(bool) {
-							tpl.AddIOGraphic(vmk.RandomPassword, "YES")
-						}
-				}   
+				case "listen":
+					tpl.AddIOGraphic(vmk.Listen, v.(string))
+				case "type":
+					tpl.AddIOGraphic(vmk.GraphicType, v.(string))
+				case "port":
+					tpl.AddIOGraphic(vmk.Port, v.(string))
+				case "keymap":
+					tpl.AddIOGraphic(vmk.Keymap, v.(string))
+				case "passwd":
+					tpl.AddIOGraphic(vmk.Passwd, v.(string))
+				case "random_passwd":
+					// only set random_passwd if it's set to true -- older OpenNebula versions will consider any
+					// non-zero string as a yes
+					if v.(bool) {
+						tpl.AddIOGraphic(vmk.RandomPassword, "YES")
+					}
+				}
 			}
 		}
 	}
