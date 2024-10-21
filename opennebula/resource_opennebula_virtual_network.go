@@ -1694,15 +1694,16 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 	}
 	log.Printf("[INFO] Successfully released reservered IP addresses.")
 
-	err = vnc.Delete()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to delete",
-			Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
-		})
-		return diags
-	}
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		err = vnc.Delete()
+		if err != nil {
+			if strings.Contains(err.Error(), "Can not remove a virtual network with leases in use") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 
 	timeout := d.Timeout(schema.TimeoutDelete)
 	transient := []string{vn.Init.String(), vn.Ready.String()}
@@ -1716,7 +1717,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 		return diags
 	}
 
-	log.Printf("[INFO] Successfully deleted Vnet\n")
+	log.Printf("[INFO] Successfully deleted Vnet (ID: %s)\n", d.Id())
 	return nil
 }
 

@@ -87,6 +87,12 @@ func resourceOpennebulaVirtualRouterNIC() *schema.Resource {
 				Default:  false,
 				ForceNew: true,
 			},
+			"ip": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -135,6 +141,10 @@ func resourceOpennebulaVirtualRouterNICCreate(ctx context.Context, d *schema.Res
 		if v.(bool) {
 			nicTpl.Add("FLOATING_ONLY", "YES")
 		}
+	}
+
+	if v, ok := d.GetOk("ip"); ok {
+		nicTpl.Add("IP", v.(string))
 	}
 
 	// wait before checking NIC
@@ -209,6 +219,13 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 
 	floatingIP, _ := nic.GetStr("FLOATING_IP")
 	floatingOnly, _ := nic.GetStr("FLOATING_ONLY")
+	ip, _ := nic.Get("IP")
+
+	// For VRouter NICs, floating IPs are set using the "IP" field, but it is represented in the ON API
+	// as the "VROUTER_IP" field.
+	if strings.ToUpper(floatingIP) == "YES" {
+		ip, _ = nic.Get("VROUTER_IP")
+	}
 
 	d.Set("network_id", networkID)
 	d.Set("virtual_router_id", vr.ID)
@@ -219,6 +236,7 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	d.Set("security_groups", sg)
 	d.Set("floating_ip", strings.ToUpper(floatingIP) == "YES")
 	d.Set("floating_only", strings.ToUpper(floatingOnly) == "YES")
+	d.Set("ip", ip)
 
 	return nil
 }
