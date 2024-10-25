@@ -18,13 +18,13 @@ func dataSourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 		ReadContext: dataSourceOpennebulaVirtualNetworkAddressRangeRead,
 		Schema: map[string]*schema.Schema{
 			"virtual_network_id": {
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:        schema.TypeInt,
+				Required:    true,
 				Description: "Id of the virtual network",
 			},
 			"id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
 				Description: "Id of the virtual network range",
 			},
 			"ar_type": {
