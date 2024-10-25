@@ -121,7 +121,7 @@ func resourceOpennebulaDatastore() *schema.Resource {
 				Optional:    true,
 				Description: "For Image Datastores only. Set the System Datastores IDs that can be used with an Image Datastore",
 				Elem: &schema.Schema{
-					Type: schema.TypeInt,
+					Type: schema.TypeString,
 				},
 			},
 			"ceph": {
@@ -282,13 +282,20 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 
 	compatibleSystemDatastores := d.Get("compatible_system_datastore").(*schema.Set).List()
 	if len(compatibleSystemDatastores) > 0 {
-
 		// convert to slice of strings then join
 		var compatibleSysDs []string
 		for _, sysDs := range compatibleSystemDatastores {
-			compatibleSysDs = append(compatibleSysDs, fmt.Sprint(sysDs.(int)))
+			i, err := ParseIntFromInterface(sysDs)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to parse datastore ID",
+					Detail:   err.Error(),
+				})
+				return diags
+			}
+			compatibleSysDs = append(compatibleSysDs, fmt.Sprint(i))
 		}
-
 		tpl.Add(dsKey.CompatibleSysDs, strings.Join(compatibleSysDs, ","))
 	}
 
@@ -302,6 +309,7 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 
 		if dsType == "IMAGE" {
 			tpl.Add("TM_MAD", "ceph")
+			tpl.Add("DS_MAD", "ceph")
 		} else if dsType == "SYSTEM" {
 			if cephAttrsMap["local_storage"].(bool) {
 				tpl.Add("TM_MAD", "ssh")
@@ -379,7 +387,6 @@ func resourceOpennebulaDatastoreCreate(ctx context.Context, d *schema.ResourceDa
 
 func addCephAttributes(attrs map[string]interface{}, tpl *datastore.Template) {
 
-	tpl.Add("DS_MAD", "ceph")
 	tpl.Add("DISK_TYPE", "RBD")
 
 	poolName := attrs["pool_name"].(string)
@@ -542,7 +549,7 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 
 	compatibleSystemDatastore, err := datastoreInfos.Template.Get(dsKey.CompatibleSysDs)
 	if err == nil {
-		d.Set("compatible_system_datastore", compatibleSystemDatastore)
+		d.Set("compatible_system_datastore", strings.Split(compatibleSystemDatastore, ","))
 	}
 
 	customAttrsList := d.Get("custom").(*schema.Set).List()
@@ -788,9 +795,27 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		update = true
 	}
 	if d.HasChange("compatible_system_datastore") {
-		compatibleSystemDS := d.Get("compatible_system_datastore")
-		newTpl.Del(string(dsKey.CompatibleSysDs))
-		newTpl.Add(dsKey.CompatibleSysDs, compatibleSystemDS)
+		compatibleSystemDatastores := d.Get("compatible_system_datastore").(*schema.Set).List()
+		if len(compatibleSystemDatastores) > 0 {
+			// convert to slice of strings then join
+			var compatibleSysDs []string
+			for _, sysDs := range compatibleSystemDatastores {
+				i, err := ParseIntFromInterface(sysDs)
+				if err != nil {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to parse datastore ID",
+						Detail:   err.Error(),
+					})
+					return diags
+				}
+				compatibleSysDs = append(compatibleSysDs, fmt.Sprint(i))
+			}
+			newTpl.Del(string(dsKey.CompatibleSysDs))
+			newTpl.Add(dsKey.CompatibleSysDs, strings.Join(compatibleSysDs, ","))
+		} else {
+			newTpl.Del(string(dsKey.CompatibleSysDs))
+		}
 		update = true
 	}
 
