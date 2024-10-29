@@ -188,9 +188,9 @@ func TestAccVirtualRouter(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uname"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gname"),
-					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_IP_specified", "floating_ip", "true"),
-					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_IP_specified", "floating_only", "false"),
-					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_IP_specified", "ip", "172.16.100.160"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_ip", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "ip", "172.16.100.160"),
 					testAccCheckVirtualRouterPermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -216,9 +216,9 @@ func TestAccVirtualRouter(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_only_IP_specified", "floating_ip", "true"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_only_IP_specified", "floating_only", "true"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_only_IP_specified", "ip", "172.16.100.121"),
-					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_IP_specified", "floating_ip", "true"),
-					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_IP_specified", "floating_only", "false"),
-					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_IP_specified", "ip", "172.16.100.160"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_ip", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "ip", "172.16.100.160"),
 					testAccCheckVirtualRouterPermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -641,7 +641,7 @@ resource "opennebula_virtual_router" "test" {
     }
 }
 
-resource "opennebula_virtual_router_nic" "nic_floating_IP_specified" {
+resource "opennebula_virtual_router_nic" "nic_floating_ip_specified" {
     depends_on        = [opennebula_virtual_router_instance.test]
     ip                = "172.16.100.160"
     floating_ip       = true
@@ -690,7 +690,7 @@ resource "opennebula_virtual_router_nic" "nic_floating_only_IP_specified" {
     network_id        = opennebula_virtual_network.network2.id
 }
 
-resource "opennebula_virtual_router_nic" "nic_floating_IP_specified" {
+resource "opennebula_virtual_router_nic" "nic_floating_ip_specified" {
     depends_on        = [opennebula_virtual_router_instance.test]
     ip                = "172.16.100.160"
     floating_ip       = true

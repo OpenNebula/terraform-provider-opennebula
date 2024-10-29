@@ -1694,7 +1694,7 @@ func resourceOpennebulaVirtualNetworkDelete(ctx context.Context, d *schema.Resou
 	}
 	log.Printf("[INFO] Successfully released reservered IP addresses.")
 
-	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+	err = resource.RetryContext(ctx, d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		err = vnc.Delete()
 		if err != nil {
 			if strings.Contains(err.Error(), "Can not remove a virtual network with leases in use") {
