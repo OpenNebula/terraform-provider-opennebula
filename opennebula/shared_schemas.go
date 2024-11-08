@@ -414,7 +414,7 @@ func osSchema() *schema.Schema {
 		Type:        schema.TypeList,
 		Optional:    true,
 		MaxItems:    1,
-		Description: "Definition of OS boot and type for the Virtual Machine",
+		Description: "Definition of OS parameters for the Virtual Machine",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"arch": {
@@ -424,6 +424,58 @@ func osSchema() *schema.Schema {
 				"boot": {
 					Type:     schema.TypeString,
 					Required: true,
+				},
+				"machine": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"kernel": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.kernel_ds"},
+				},
+				"kernel_ds": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.kernel"},
+				},
+				"initrd": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.initrd_ds"},
+				},
+				"initrd_ds": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.initrd"},
+				},
+				"root": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"kernel_cmd": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"bootloader": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"sd_disk_bus": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"uuid": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"firmware": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"firmware_secure": {
+					Type:     schema.TypeBool,
+					Optional: true,
 				},
 			},
 		},
