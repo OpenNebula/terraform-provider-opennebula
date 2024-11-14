@@ -15,7 +15,7 @@ Use this data source to retrieve virtual machines information.
 ```hcl
 data "opennebula_virtual_machines" "example" {
   name_regex = "test.*"
-  sort_on    = "register_date"
+  sort_on    = "id"
   order      = "ASC"
 }
 ```

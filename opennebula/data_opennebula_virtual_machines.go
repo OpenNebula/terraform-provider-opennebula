@@ -76,7 +76,7 @@ func dataOpennebulaVirtualMachines() *schema.Resource {
 				Description: "Attribute used to sort the VMs list, only works on integer attributes.",
 
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := strings.ToUpper(v.(string))
+					value := strings.ToLower(v.(string))
 
 					if !contains(value, sortOnVMsValues) {
 						errors = append(errors, fmt.Errorf("type %q must be one of: %s", k, strings.Join(sortOnVMsValues, ",")))
