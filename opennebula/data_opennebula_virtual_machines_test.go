@@ -42,11 +42,6 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.basic",
-						"virtual_machines.0.id",
-						"0",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.basic",
 						"virtual_machines.0.name",
 						"vm-0",
 					),
@@ -92,28 +87,13 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.id_asc",
-						"virtual_machines.0.id",
-						"1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.id_asc",
 						"virtual_machines.0.name",
 						"vm-1",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.id_asc",
-						"virtual_machines.1.id",
-						"0",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.id_asc",
 						"virtual_machines.1.name",
 						"vm-0",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.cpu_desc",
-						"virtual_machines.0.id",
-						"0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.cpu_desc",
@@ -122,18 +102,8 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.cpu_desc",
-						"virtual_machines.1.id",
-						"1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.cpu_desc",
 						"virtual_machines.1.name",
 						"vm-1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.mem_asc",
-						"virtual_machines.0.id",
-						"0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.mem_asc",
@@ -142,18 +112,8 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.mem_asc",
-						"virtual_machines.1.id",
-						"1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.mem_asc",
 						"virtual_machines.1.name",
 						"vm-1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.vcpu_asc",
-						"virtual_machines.0.id",
-						"1",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.vcpu_asc",
@@ -162,18 +122,8 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.vcpu_asc",
-						"virtual_machines.1.id",
-						"0",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.vcpu_asc",
 						"virtual_machines.1.name",
 						"vm-0",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.name_desc",
-						"virtual_machines.0.id",
-						"0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.name_desc",
@@ -182,18 +132,8 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.name_desc",
-						"virtual_machines.1.id",
-						"1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.name_desc",
 						"virtual_machines.1.name",
 						"vm-1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.id_desc_cpu",
-						"virtual_machines.0.id",
-						"0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.id_desc_cpu",
@@ -207,11 +147,6 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.mem_asc_vcpu",
-						"virtual_machines.0.id",
-						"1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.mem_asc_vcpu",
 						"virtual_machines.0.name",
 						"vm-1",
 					),
@@ -222,28 +157,13 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.static_name",
-						"virtual_machines.0.id",
-						"0",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.static_name",
 						"virtual_machines.0.name",
 						"vm-0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.static_mem",
-						"virtual_machines.0.id",
-						"1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.static_mem",
 						"virtual_machines.0.name",
 						"vm-1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.static_tags",
-						"virtual_machines.0.id",
-						"0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.static_tags",

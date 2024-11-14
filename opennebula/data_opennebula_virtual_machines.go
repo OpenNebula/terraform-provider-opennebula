@@ -174,7 +174,7 @@ func virtualMachinesFilter(d *schema.ResourceData, meta interface{}) ([]*vmSc.VM
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	vms, err := controller.VMs().Info()
+	vms, err := controller.VMs().InfoExtended()
 	if err != nil {
 		return nil, err
 	}
