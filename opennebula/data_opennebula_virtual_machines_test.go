@@ -77,8 +77,8 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.basic",
-						"virtual_machines.0.tags.%",
-						"1",
+						"virtual_machines.0.tags.SCHED_REQUIREMENTS",
+						"CLUSTER_ID!=\"123\"",
 					),
 				),
 			},
@@ -88,52 +88,52 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.id_asc",
 						"virtual_machines.0.name",
-						"vm-1",
+						"vm-0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.id_asc",
 						"virtual_machines.1.name",
-						"vm-0",
+						"vm-1",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.cpu_desc",
 						"virtual_machines.0.name",
-						"vm-0",
+						"vm-1",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.cpu_desc",
 						"virtual_machines.1.name",
-						"vm-1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.mem_asc",
-						"virtual_machines.0.name",
 						"vm-0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.mem_asc",
-						"virtual_machines.1.name",
-						"vm-1",
-					),
-					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.vcpu_asc",
 						"virtual_machines.0.name",
 						"vm-1",
 					),
 					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.vcpu_asc",
+						"data.opennebula_virtual_machines.mem_asc",
 						"virtual_machines.1.name",
 						"vm-0",
 					),
 					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.name_desc",
+						"data.opennebula_virtual_machines.vcpu_desc",
 						"virtual_machines.0.name",
 						"vm-0",
 					),
 					resource.TestCheckResourceAttr(
-						"data.opennebula_virtual_machines.name_desc",
+						"data.opennebula_virtual_machines.vcpu_desc",
 						"virtual_machines.1.name",
 						"vm-1",
+					),
+					resource.TestCheckResourceAttr(
+						"data.opennebula_virtual_machines.name_desc",
+						"virtual_machines.0.name",
+						"vm-1",
+					),
+					resource.TestCheckResourceAttr(
+						"data.opennebula_virtual_machines.name_desc",
+						"virtual_machines.1.name",
+						"vm-0",
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.id_desc_cpu",
@@ -177,7 +177,7 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 }
 
 var testAccVirtualMachinesDataSourceInvalidCPU = `
-data "opennebula_virtual_machines" "test" {
+data "opennebula_virtual_machines" "test_invalid_id" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "ASC"
@@ -185,7 +185,7 @@ data "opennebula_virtual_machines" "test" {
 }
 `
 var testAccVirtualMachinesDataSourceInvalidVCPU = `
-data "opennebula_virtual_machines" "test" {
+data "opennebula_virtual_machines" "test_invalid_vcpu" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "ASC"
@@ -193,7 +193,7 @@ data "opennebula_virtual_machines" "test" {
 }
 `
 var testAccVirtualMachinesDataSourceInvalidMemory = `
-data "opennebula_virtual_machines" "test" {
+data "opennebula_virtual_machines" "test_invalid_memory" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "ASC"
@@ -201,21 +201,21 @@ data "opennebula_virtual_machines" "test" {
 }
 `
 var testAccVirtualMachinesDataSourceInvalidSort = `
-data "opennebula_virtual_machines" "test" {
+data "opennebula_virtual_machines" "test_invalid_sort" {
   name_regex = "test.*"
   sort_on    = "unsupported_field"
   order      = "ASC"
 }
 `
 var testAccVirtualMachinesDataSourceInvalidOrder = `
-data "opennebula_virtual_machines" "test" {
+data "opennebula_virtual_machines" "test_invalid_order" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "unsupported_order"
 }
 `
 var testAccVirtualMachinesDataSourceNoMatchingVMs = `
-data "opennebula_virtual_machines" "test" {
+data "opennebula_virtual_machines" "test_no_matching" {
   name_regex = "noMatchingVM.*"
 }
 `
@@ -293,7 +293,7 @@ data "opennebula_virtual_machines" "mem_asc" {
   ]
 }
 
-data "opennebula_virtual_machines" "vcpu_asc" {
+data "opennebula_virtual_machines" "vcpu_desc" {
   name_regex = "vm.*"
   sort_on    = "vcpu"
   order      = "DESC"

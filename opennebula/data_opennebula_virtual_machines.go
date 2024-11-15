@@ -314,7 +314,7 @@ func datasourceOpennebulaVirtualMachinesRead(ctx context.Context, d *schema.Reso
 		ordering = d.Get("order").(string)
 		var orderingFn func(int, int) bool
 		switch ordering {
-		case "ASC":
+		case "DESC":
 			switch vmsMaps[0][sortOnAttr].(type) {
 			case int:
 				orderingFn = func(i, j int) bool {
@@ -336,7 +336,7 @@ func datasourceOpennebulaVirtualMachinesRead(ctx context.Context, d *schema.Reso
 				})
 				return diags
 			}
-		case "DESC":
+		case "ASC":
 			switch vmsMaps[0][sortOnAttr].(type) {
 			case int:
 				orderingFn = func(i, j int) bool {
