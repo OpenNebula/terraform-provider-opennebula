@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+
 	// "strings"
 
 	// vn "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/virtualnetwork"
@@ -33,17 +34,87 @@ func dataSourceOpennebulaVirtualNetworkAddressRanges() *schema.Resource {
 						"ar_type": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "Type of the Address Range: IP4, IP6.",
+							Description: "Type of the Address Range: IP4, IP6, IP4_6",
 						},
 						"ip4": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "Start IPv4 of the range to be allocated.",
+							Description: "Start IPv4 of the range to be allocated",
+						},
+						"ip4_end": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "End IPv4 of the range to be allocated",
+						},
+						"ip6": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Start IPv6 of the range to be allocated",
+						},
+						"ip6_end": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "End IPv6 of the range to be allocated",
+						},
+						"ip6_global": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Global IPv6 of the range to be allocated",
+						},
+						"ip6_global_end": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "End Global IPv6 of the range to be allocated",
+						},
+						"ip6_ula": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "ULA IPv6 of the range to be allocated",
+						},
+						"ip6_ula_end": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "End ULA IPv6 of the range to be allocated",
 						},
 						"size": {
 							Type:        schema.TypeInt,
 							Computed:    true,
-							Description: "Count of addresses in the IP range.",
+							Description: "Count of addresses in the IP range",
+						},
+						"mac": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Start MAC of the range to be allocated",
+						},
+						"mac_end": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "End MAC of the range to be allocated",
+						},
+						"global_prefix": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Global prefix for IP6 or IP4_6",
+						},
+						"ula_prefix": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "ULA prefix for IP6 or IP4_6",
+						},
+						"held_ips": {
+							Type:        schema.TypeSet,
+							Computed:    true,
+							Description: "List of IPs held in this address range",
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"custom": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 						},
 					},
 				},
@@ -75,15 +146,11 @@ func dataSourceOpennebulaVirtualNetworkAddressRangesRead(ctx context.Context, d 
 	// Prepare the results array.
 	var addressRanges []interface{}
 
-	// Iterate over each address range and extract minimal information.
+	// Iterate over each address range and extract information.
 	for _, addressRange := range virtualNetworkInfo.ARs {
-		minimalInfo := map[string]interface{}{
-			"id":      addressRange.ID,
-			"ar_type": addressRange.Type,
-			"ip4":     addressRange.IP,
-			"size":    addressRange.Size,
-		}
-		addressRanges = append(addressRanges, minimalInfo)
+		// Flatten the address range and append the data to the addressRanges list.
+		flattenedAddressRange := flattenAddressRange(addressRange)
+		addressRanges = append(addressRanges, flattenedAddressRange)
 	}
 
 	// Set the result and log success.
