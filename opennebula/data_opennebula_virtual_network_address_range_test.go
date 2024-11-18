@@ -17,6 +17,14 @@ func TestAccDataSourceOpennebulaVirtualNetworkAddressRange(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualNetworkAddressRangeDestroy,
 		Steps: []resource.TestStep{
 			{
+				Config: testAccDataSourceVirtualNetworkAddressRangeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network.test_vnet", "id"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network_address_range.test_ar_1", "id"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_network_address_range.test_ar_2", "id"),
+				),
+			},
+			{
 				Config: testAccDataSourceVirtualNetworkAddressRangeConfig + testAccDataSourceVirtualNetworkAddressRange1,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair(
