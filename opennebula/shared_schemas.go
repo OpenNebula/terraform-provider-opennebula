@@ -468,6 +468,7 @@ func osSchema() *schema.Schema {
 				"uuid": {
 					Type:     schema.TypeString,
 					Optional: true,
+					Computed: true,
 				},
 				"firmware": {
 					Type:     schema.TypeString,
@@ -674,7 +675,19 @@ func addOS(tpl *vm.Template, os []interface{}) {
 		if os[i] != nil {
 			osconfig := os[i].(map[string]interface{})
 			tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
+			tpl.AddOS(vmk.Machine, osconfig["machine"].(string))
+			tpl.AddOS(vmk.Kernel, osconfig["kernel"].(string))
+			tpl.AddOS(vmk.KernelDS, osconfig["kernel_ds"].(string))
+			tpl.AddOS(vmk.Initrd, osconfig["initrd"].(string))
+			tpl.AddOS(vmk.InitrdDS, osconfig["initrd_ds"].(string))
+			tpl.AddOS(vmk.Root, osconfig["root"].(string))
+			tpl.AddOS(vmk.KernelCmd, osconfig["kernel_cmd"].(string))
+			tpl.AddOS(vmk.Bootloader, osconfig["bootloader"].(string))
 			tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+			tpl.AddOS(vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
+			tpl.AddOS(vmk.UUID, osconfig["uuid"].(string))
+			tpl.AddOS(vmk.Firmware, osconfig["firmware"].(string))
+			tpl.AddOS(vmk.FirmwareSecure, osconfig["firmware_secure"].(bool))
 		}
 	}
 
@@ -1012,7 +1025,19 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	// OS
 	osMap := make([]map[string]interface{}, 0, 1)
 	arch, _ := vmTemplate.GetOS(vmk.Arch)
+	machine, _ := vmTemplate.GetOS(vmk.Machine)
+	kernel, _ := vmTemplate.GetOS(vmk.Kernel)
+	kernelDS, _ := vmTemplate.GetOS(vmk.KernelDS)
+	initrd, _ := vmTemplate.GetOS(vmk.Initrd)
+	initrdDS, _ := vmTemplate.GetOS(vmk.InitrdDS)
+	root, _ := vmTemplate.GetOS(vmk.Root)
+	kernelCmd, _ := vmTemplate.GetOS(vmk.KernelCmd)
+	bootloader, _ := vmTemplate.GetOS(vmk.Bootloader)
 	boot, _ := vmTemplate.GetOS(vmk.Boot)
+	sdDiskBus, _ := vmTemplate.GetOS(vmk.SDDiskBus)
+	uuid, _ := vmTemplate.GetOS(vmk.UUID)
+	firmware, _ := vmTemplate.GetOS(vmk.Firmware)
+	firmwareSecure, firmwareSecureErr := vmTemplate.GetOS(vmk.FirmwareSecure)
 	// CPU Model
 	cpumodelMap := make([]map[string]interface{}, 0, 1)
 	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
@@ -1069,9 +1094,26 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 
 	// Set OS to resource
 	if arch != "" {
+		firmwareSecureBool := false
+		if firmwareSecureErr == nil && firmwareSecure == "true" {
+			firmwareSecureBool = true
+		}
+
 		osMap = append(osMap, map[string]interface{}{
-			"arch": arch,
-			"boot": boot,
+			"arch":            arch,
+			"machine":         machine,
+			"kernel":          kernel,
+			"kernel_ds":       kernelDS,
+			"initrd":          initrd,
+			"initrd_ds":       initrdDS,
+			"root":            root,
+			"kernel_cmd":      kernelCmd,
+			"bootloader":      bootloader,
+			"boot":            boot,
+			"sd_disk_bus":     sdDiskBus,
+			"uuid":            uuid,
+			"firmware":        firmware,
+			"firmware_secure": firmwareSecureBool,
 		})
 		_, inherited := inheritedVectors["OS"]
 		if !inherited {
