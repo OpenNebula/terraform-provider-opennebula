@@ -67,6 +67,50 @@ func TestAccVirtualMachine(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccVirtualMachineTemplateConfigOs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "memory", "128"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "cpu", "0.1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "context.%", "3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "context.NETWORK", "YES"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "context.TESTVAR", "TEST"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "graphics.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "graphics.0.keymap", "en-us"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "graphics.0.listen", "0.0.0.0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "graphics.0.type", "VNC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "os.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "os.0.arch", "x86_64"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "os.0.firmware", ""),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "os.0.firmware_secure", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "disk.#", "0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "tags.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "tags.env", "prod"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "tags.customer", "test"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "description", "VM created for provider acceptance tests"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.testos", "timeout", "5"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.testos", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.testos", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.testos", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.testos", "gname"),
+					testAccCheckVirtualMachinePermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						OtherM: 1,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("opennebula_virtual_machine.testos", "template_section.*", map[string]string{
+						"name":              "test_vec_key",
+						"elements.%":        "2",
+						"elements.testkey1": "testvalue1",
+						"elements.testkey2": "testvalue2",
+					}),
+				),
+			},
+			{
 				Config: testAccVirtualMachineConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
@@ -635,7 +679,7 @@ resource "opennebula_virtual_machine" "test" {
   os {
     arch = "x86_64"
     boot = ""
-  }
+   }
 
   tags = {
     env = "prod"
@@ -643,6 +687,51 @@ resource "opennebula_virtual_machine" "test" {
   }
 
   sched_requirements = "FREE_CPU > 50"
+
+  template_section {
+	name = "test_vec_key"
+	elements = {
+		testkey1 = "testvalue1"
+		testkey2 = "testvalue2"
+	}
+  }
+
+  timeout = 5
+}
+`
+
+var testAccVirtualMachineTemplateConfigOs = `
+resource "opennebula_virtual_machine" "testos" {
+  name        = "test-virtual_machine"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
+  description = "VM created for provider acceptance tests"
+
+  context = {
+	TESTVAR = "TEST"
+	NETWORK  = "YES"
+	SET_HOSTNAME = "$NAME"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+    firmware = ""
+    firmware_secure = false
+  }
+
+  tags = {
+    env = "prod"
+    customer = "test"
+  }
 
   template_section {
 	name = "test_vec_key"
