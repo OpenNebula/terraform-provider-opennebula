@@ -121,8 +121,10 @@ func TestAccVirtualRouter(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router_nic.nic2", "network_id"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_ip", "true"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_only", "true"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router_nic.nic1", "ip"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_ip", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "ip", ""),
 					testAccCheckVirtualRouterPermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -148,6 +150,75 @@ func TestAccVirtualRouter(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_only", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_ip", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_only", "false"),
+					testAccCheckVirtualRouterPermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						OtherM: 1,
+					}, "testacc-vr"),
+				),
+			},
+			{
+				Config: testAccVirtualRouterDeleteSecondVrouter,
+				Check: resource.ComposeTestCheckFunc(
+					// Virtual router
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "name", "testacc-vr"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gname"),
+					testAccCheckVirtualRouterPermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						OtherM: 1,
+					}, "testacc-vr"),
+				),
+			},
+			{
+				Config: testAccVirtualRouterAddNICsWithIPs,
+				Check: resource.ComposeTestCheckFunc(
+					// Virtual router
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "name", "testacc-vr"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gname"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_ip", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "ip", "172.16.100.160"),
+					testAccCheckVirtualRouterPermissions(&shared.Permissions{
+						OwnerU: 1,
+						OwnerM: 1,
+						GroupU: 1,
+						OtherM: 1,
+					}, "testacc-vr"),
+				),
+			},
+			{
+				Config: testAccVirtualRouterUpdateNICsWithIPs,
+				Check: resource.ComposeTestCheckFunc(
+					// Virtual router
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "name", "testacc-vr"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router.test", "group", "oneadmin"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "uname"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_router.test", "gname"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_IP_specified", "floating_ip", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_IP_specified", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_IP_specified", "ip", "172.16.100.120"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_only_IP_specified", "floating_ip", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_only_IP_specified", "floating_only", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_only_IP_specified", "ip", "172.16.100.121"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_ip", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic_floating_ip_specified", "ip", "172.16.100.160"),
 					testAccCheckVirtualRouterPermissions(&shared.Permissions{
 						OwnerU: 1,
 						OwnerM: 1,
@@ -246,12 +317,12 @@ func testAccCheckVirtualRouterPermissions(expected *shared.Permissions, resource
 var testAccVirtualRouterMachineTemplate = `
 
 resource "opennebula_virtual_router_instance_template" "test" {
-	name = "testacc-vr-template"
+	name        = "testacc-vr-template"
 	permissions = "642"
-	group = "oneadmin"
-	cpu = "0.5"
-	vcpu = "1"
-	memory = "512"
+	group       = "oneadmin"
+	cpu         = "0.5"
+	vcpu        = "1"
+	memory      = "512"
 
 	context = {
 	  dns_hostname = "yes"
@@ -291,9 +362,9 @@ resource "opennebula_virtual_network" "network1" {
 	group = "oneadmin"
 	security_groups = [0]
 	cluster_ids     = [0]
-  }
+}
 
-  resource "opennebula_virtual_network" "network2" {
+resource "opennebula_virtual_network" "network2" {
 	name = "test-net2"
 	type            = "bridge"
 	bridge          = "onebr"
@@ -307,9 +378,9 @@ resource "opennebula_virtual_network" "network1" {
 	group = "oneadmin"
 	security_groups = [0]
 	cluster_ids     = [0]
-  }
+}
 
-  resource "opennebula_virtual_network" "network3" {
+resource "opennebula_virtual_network" "network3" {
 	name = "test-net3"
 	type            = "bridge"
 	bridge          = "onebr"
@@ -323,7 +394,7 @@ resource "opennebula_virtual_network" "network1" {
 	group = "oneadmin"
 	security_groups = [0]
 	cluster_ids     = [0]
-  }
+}
 `
 
 var testAccVirtualRouterConfigBasic = testAccVirtualRouterMachineTemplate + `
@@ -332,22 +403,22 @@ resource "opennebula_virtual_router_instance" "test" {
 	name        = "testacc-vr-virtual-machine"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
 
 resource "opennebula_virtual_router" "test" {
-  name = "testacc-vr"
-  permissions = "642"
-  group = "oneadmin"
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
 
-  tags = {
-    customer = "1"
-  }
+    tags = {
+        customer = "1"
+    }
 }
 `
 
@@ -357,8 +428,8 @@ resource "opennebula_virtual_router_instance" "test" {
 	name        = "testacc-vr-virtual-machine"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
@@ -375,15 +446,15 @@ resource "opennebula_virtual_router_instance" "test2" {
 }
 
 resource "opennebula_virtual_router" "test" {
-  name = "testacc-vr"
-  permissions = "642"
-  group = "oneadmin"
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
 
-  tags = {
-    customer = "1"
-  }
+    tags = {
+        customer = "1"
+    }
 }
 `
 
@@ -393,8 +464,8 @@ resource "opennebula_virtual_router_instance" "test" {
 	name        = "testacc-vr-virtual-machine"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
@@ -404,8 +475,8 @@ resource "opennebula_virtual_router_instance" "test2" {
 	name        = "testacc-vr-virtual-machine-2"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 
@@ -415,15 +486,15 @@ resource "opennebula_virtual_router_instance" "test2" {
 }
 
 resource "opennebula_virtual_router" "test" {
-  name = "testacc-vr"
-  permissions = "642"
-  group = "oneadmin"
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
 
-  tags = {
-    customer = "1"
-  }
+    tags = {
+        customer = "1"
+    }
 }
 `
 
@@ -433,8 +504,8 @@ resource "opennebula_virtual_router_instance" "test" {
 	name        = "testacc-vr-virtual-machine"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
@@ -444,34 +515,34 @@ resource "opennebula_virtual_router_instance" "test2" {
 	name        = "testacc-vr-virtual-machine-2"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
 
 resource "opennebula_virtual_router" "test" {
-  name = "testacc-vr"
-  permissions = "642"
-  group = "oneadmin"
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
 
-  tags = {
-    customer = "1"
-  }
+    tags = {
+        customer = "1"
+    }
 }
 
 resource "opennebula_virtual_router_nic" "nic2" {
-  virtual_router_id = opennebula_virtual_router.test.id
-  network_id        = opennebula_virtual_network.network2.id
+    virtual_router_id = opennebula_virtual_router.test.id
+    network_id        = opennebula_virtual_network.network2.id
 }
 
 resource "opennebula_virtual_router_nic" "nic1" {
-  floating_ip       = true
-  floating_only     = true
-  virtual_router_id = opennebula_virtual_router.test.id
-  network_id        = opennebula_virtual_network.network1.id
+    floating_ip       = true
+    floating_only     = true
+    virtual_router_id = opennebula_virtual_router.test.id
+    network_id        = opennebula_virtual_network.network1.id
 }
 `
 var testAccVirtualRouterUpdateNICs = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
@@ -480,8 +551,8 @@ resource "opennebula_virtual_router_instance" "test" {
 	name        = "testacc-vr-virtual-machine"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
@@ -491,22 +562,22 @@ resource "opennebula_virtual_router_instance" "test2" {
 	name        = "testacc-vr-virtual-machine-2"
 	group       = "oneadmin"
 	permissions = "642"
-	memory = 128
-	cpu = 0.1
+	memory      = 128
+	cpu         = 0.1
 
 	virtual_router_id = opennebula_virtual_router.test.id
 }
 
 resource "opennebula_virtual_router" "test" {
-  name = "testacc-vr"
-  permissions = "642"
-  group = "oneadmin"
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
 
-  instance_template_id = opennebula_virtual_router_instance_template.test.id
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
 
-  tags = {
-    customer = "1"
-  }
+    tags = {
+        customer = "1"
+    }
 }
 
 resource "opennebula_virtual_router_nic" "nic2" {
@@ -518,5 +589,112 @@ resource "opennebula_virtual_router_nic" "nic1" {
 	floating_ip       = false
 	virtual_router_id = opennebula_virtual_router.test.id
 	network_id        = opennebula_virtual_network.network1.id
+}
+`
+
+var testAccVirtualRouterDeleteSecondVrouter = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
+
+resource "opennebula_virtual_router_instance" "test" {
+	name        = "testacc-vr-virtual-machine"
+	group       = "oneadmin"
+	permissions = "642"
+	memory      = 128
+	cpu         = 0.1
+
+	virtual_router_id = opennebula_virtual_router.test.id
+}
+
+resource "opennebula_virtual_router" "test" {
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
+
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
+
+    tags = {
+        customer = "1"
+    }
+}
+`
+
+var testAccVirtualRouterAddNICsWithIPs = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
+
+resource "opennebula_virtual_router_instance" "test" {
+	name        = "testacc-vr-virtual-machine"
+	group       = "oneadmin"
+	permissions = "642"
+	memory      = 128
+	cpu         = 0.1
+
+	virtual_router_id = opennebula_virtual_router.test.id
+}
+
+resource "opennebula_virtual_router" "test" {
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
+
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
+
+    tags = {
+        customer = "1"
+    }
+}
+
+resource "opennebula_virtual_router_nic" "nic_floating_ip_specified" {
+    depends_on        = [opennebula_virtual_router_instance.test]
+    ip                = "172.16.100.160"
+    floating_ip       = true
+    virtual_router_id = opennebula_virtual_router.test.id
+    network_id        = opennebula_virtual_network.network3.id
+}
+`
+
+var testAccVirtualRouterUpdateNICsWithIPs = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
+
+resource "opennebula_virtual_router_instance" "test" {
+	name        = "testacc-vr-virtual-machine"
+	group       = "oneadmin"
+	permissions = "642"
+	memory      = 128
+	cpu         = 0.1
+
+	virtual_router_id = opennebula_virtual_router.test.id
+}
+
+resource "opennebula_virtual_router" "test" {
+    name        = "testacc-vr"
+    permissions = "642"
+    group       = "oneadmin"
+
+    instance_template_id = opennebula_virtual_router_instance_template.test.id
+
+    tags = {
+        customer = "1"
+    }
+}
+
+resource "opennebula_virtual_router_nic" "nic_IP_specified" {
+    depends_on        = [opennebula_virtual_router_instance.test]
+    ip                = "172.16.100.120"
+    virtual_router_id = opennebula_virtual_router.test.id
+    network_id        = opennebula_virtual_network.network2.id
+}
+
+resource "opennebula_virtual_router_nic" "nic_floating_only_IP_specified" {
+    depends_on        = [opennebula_virtual_router_instance.test]
+    ip                = "172.16.100.121"
+    floating_ip       = true
+    floating_only     = true
+    virtual_router_id = opennebula_virtual_router.test.id
+    network_id        = opennebula_virtual_network.network2.id
+}
+
+resource "opennebula_virtual_router_nic" "nic_floating_ip_specified" {
+    depends_on        = [opennebula_virtual_router_instance.test]
+    ip                = "172.16.100.160"
+    floating_ip       = true
+    virtual_router_id = opennebula_virtual_router.test.id
+    network_id        = opennebula_virtual_network.network3.id
 }
 `
