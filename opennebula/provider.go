@@ -82,6 +82,7 @@ func Provider() *schema.Provider {
 			"opennebula_marketplace":                    dataOpennebulaMarketplace(),
 			"opennebula_virtual_network_address_range":  dataSourceOpennebulaVirtualNetworkAddressRange(),
 			"opennebula_virtual_network_address_ranges": dataSourceOpennebulaVirtualNetworkAddressRanges(),
+			"opennebula_virtual_machines":               dataOpennebulaVirtualMachines(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
