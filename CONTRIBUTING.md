@@ -73,6 +73,99 @@ Terraform has compared your real infrastructure against your configuration and f
 Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 ```
 
+### Debugging
+
+You can locally debug the provider and the provider tests using [delve](https://github.com/go-delve/delve) or an IDE like VisualStudio Code.
+
+You can find more information about the provider debugging process in the [Terraform documentation](https://developer.hashicorp.com/terraform/plugin/debugging).
+
+#### Prerequisites
+
+Install delve:
+```
+go install github.com/go-delve/delve/cmd/dlv@latest
+```
+
+In case you are using VisualStudio Code, ensure that you have the [go extension](https://marketplace.visualstudio.com/items?itemName=golang.go) installed.
+
+#### Debugging the provider in VisualStudio Code
+
+For debugging the provider in vscode, you should create a new `launch.json` configuration file (if not exists) in your repository `.vscode` folder, containing, at least, the following configuration:
+```
+//.vscode/launch.json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Terraform Provider",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {},
+            "args": [
+                "-debug"
+            ],
+            "output": "${workspaceFolder}/terraform-provider-opennebula"
+        },
+        [...]
+    ]
+}
+```
+
+Then, you can go to the `Run and Debug` section and execute the `Debug Terraform Provider` configuration. The debug console should open and show a message like the following one:
+```
+Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
+
+	TF_REATTACH_PROVIDERS='{"OpenNebula/opennebula":{"Protocol":"grpc","ProtocolVersion":5,"Pid":619134,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin4171993516"}}}'
+```
+
+Copy the `TF_REATTACH_PROVIDERS` environment variable and its content and now you can set some breakpoints in your code. Finally, call the terraform CLI prepending the `TF_REATTACH_PROVIDERS` in order to let the terraform CLI attach to the debugged terraform provider process, e.g.
+
+```
+TF_REATTACH_PROVIDERS='{"OpenNebula/opennebula":{"Protocol":"grpc","ProtocolVersion":5,"Pid":619134,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin4171993516"}}}' terraform plan
+```
+
+The process execution should stop on the breakpoint you set in vscode, allowing you to debug the opennebula provider.
+
+>NOTE: for ensuring that you are referencing the local opennebula terraform provider when debugging you should have configured the `dev_override` in your `$HOME/.terraformrc` file. Follow the steps described in the [Local development of the provider](#local-development-of-the-provider) section.
+
+#### Debugging the provider tests in VisualStudio Code
+
+The process for debugging the provider tests in vscode is similar to the previous one, but in the case of the tests, the provider testing framework will compile and load in memory the local provider code, so in this case we won't need to override the terraform provider reference through the `dev_override` feature.
+
+In the case of debugging the tests, we can add a configuration in the `.vscode/launch.json` file specifying the tests to run (with the `-test.run` arg) and setting the necessary environment variables for executing the acceptance tests and attacking our local Opennebula instance), e.g:
+```
+//.vscode/launch.json
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Terraform Provider Tests",
+        "type": "go",
+        "request": "launch",
+        "mode": "test",
+        "program": "${workspaceFolder}/opennebula",
+        "args": ["-test.run", "^TestAccDataSourceOpennebulaVirtualNetworkAddressRange$"],
+        "env": {
+          "TF_LOG": "DEBUG",
+          "TF_ACC": "1",
+          "OPENNEBULA_ENDPOINT": "http://localhost:2633/RPC2",
+          "OPENNEBULA_USERNAME": "oneadmin",
+          "OPENNEBULA_PASSWORD": "opennebula",
+          "OPENNEBULA_FLOW_ENDPOINT": "http://localhost:2474"
+        },
+        "cwd": "${workspaceFolder}"
+      },
+      [...]
+    ]
+}
+```
+
+>Remember to replace the `-test.run` arg with the desired acceptance test to execute and debug!
+
+Now, you can set a breakpoint in any test case and debug it executing the `Debug Terraform Provider Tests` launch configuration.
+
 ## Issues and Pull Requests
 
 You must use existing templates for Issues and Pull Requests.
