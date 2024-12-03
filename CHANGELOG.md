@@ -1,3 +1,9 @@
+# 1.4.2 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_network: allow to set a `vlan_id` for ovswitch (#515)
+
 # 1.4.1 (October 22nd, 2024)
 
 FEATURES:
