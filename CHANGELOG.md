@@ -1,3 +1,10 @@
+# 1.4.2 (Unreleased)
+
+FEATURES:
+
+* resources/opennebula_template: add validate argument to the raw parameters (#583)
+* resources/opennebula_virtual_machine: add validate argument to the raw parameters (#583)
+
 # 1.4.1 (October 22nd, 2024)
 
 FEATURES:

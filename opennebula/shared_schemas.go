@@ -116,6 +116,21 @@ func commonInstanceSchema() map[string]*schema.Schema {
 						},
 						Description: "Name of the hypervisor: kvm, lxd, vmware",
 					},
+					"validate": {
+						Type:     schema.TypeString,
+						Required: true,
+						ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+							validtypes := []string{"yes", "no"}
+							value := v.(string)
+
+							if !contains(value, validtypes) {
+								errors = append(errors, fmt.Errorf("Validate %q must be one of: %s", k, strings.Join(validtypes, ",")))
+							}
+
+							return
+						},
+						Description: "Validate DATA against XML schema",
+					},
 					"data": {
 						Type:        schema.TypeString,
 						Required:    true,
@@ -772,6 +787,7 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 			rawConfig := raw[i].(map[string]interface{})
 			rawVec := tpl.AddVector("RAW")
 			rawVec.AddPair("TYPE", rawConfig["type"].(string))
+			rawVec.AddPair("VALIDATE", rawConfig["validate"].(string))
 			rawVec.AddPair("DATA", rawConfig["data"].(string))
 		}
 	}
@@ -840,6 +856,7 @@ func updateRaw(d *schema.ResourceData, tpl *dyn.Template) {
 			rawConfig := raw[i].(map[string]interface{})
 			rawVec := tpl.AddVector("RAW")
 			rawVec.AddPair("TYPE", rawConfig["type"].(string))
+			rawVec.AddPair("VALIDATE", rawConfig["validate"].(string))
 			rawVec.AddPair("DATA", rawConfig["data"].(string))
 		}
 	}
@@ -1053,11 +1070,13 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 		rawMap := make([]map[string]interface{}, 0, 1)
 
 		hypType, _ := rawVec.GetStr("TYPE")
+		validate, _ := rawVec.GetStr("VALIDATE")
 		data, _ := rawVec.GetStr("DATA")
 
 		rawMap = append(rawMap, map[string]interface{}{
-			"type": hypType,
-			"data": data,
+			"type":     hypType,
+			"validate": validate,
+			"data":     data,
 		})
 
 		if _, ok := d.GetOk("raw"); ok {

@@ -186,6 +186,7 @@ Minimum 1 item. Maximum 8 items.
 `raw` supports the following arguments:
 
 * `type` - (Required) - Hypervisor. Supported values: `kvm`, `lxd`, `vmware`.
+* `validate` - (Optional) - Validate `data` against XML schema, possible values `yes`, `no`. Default value is `yes`.
 * `data` - (Required) - Raw data to pass to the hypervisor.
 
 ### VM group parameters
@@ -215,7 +216,7 @@ The following attribute are exported:
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
 
-## Import 
+## Import
 
 `opennebula_template` can be imported using its ID:
 

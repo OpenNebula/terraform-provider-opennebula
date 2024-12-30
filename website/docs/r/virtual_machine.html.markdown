@@ -179,6 +179,7 @@ A NIC update will be triggered in adding or removing a `nic` section, or by a mo
 `raw` supports the following arguments:
 
 * `type` - (Required) - Hypervisor. Supported values: `kvm`, `lxd`, `vmware`.
+* `validate` - (Optional) - Validate `data` against XML schema, possible values `yes`, `no`. Default value is `yes`.
 * `data` - (Required) - Raw data to pass to the hypervisor.
 
 ### Template section parameters
