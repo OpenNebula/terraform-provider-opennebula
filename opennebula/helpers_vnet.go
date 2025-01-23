@@ -174,13 +174,14 @@ func vNetARRemove(ctx context.Context, oneVersion *version.Version, timeout time
 		}
 	}
 
-	err = vnc.FreeAR(arID)
-	if err != nil {
-		return fmt.Errorf("can't remove AR %d: %s\n", arID, err)
-	}
-
 	err = resource.RetryContext(ctx, timeout, func() *resource.RetryError {
-
+		err = vnc.FreeAR(arID)
+		if err != nil {
+			if strings.Contains(err.Error(), "Address Range has leases in use") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
 		attached, err := isVRARAttached(vnc, arID)
 		if err != nil {
 			return resource.RetryableError(err)
