@@ -55,6 +55,13 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "ip4", "172.16.100.130"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.0", "172.16.100.131"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "ar_type", "IP4_6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "ula_prefix", "fd00:ffff:ffff::"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "ar_type", "IP4_6_STATIC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "ip6", "fd00:ffff:ffff::"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "prefix_length", "127"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -109,6 +116,13 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.0", "172.16.100.141"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "ar_type", "IP6"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "ar_type", "IP4_6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "ula_prefix", "fd00:ffff:ffff::"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "ar_type", "IP4_6_STATIC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "ip6", "fd00:ffff:ffff::"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "prefix_length", "127"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -165,6 +179,13 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test3", "hold_ips.0", "172.16.100.141"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "ar_type", "IP6"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test4", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "ar_type", "IP4_6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test5", "ula_prefix", "fd00:ffff:ffff::"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "ar_type", "IP4_6_STATIC"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "size", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "ip6", "fd00:ffff:ffff::"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network_address_range.test6", "prefix_length", "127"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.%", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.env", "dev"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "tags.customer", "test"),
@@ -399,6 +420,23 @@ var testAccVirtualNetworkConfigBasic = `
 		ip4                = "172.16.100.130"
 		hold_ips           = ["172.16.100.131"]
 	}
+
+	resource "opennebula_virtual_network_address_range" "test5" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6"
+		size               = 2
+		ip4                = "172.16.100.240"
+		ula_prefix 		   = "fd00:ffff:ffff::"
+	}
+
+	resource "opennebula_virtual_network_address_range" "test6" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6_STATIC"
+		size               = 2
+		ip4                = "172.16.100.242"
+		ip6     		   = "fd00:ffff:ffff::"
+		prefix_length	   = 127
+	}
 `
 
 var testAccVirtualNetworkConfigUpdate = `
@@ -461,6 +499,23 @@ var testAccVirtualNetworkConfigUpdate = `
 		ar_type            = "IP6"
 		size               = 2
 	}
+
+	resource "opennebula_virtual_network_address_range" "test5" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6"
+		size               = 2
+		ip4                = "172.16.100.240"
+		ula_prefix 		   = "fd00:ffff:ffff::"
+	}
+
+	resource "opennebula_virtual_network_address_range" "test6" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6_STATIC"
+		size               = 2
+		ip4                = "172.16.100.242"
+		ip6     		   = "fd00:ffff:ffff::"
+		prefix_length	   = 127
+	}
 `
 
 var testAccVirtualNetworkConfigRemoveGateway = `
@@ -522,6 +577,23 @@ var testAccVirtualNetworkConfigRemoveGateway = `
 		ar_type            = "IP6"
 		size               = 2
 	}
+
+	resource "opennebula_virtual_network_address_range" "test5" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6"
+		size               = 2
+		ip4                = "172.16.100.240"
+		ula_prefix 		   = "fd00:ffff:ffff::"
+	}
+
+	resource "opennebula_virtual_network_address_range" "test6" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6_STATIC"
+		size               = 2
+		ip4                = "172.16.100.242"
+		ip6     		   = "fd00:ffff:ffff::"
+		prefix_length	   = 127
+	}
 `
 
 var testAccVirtualNetworkReservationConfig = `
@@ -578,15 +650,32 @@ var testAccVirtualNetworkReservationConfig = `
 		size               = 2
 	}
 
+	resource "opennebula_virtual_network_address_range" "test5" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6"
+		size               = 2
+		ip4                = "172.16.100.240"
+		ula_prefix 		   = "fd00:ffff:ffff::"
+	}
+
+	resource "opennebula_virtual_network_address_range" "test6" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4_6_STATIC"
+		size               = 2
+		ip4                = "172.16.100.242"
+		ip6     		   = "fd00:ffff:ffff::"
+		prefix_length	   = 127
+	}
+
 	resource "opennebula_virtual_network" "reservation1" {
-	    name = "terravnetres"
-	    description = "my terraform vnet"
-	    reservation_vnet = opennebula_virtual_network.test.id
-	    reservation_size = 5
+		name = "terravnetres"
+		description = "my terraform vnet"
+		reservation_vnet = opennebula_virtual_network.test.id
+		reservation_size = 5
 		reservation_ar_id = opennebula_virtual_network_address_range.test.id
 		reservation_first_ip = "172.16.100.115"
-	    security_groups = [0]
-	    permissions = 660
+		security_groups = [0]
+		permissions = 660
 	}
 
 	resource "opennebula_virtual_network" "reservation2" {
