@@ -235,8 +235,12 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	// For VRouter NICs, floating IPs are set using the "IP" field, but it is represented in the ON API
 	// as the "VROUTER_IP" field.
 	if strings.ToUpper(floatingIP) == "YES" {
-		ip, _ = nic.Get("VROUTER_IP")
-		ip6, _ = nic.Get("VROUTER_IP6")
+		if vrouterIp, _ := nic.Get("VROUTER_IP"); len(vrouterIp) > 0 {
+			ip = vrouterIp
+		}
+		if vrouterIp6, _ := nic.Get("VROUTER_IP6"); len(vrouterIp6) > 0 {
+			ip6 = vrouterIp6
+		}
 	}
 
 	d.Set("network_id", networkID)

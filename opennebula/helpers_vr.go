@@ -108,6 +108,11 @@ func vrNICAttach(ctx context.Context, timeout time.Duration, controller *goca.Co
 						nic.Add("IP", vrouterIP)
 					}
 				}
+				if vrouterIP6, err := nic.GetStr("VROUTER_IP6"); err == nil {
+					if _, err = nic.GetStr("IP6"); err != nil {
+						nic.Add("IP6", vrouterIP6)
+					}
+				}
 				for _, pair := range nicTpl.Pairs {
 
 					value, err := nic.GetStr(pair.Key())
