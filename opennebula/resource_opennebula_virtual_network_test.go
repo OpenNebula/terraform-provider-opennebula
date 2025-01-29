@@ -194,6 +194,7 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "reservation_size", "5"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "reservation_first_ip", "172.16.100.115"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "tags.MY_TAG", "tag_value"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "uname"),
@@ -575,6 +576,9 @@ resource "opennebula_virtual_network" "reservation1" {
 	reservation_first_ip = "172.16.100.115"
     security_groups = [0]
     permissions = 660
+	tags = {
+		MY_TAG = "tag_value"
+	}
 }
 
 resource "opennebula_virtual_network" "reservation2" {

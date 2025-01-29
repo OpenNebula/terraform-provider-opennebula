@@ -483,6 +483,38 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			return diags
 		}
 
+		update := false
+		vnTemplate := vnet.Template
+		if tags, ok := d.Get("tags").(map[string]interface{}); ok {
+			for k, v := range tags {
+				update = true
+				key := strings.ToUpper(k)
+				vnTemplate.AddPair(key, v)
+			}
+		}
+		// add default tags if they aren't overriden
+		if len(config.defaultTags) > 0 {
+			for k, v := range config.defaultTags {
+				update = true
+				key := strings.ToUpper(k)
+				p, _ := vnTemplate.GetPair(key)
+				if p != nil {
+					continue
+				}
+				vnTemplate.AddPair(key, v)
+			}
+		}
+		if update {
+			err := vnc.Update(vnTemplate.String(), parameters.Replace)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to update content",
+					Detail:   fmt.Sprintf("virtual network (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+		}
 		d.SetId(fmt.Sprintf("%v", vnet.ID))
 
 		log.Printf("[DEBUG] New VNET reservation ID: %d", vnet.ID)
