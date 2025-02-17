@@ -267,17 +267,15 @@ func flattenOldQuotasMapFromStructs(d *schema.ResourceData, quotas *shared.Quota
 		q = q | NetFlag
 	}
 	// Get VM quotas
-	if quotas.VM != nil {
+	for _, qvm := range quotas.VM {
 		vm := make(map[string]interface{})
-
-		vm["cpu"] = quotas.VM.CPU
-		vm["memory"] = quotas.VM.Memory
-		vm["running_cpu"] = quotas.VM.RunningCPU
-		vm["running_memory"] = quotas.VM.RunningMemory
-		vm["vms"] = quotas.VM.VMs
-		vm["running_vms"] = quotas.VM.RunningVMs
-		vm["system_disk_size"] = quotas.VM.SystemDiskSize
-
+		vm["cpu"] = qvm.CPU
+		vm["memory"] = qvm.Memory
+		vm["running_cpu"] = qvm.RunningCPU
+		vm["running_memory"] = qvm.RunningMemory
+		vm["vms"] = qvm.VMs
+		vm["running_vms"] = qvm.RunningVMs
+		vm["system_disk_size"] = qvm.SystemDiskSize
 		if len(vm) > 0 {
 			vmQuotas = append(vmQuotas, vm)
 		}

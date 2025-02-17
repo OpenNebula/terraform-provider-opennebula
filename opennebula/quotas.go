@@ -270,21 +270,19 @@ func flattenNetworkQuota(d *schema.ResourceData, quotas []shared.NetworkQuota) e
 	return d.Set("network", networkQuotas)
 }
 
-func flattenVMQuota(d *schema.ResourceData, quotas *shared.VMQuota) error {
+func flattenVMQuota(d *schema.ResourceData, quotas []shared.VMQuota) error {
 	var vmQuotas []map[string]interface{}
 
 	// Get VM quotas
-	if quotas != nil {
+	for _, qvm := range quotas {
 		vm := make(map[string]interface{})
-
-		vm["cpu"] = quotas.CPU
-		vm["memory"] = quotas.Memory
-		vm["running_cpu"] = quotas.RunningCPU
-		vm["running_memory"] = quotas.RunningMemory
-		vm["vms"] = quotas.VMs
-		vm["running_vms"] = quotas.RunningVMs
-		vm["system_disk_size"] = quotas.SystemDiskSize
-
+		vm["cpu"] = qvm.CPU
+		vm["memory"] = qvm.Memory
+		vm["running_cpu"] = qvm.RunningCPU
+		vm["running_memory"] = qvm.RunningMemory
+		vm["vms"] = qvm.VMs
+		vm["running_vms"] = qvm.RunningVMs
+		vm["system_disk_size"] = qvm.SystemDiskSize
 		if len(vm) > 0 {
 			vmQuotas = append(vmQuotas, vm)
 		}
