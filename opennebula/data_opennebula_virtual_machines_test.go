@@ -181,7 +181,7 @@ data "opennebula_virtual_machines" "test_invalid_id" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "ASC"
-  cpu = 0
+  cpu        = 0
 }
 `
 var testAccVirtualMachinesDataSourceInvalidVCPU = `
@@ -189,7 +189,7 @@ data "opennebula_virtual_machines" "test_invalid_vcpu" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "ASC"
-  vcpu = 0
+  vcpu       = 0
 }
 `
 var testAccVirtualMachinesDataSourceInvalidMemory = `
@@ -197,7 +197,7 @@ data "opennebula_virtual_machines" "test_invalid_memory" {
   name_regex = "test.*"
   sort_on    = "id"
   order      = "ASC"
-  memory = 0
+  memory     = 0
 }
 `
 var testAccVirtualMachinesDataSourceInvalidSort = `
@@ -221,34 +221,34 @@ data "opennebula_virtual_machines" "test_no_matching" {
 `
 var testAccFirstVirtualMachine = `
 resource "opennebula_virtual_machine" "first_vm" {
-  name        = "vm-0"
-  group       = "oneadmin"
-  permissions = "642"
-  memory = 128
-  cpu = 0.1
-  vcpu = 2
+  name               = "vm-0"
+  group              = "oneadmin"
+  permissions        = "642"
+  memory             = 128
+  cpu                = 0.1
+  vcpu               = 2
   sched_requirements = "CLUSTER_ID!=\"123\""
 
   disk {
-	volatile_type = "swap"
-	size          = 16
-	target        = "vda"
+    volatile_type = "swap"
+    size          = 16
+    target        = "vda"
   }
 
   nic {
-	network_mode_auto = false
-	ip = "172.20.0.1"
+    network_mode_auto = false
+    ip                = "172.20.0.1"
   }
 }
 `
 var testAccSecondVirtualMachine = `
-resource "opennebula_virtual_machine" "second_vm" {	
-	name = "vm-1"
-	group = "oneadmin"
-	permissions = "642"
-	memory = 64
-	cpu =  0.2
-	vcpu = 1
+resource "opennebula_virtual_machine" "second_vm" {
+  name        = "vm-1"
+  group       = "oneadmin"
+  permissions = "642"
+  memory      = 64
+  cpu         = 0.2
+  vcpu        = 1
 }
 `
 
@@ -265,9 +265,9 @@ data "opennebula_virtual_machines" "id_asc" {
   sort_on    = "id"
   order      = "ASC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
@@ -276,9 +276,9 @@ data "opennebula_virtual_machines" "cpu_desc" {
   sort_on    = "cpu"
   order      = "DESC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
@@ -287,9 +287,9 @@ data "opennebula_virtual_machines" "mem_asc" {
   sort_on    = "memory"
   order      = "ASC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
@@ -298,9 +298,9 @@ data "opennebula_virtual_machines" "vcpu_desc" {
   sort_on    = "vcpu"
   order      = "DESC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
@@ -309,62 +309,62 @@ data "opennebula_virtual_machines" "name_desc" {
   sort_on    = "name"
   order      = "DESC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
 data "opennebula_virtual_machines" "id_desc_cpu" {
   name_regex = "vm.*"
   sort_on    = "id"
-  cpu = 0.1
+  cpu        = 0.1
   order      = "DESC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
 data "opennebula_virtual_machines" "mem_asc_vcpu" {
   name_regex = "vm-*"
   sort_on    = "memory"
-  vcpu = 1
+  vcpu       = 1
   order      = "ASC"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
 data "opennebula_virtual_machines" "static_name" {
   name_regex = "vm-0"
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
 data "opennebula_virtual_machines" "static_mem" {
   memory = 64
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 
 data "opennebula_virtual_machines" "static_tags" {
   tags = {
-	sched_requirements = "CLUSTER_ID!=\"123\""
+    sched_requirements = "CLUSTER_ID!=\"123\""
   }
 
-  depends_on = [ 
+  depends_on = [
     opennebula_virtual_machine.first_vm,
-  	opennebula_virtual_machine.second_vm 
+    opennebula_virtual_machine.second_vm,
   ]
 }
 `
