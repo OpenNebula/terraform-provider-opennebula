@@ -73,7 +73,7 @@ func dataOpennebulaVirtualMachines() *schema.Resource {
 			"sort_on": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Attribute used to sort the VMs list, only works on integer attributes.",
+				Description: "Attribute used to sort the VMs list",
 
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := strings.ToLower(v.(string))
