@@ -88,6 +88,19 @@ resource "opennebula_virtual_router_instance_template" "example" {
 
 * `arch` - (Required) Hardware architecture of the Virtual machine. Must fit the host architecture.
 * `boot` - (Optional) `OS` disk to use to boot on.
+* `machine` - (Optional) libvirt machine type.
+* `kernel` - (Optional) Path to the `OS` kernel to boot the image in the host.
+* `kernel_ds` - (Optional) Image to be used as kernel. (see !!)
+* `initrd` - (Optional) Path to the initrd image in the host.
+* `initrd_ds` - (Optional) Image to be used as ramdisk. (see !!)
+* `root` - (Optional) Device to be mounted as root.
+* `kernel_cmd` - (Optional) Arguments for the booting kernel.
+* `bootloader` - (Optional) Path to the bootloader executable.
+* `sd_disk_bus` - (Optional) Bus for disks with sd prefix, either `scsi` or `sata`, if attribute is missing, libvirt chooses itself.
+* `uuid` - (Optional) Unique ID of the VM.
+* `firmware` - (Optional) Firmware type or firmware path. Possible values: `BIOS` or path for KVM, `BIOS` or `UEFI` for vCenter.
+* `firmware_secure` - (Optional) Enable Secure Boot. (Can be `true` or `false`).
+* (!!) Use one of `kernel_ds` or `kernel` (and `initrd` or `initrd_ds`).
 
 ### Features parameters
 
