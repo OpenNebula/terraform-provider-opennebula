@@ -803,11 +803,11 @@ func generateVn(d *schema.ResourceData) (string, error) {
 	tpl.Add(vnk.VNMad, vnmad)
 
 	vlanSet := false
-	if d.Get("automatic_vlan_id").(bool) {
-		tpl.Add("AUTOMATIC_VLAN_ID", "YES")
-		vlanSet = true
-	} else if vlanid, ok := d.GetOk("vlan_id"); ok {
+	if vlanid, ok := d.GetOk("vlan_id"); ok {
 		tpl.Add(vnk.VlanID, vlanid.(string))
+		vlanSet = true
+	} else if d.Get("automatic_vlan_id").(bool) {
+		tpl.Add("AUTOMATIC_VLAN_ID", "YES")
 		vlanSet = true
 	}
 

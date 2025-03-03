@@ -18,6 +18,7 @@ import (
 
 func TestAccVirtualNetwork(t *testing.T) {
 	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network.*[\n]?.*\\[25\\]")
+	vlanIDConflictError, _ := regexp.Compile(".*\"vlan_id\": conflicts with automatic_vlan_id.*")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -214,6 +215,17 @@ func TestAccVirtualNetwork(t *testing.T) {
 				Config:      testAccVirtualNetworkReservationNoNetworkConfig,
 				ExpectError: networkNotFoundErr,
 			},
+			{
+				Config:      testAccVirtualNetworkVlanIdConflictsAutomaticVlanId,
+				ExpectError: vlanIDConflictError,
+			},
+			{
+				Config: testAccVirtualNetworkVlanIdSetInOVSwitch,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.vlan_id_test", "type", "ovswitch"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.vlan_id_test", "vlan_id", "288"),
+				),
+			},
 		},
 	})
 }
@@ -335,266 +347,284 @@ func testAccVirtualNetworkSG(slice []int) resource.TestCheckFunc {
 }
 
 var testAccVirtualNetworkConfigBasic = `
-resource "opennebula_virtual_network" "test" {
-  name = "test-virtual_network"
-  type            = "dummy"
-  bridge          = "onebr"
-  mtu             = 1500
-  gateway         = "172.16.100.1"
-  dns             = "172.16.100.1"
-  network_mask    = "255.255.255.0"
-  network_address = "172.16.100.0"
-  search_domain   = "example.com"
-  ar {
-    ar_type = "IP4"
-    size    = 5
-    ip4     = "172.16.100.1"
-  }
-  hold_ips           = ["172.16.100.2"]
+	resource "opennebula_virtual_network" "test" {
+	  name = "test-virtual_network"
+	  type            = "dummy"
+	  bridge          = "onebr"
+	  mtu             = 1500
+	  gateway         = "172.16.100.1"
+	  dns             = "172.16.100.1"
+	  network_mask    = "255.255.255.0"
+	  network_address = "172.16.100.0"
+	  search_domain   = "example.com"
+	  ar {
+	    ar_type = "IP4"
+	    size    = 5
+	    ip4     = "172.16.100.1"
+	  }
+	  hold_ips           = ["172.16.100.2"]
 
-  permissions = "642"
-  group = "oneadmin"
-  security_groups = [0]
-  tags = {
-    env = "prod"
-    customer = "test"
-  }
+	  permissions = "642"
+	  group = "oneadmin"
+	  security_groups = [0]
+	  tags = {
+	    env = "prod"
+	    customer = "test"
+	  }
 
-  lifecycle {
-    ignore_changes = [ar, hold_ips]
-  }
-}
+	  lifecycle {
+	    ignore_changes = [ar, hold_ips]
+	  }
+	}
 
-resource "opennebula_virtual_network_address_range" "test" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 16
-	ip4                = "172.16.100.110"
-	hold_ips           = ["172.16.100.112"]
-}
+	resource "opennebula_virtual_network_address_range" "test" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 16
+		ip4                = "172.16.100.110"
+		hold_ips           = ["172.16.100.112"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test2" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 15
-	ip4                = "172.16.100.170"
-}
+	resource "opennebula_virtual_network_address_range" "test2" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 15
+		ip4                = "172.16.100.170"
+	}
 
-resource "opennebula_virtual_network_address_range" "test3" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 12
-	ip4                = "172.16.100.130"
-	hold_ips           = ["172.16.100.131"]
-}
+	resource "opennebula_virtual_network_address_range" "test3" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 12
+		ip4                = "172.16.100.130"
+		hold_ips           = ["172.16.100.131"]
+	}
 `
 
 var testAccVirtualNetworkConfigUpdate = `
-resource "opennebula_virtual_network" "test" {
-  name = "test-virtual_network-renamed"
-  type            = "dummy"
-  bridge          = "onebr"
-  mtu             = 1500
-  gateway         = "172.16.100.254"
-  dns             = "172.16.100.254"
-  network_mask    = "255.255.0.0"
-  network_address = "172.16.100.0"
-  search_domain   = "example.com"
-  ar {
-    ar_type = "IP4"
-    size    = 5
-    ip4     = "172.16.100.1"
-  }
-  hold_ips           = ["172.16.100.2"]
-  security_groups = [0]
-  cluster_ids = [0]
-  permissions = "660"
-  group = "users"
-  tags = {
-    env = "dev"
-    customer = "test"
-    version = "2"
-  }
+	resource "opennebula_virtual_network" "test" {
+	  name = "test-virtual_network-renamed"
+	  type            = "dummy"
+	  bridge          = "onebr"
+	  mtu             = 1500
+	  gateway         = "172.16.100.254"
+	  dns             = "172.16.100.254"
+	  network_mask    = "255.255.0.0"
+	  network_address = "172.16.100.0"
+	  search_domain   = "example.com"
+	  ar {
+	    ar_type = "IP4"
+	    size    = 5
+	    ip4     = "172.16.100.1"
+	  }
+	  hold_ips           = ["172.16.100.2"]
+	  security_groups = [0]
+	  cluster_ids = [0]
+	  permissions = "660"
+	  group = "users"
+	  tags = {
+	    env = "dev"
+	    customer = "test"
+	    version = "2"
+	  }
 
-  lifecycle {
-    ignore_changes = [ar, hold_ips]
-  }
-}
+	  lifecycle {
+	    ignore_changes = [ar, hold_ips]
+	  }
+	}
 
-resource "opennebula_virtual_network_address_range" "test" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 17
-	ip4                = "172.16.100.110"
-	hold_ips = ["172.16.100.112"]
-}
+	resource "opennebula_virtual_network_address_range" "test" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 17
+		ip4                = "172.16.100.110"
+		hold_ips = ["172.16.100.112"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test2" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 15
-	ip4                = "172.16.100.170"
-}
+	resource "opennebula_virtual_network_address_range" "test2" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 15
+		ip4                = "172.16.100.170"
+	}
 
-resource "opennebula_virtual_network_address_range" "test3" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 13
-	ip4                = "172.16.100.140"
-	hold_ips           = ["172.16.100.141"]
-}
+	resource "opennebula_virtual_network_address_range" "test3" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 13
+		ip4                = "172.16.100.140"
+		hold_ips           = ["172.16.100.141"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test4" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP6"
-	size               = 2
-}
+	resource "opennebula_virtual_network_address_range" "test4" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP6"
+		size               = 2
+	}
 `
 
 var testAccVirtualNetworkConfigRemoveGateway = `
-resource "opennebula_virtual_network" "test" {
-  name = "test-virtual_network-renamed"
-  type            = "dummy"
-  bridge          = "onebr"
-  mtu             = 1500
-  dns             = "172.16.100.254"
-  network_mask    = "255.255.0.0"
-  network_address = "172.16.100.0"
-  search_domain   = "example.com"
-  ar {
-    ar_type = "IP4"
-    size    = 5
-    ip4     = "172.16.100.1"
-  }
-  hold_ips           = ["172.16.100.2"]
-  security_groups = [0]
-  cluster_ids = [0]
-  permissions = "660"
-  group = "users"
-  tags = {
-    env = "dev"
-    customer = "test"
-    version = "2"
-  }
+	resource "opennebula_virtual_network" "test" {
+	  name = "test-virtual_network-renamed"
+	  type            = "dummy"
+	  bridge          = "onebr"
+	  mtu             = 1500
+	  dns             = "172.16.100.254"
+	  network_mask    = "255.255.0.0"
+	  network_address = "172.16.100.0"
+	  search_domain   = "example.com"
+	  ar {
+	    ar_type = "IP4"
+	    size    = 5
+	    ip4     = "172.16.100.1"
+	  }
+	  hold_ips           = ["172.16.100.2"]
+	  security_groups = [0]
+	  cluster_ids = [0]
+	  permissions = "660"
+	  group = "users"
+	  tags = {
+	    env = "dev"
+	    customer = "test"
+	    version = "2"
+	  }
 
-  lifecycle {
-    ignore_changes = [ar, hold_ips]
-  }
-}
+	  lifecycle {
+	    ignore_changes = [ar, hold_ips]
+	  }
+	}
 
-resource "opennebula_virtual_network_address_range" "test" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 17
-	ip4                = "172.16.100.110"
-	hold_ips = ["172.16.100.112"]
-}
+	resource "opennebula_virtual_network_address_range" "test" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 17
+		ip4                = "172.16.100.110"
+		hold_ips = ["172.16.100.112"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test2" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 15
-	ip4                = "172.16.100.170"
-}
+	resource "opennebula_virtual_network_address_range" "test2" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 15
+		ip4                = "172.16.100.170"
+	}
 
-resource "opennebula_virtual_network_address_range" "test3" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 13
-	ip4                = "172.16.100.140"
-	hold_ips           = ["172.16.100.141"]
-}
+	resource "opennebula_virtual_network_address_range" "test3" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 13
+		ip4                = "172.16.100.140"
+		hold_ips           = ["172.16.100.141"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test4" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP6"
-	size               = 2
-}
+	resource "opennebula_virtual_network_address_range" "test4" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP6"
+		size               = 2
+	}
 `
 
 var testAccVirtualNetworkReservationConfig = `
-resource "opennebula_virtual_network" "test" {
-  name = "test-virtual_network-renamed"
-  type            = "dummy"
-  bridge          = "onebr"
-  mtu             = 1500
-  gateway         = "172.16.100.254"
-  dns             = "172.16.100.254"
-  network_mask    = "255.255.0.0"
-  ar {
-    ar_type = "IP4"
-    size    = 5
-    ip4     = "172.16.100.1"
-  }
-  hold_ips           = ["172.16.100.2"]
-  security_groups = [0]
-  cluster_ids = [0]
-  permissions = "660"
-  group = "users"
+	resource "opennebula_virtual_network" "test" {
+	  name = "test-virtual_network-renamed"
+	  type            = "dummy"
+	  bridge          = "onebr"
+	  mtu             = 1500
+	  gateway         = "172.16.100.254"
+	  dns             = "172.16.100.254"
+	  network_mask    = "255.255.0.0"
+	  ar {
+	    ar_type = "IP4"
+	    size    = 5
+	    ip4     = "172.16.100.1"
+	  }
+	  hold_ips           = ["172.16.100.2"]
+	  security_groups = [0]
+	  cluster_ids = [0]
+	  permissions = "660"
+	  group = "users"
 
-  lifecycle {
-    ignore_changes = [ar, hold_ips]
-  }
-}
+	  lifecycle {
+	    ignore_changes = [ar, hold_ips]
+	  }
+	}
 
-resource "opennebula_virtual_network_address_range" "test" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 16
-	ip4                = "172.16.100.110"
-	hold_ips           = ["172.16.100.112"]
-}
+	resource "opennebula_virtual_network_address_range" "test" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 16
+		ip4                = "172.16.100.110"
+		hold_ips           = ["172.16.100.112"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test2" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 15
-	ip4                = "172.16.100.170"
-}
+	resource "opennebula_virtual_network_address_range" "test2" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 15
+		ip4                = "172.16.100.170"
+	}
 
-resource "opennebula_virtual_network_address_range" "test3" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP4"
-	size               = 13
-	ip4                = "172.16.100.140"
-	hold_ips           = ["172.16.100.141"]
-}
+	resource "opennebula_virtual_network_address_range" "test3" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP4"
+		size               = 13
+		ip4                = "172.16.100.140"
+		hold_ips           = ["172.16.100.141"]
+	}
 
-resource "opennebula_virtual_network_address_range" "test4" {
-	virtual_network_id = opennebula_virtual_network.test.id
-	ar_type            = "IP6"
-	size               = 2
-}
+	resource "opennebula_virtual_network_address_range" "test4" {
+		virtual_network_id = opennebula_virtual_network.test.id
+		ar_type            = "IP6"
+		size               = 2
+	}
 
-resource "opennebula_virtual_network" "reservation1" {
-    name = "terravnetres"
-    description = "my terraform vnet"
-    reservation_vnet = opennebula_virtual_network.test.id
-    reservation_size = 5
-	reservation_ar_id = opennebula_virtual_network_address_range.test.id
-	reservation_first_ip = "172.16.100.115"
-    security_groups = [0]
-    permissions = 660
-}
+	resource "opennebula_virtual_network" "reservation1" {
+	    name = "terravnetres"
+	    description = "my terraform vnet"
+	    reservation_vnet = opennebula_virtual_network.test.id
+	    reservation_size = 5
+		reservation_ar_id = opennebula_virtual_network_address_range.test.id
+		reservation_first_ip = "172.16.100.115"
+	    security_groups = [0]
+	    permissions = 660
+	}
 
-resource "opennebula_virtual_network" "reservation2" {
-    name = "zero_ar_id"
-    reservation_vnet = opennebula_virtual_network.test.id
-    reservation_size = 2
-	reservation_ar_id = 0
-	reservation_first_ip = "172.16.100.3"
-    security_groups = [0]
-    permissions = 660
-}
+	resource "opennebula_virtual_network" "reservation2" {
+	    name = "zero_ar_id"
+	    reservation_vnet = opennebula_virtual_network.test.id
+	    reservation_size = 2
+		reservation_ar_id = 0
+		reservation_first_ip = "172.16.100.3"
+	    security_groups = [0]
+	    permissions = 660
+	}
 `
 
 var testAccVirtualNetworkReservationNoNetworkConfig = `
-resource "opennebula_virtual_network" "non-existing-reservation" {
-    name = "terravnetreswqerwer"
-    description = "my terraform vnet"
-    reservation_vnet = 25
-    reservation_size = 1
-    security_groups = [0]
-    permissions = 660
+	resource "opennebula_virtual_network" "non-existing-reservation" {
+	    name = "terravnetreswqerwer"
+	    description = "my terraform vnet"
+	    reservation_vnet = 25
+	    reservation_size = 1
+	    security_groups = [0]
+	    permissions = 660
+	}
+`
+
+var testAccVirtualNetworkVlanIdConflictsAutomaticVlanId = `
+resource "opennebula_virtual_network" "vlan_id_test_conflict" {
+    name = "vlan_id_override"
+    description = "test vlan id conflict"
+    automatic_vlan_id = true
+	vlan_id     = 100
+}
+`
+
+var testAccVirtualNetworkVlanIdSetInOVSwitch = `
+resource "opennebula_virtual_network" "vlan_id_test" {
+    name = "vlan_id_override"
+    description = "test vlan id on ovswitch"
+	vlan_id     = 288
+	type        = "ovswitch"
 }
 `
