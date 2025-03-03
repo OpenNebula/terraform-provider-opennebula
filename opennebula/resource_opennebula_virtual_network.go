@@ -489,6 +489,10 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 			for k, v := range tags {
 				update = true
 				key := strings.ToUpper(k)
+				p, _ := vnTemplate.GetPair(key)
+				if p != nil {
+					vnTemplate.Del(key)
+				}
 				vnTemplate.AddPair(key, v)
 			}
 		}
