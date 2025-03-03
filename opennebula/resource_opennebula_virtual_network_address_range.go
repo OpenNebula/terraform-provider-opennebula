@@ -280,7 +280,8 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 	d.Set("ip6", ar.IP6)
 	d.Set("size", ar.Size)
 	d.Set("mac", ar.MAC)
-	d.Set("ula_prefix", ar.GlobalPrefix)
+	d.Set("ula_prefix", ar.ULAPrefix)
+	d.Set("global_prefix", ar.GlobalPrefix)
 
 	cfgLeasesApplied := make([]string, 0, len(ar.Leases))
 	holdIPs := d.Get("hold_ips").(*schema.Set).List()

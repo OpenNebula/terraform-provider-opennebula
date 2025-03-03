@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-version"
@@ -29,7 +30,12 @@ func getARTemplate(AR *vn.AR) *vn.AddressRange {
 	}
 
 	for i := 0; i < ARValue.NumField(); i++ {
-		ARTemplate.AddPair(typeOfAR.Field(i).Name, ARValue.Field(i).Interface())
+		fieldName := typeOfAR.Field(i).Name
+		xmlTag := typeOfAR.Field(i).Tag.Get("xml")
+		if splitted := strings.Split(xmlTag, ","); len(splitted) > 0 {
+			fieldName = splitted[0]
+		}
+		ARTemplate.AddPair(fieldName, ARValue.Field(i).Interface())
 	}
 
 	log.Printf("[DEBUG] AR template: %s", ARTemplate.String())
@@ -120,7 +126,7 @@ func vNetARAdd(ctx context.Context, timeout time.Duration, vnc *goca.VirtualNetw
 		return -1, err
 	}
 
-	arID, _ := attachedAR.GetI("ID")
+	arID, _ := attachedAR.GetI("AR_ID")
 
 	return arID, nil
 }
@@ -168,13 +174,14 @@ func vNetARRemove(ctx context.Context, oneVersion *version.Version, timeout time
 		}
 	}
 
-	err = vnc.FreeAR(arID)
-	if err != nil {
-		return fmt.Errorf("can't remove AR %d: %s\n", arID, err)
-	}
-
 	err = resource.RetryContext(ctx, timeout, func() *resource.RetryError {
-
+		err = vnc.FreeAR(arID)
+		if err != nil {
+			if strings.Contains(err.Error(), "Address Range has leases in use") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
 		attached, err := isVRARAttached(vnc, arID)
 		if err != nil {
 			return resource.RetryableError(err)
