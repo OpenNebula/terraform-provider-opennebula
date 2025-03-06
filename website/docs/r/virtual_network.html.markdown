@@ -73,10 +73,11 @@ The following arguments are supported:
 * `name` - (Required) The name of the virtual network.
 * `description` - (Optional) Description of the virtual network.
 * `permissions` - (Optional) Permissions applied on virtual network. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
-* `reservation_vnet` - (Optional) ID of the parent virtual network to reserve from. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_first_ip` and `reservation_size`.
-* `reservation_size` - (Optional) Size (in address) reserved. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_first_ip` and `reservation_vnet`.
-* `reservation_ar_id` - (Optional) ID of the address range from which to reserve the addresses. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_size`, `reservation_first_ip` and `reservation_vnet`.
+* `reservation_vnet` - (Optional) ID of the parent virtual network to reserve from. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_first_ip`, `reservation_first_ip6` and `reservation_size`.
+* `reservation_size` - (Optional) Size (in address) reserved. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_first_ip`, `reservation_first_ip6` and `reservation_vnet`.
+* `reservation_ar_id` - (Optional) ID of the address range from which to reserve the addresses. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_size`, `reservation_first_ip`, `reservation_first_ip6` and `reservation_vnet`.
 * `reservation_first_ip` - (Optional) The first IPv4 address to start the reservation range. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_size` and `reservation_vnet`.
+* `reservation_first_ip6` - (Optional) The first IPv6 address to start the reservation range. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_size` and `reservation_vnet`.
 * `security_groups` - (Optional) List of security group IDs to apply on the virtual network.
 * `bridge` - (Optional) Name of the bridge interface to which the virtual network should be associated. Conflicts with `reservation_vnet` and `reservation_size`.
 * `physical_device` - (Optional) Name of the physical device interface to which the virtual network should be associated. Conflicts with `reservation_vnet` and `reservation_size`.

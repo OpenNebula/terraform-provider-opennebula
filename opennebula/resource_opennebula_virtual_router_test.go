@@ -408,9 +408,9 @@ resource "opennebula_virtual_network" "network3" {
 resource "opennebula_virtual_network_address_range" "network3_static_ip6" {
 	virtual_network_id = opennebula_virtual_network.network3.id
 	ar_type            = "IP6_STATIC"
-    ip6     		   = "fd00:ffff:ffff::"
+	ip6                = "fd00:ffff:ffff::"
 	prefix_length	   = 126
-	size			   = 4
+	size               = 4
 }
 `
 

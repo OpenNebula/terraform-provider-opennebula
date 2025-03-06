@@ -426,7 +426,7 @@ var testAccVirtualNetworkConfigBasic = `
 		ar_type            = "IP4_6"
 		size               = 2
 		ip4                = "172.16.100.240"
-		ula_prefix 		   = "fd00:ffff:ffff::"
+		ula_prefix         = "fd00:ffff:ffff::"
 	}
 
 	resource "opennebula_virtual_network_address_range" "test6" {
@@ -434,7 +434,7 @@ var testAccVirtualNetworkConfigBasic = `
 		ar_type            = "IP4_6_STATIC"
 		size               = 2
 		ip4                = "172.16.100.242"
-		ip6     		   = "fd00:ffff:ffff::"
+		ip6                = "fd00:ffff:ffff::"
 		prefix_length	   = 127
 	}
 `
@@ -505,7 +505,7 @@ var testAccVirtualNetworkConfigUpdate = `
 		ar_type            = "IP4_6"
 		size               = 2
 		ip4                = "172.16.100.240"
-		ula_prefix 		   = "fd00:ffff:ffff::"
+		ula_prefix         = "fd00:ffff:ffff::"
 	}
 
 	resource "opennebula_virtual_network_address_range" "test6" {
@@ -513,7 +513,7 @@ var testAccVirtualNetworkConfigUpdate = `
 		ar_type            = "IP4_6_STATIC"
 		size               = 2
 		ip4                = "172.16.100.242"
-		ip6     		   = "fd00:ffff:ffff::"
+		ip6                = "fd00:ffff:ffff::"
 		prefix_length	   = 127
 	}
 `
@@ -583,7 +583,7 @@ var testAccVirtualNetworkConfigRemoveGateway = `
 		ar_type            = "IP4_6"
 		size               = 2
 		ip4                = "172.16.100.240"
-		ula_prefix 		   = "fd00:ffff:ffff::"
+		ula_prefix         = "fd00:ffff:ffff::"
 	}
 
 	resource "opennebula_virtual_network_address_range" "test6" {
@@ -591,7 +591,7 @@ var testAccVirtualNetworkConfigRemoveGateway = `
 		ar_type            = "IP4_6_STATIC"
 		size               = 2
 		ip4                = "172.16.100.242"
-		ip6     		   = "fd00:ffff:ffff::"
+		ip6                = "fd00:ffff:ffff::"
 		prefix_length	   = 127
 	}
 `
@@ -655,7 +655,7 @@ var testAccVirtualNetworkReservationConfig = `
 		ar_type            = "IP4_6"
 		size               = 2
 		ip4                = "172.16.100.240"
-		ula_prefix 		   = "fd00:ffff:ffff::"
+		ula_prefix         = "fd00:ffff:ffff::"
 	}
 
 	resource "opennebula_virtual_network_address_range" "test6" {
@@ -663,7 +663,7 @@ var testAccVirtualNetworkReservationConfig = `
 		ar_type            = "IP4_6_STATIC"
 		size               = 2
 		ip4                = "172.16.100.242"
-		ip6     		   = "fd00:ffff:ffff::"
+		ip6                = "fd00:ffff:ffff::"
 		prefix_length	   = 127
 	}
 
