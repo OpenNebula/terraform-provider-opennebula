@@ -433,8 +433,8 @@ func resourceOpennebulaVirtualNetworkCreate(ctx context.Context, d *schema.Resou
 		if reservationFirstIP, ok := d.GetOk("reservation_first_ip"); ok {
 			reservationTemplate.AddPair("IP", reservationFirstIP.(string))
 		}
-		if reservation_first_ip6, ok := d.GetOk("reservation_first_ip6"); ok {
-			reservationTemplate.AddPair("IP6", reservation_first_ip6.(string))
+		if reservationFirstIP6, ok := d.GetOk("reservation_first_ip6"); ok {
+			reservationTemplate.AddPair("IP6", reservationFirstIP6.(string))
 		}
 		if reservationARID := d.Get("reservation_ar_id"); reservationARID != -1 {
 			reservationTemplate.AddPair("AR_ID", reservationARID.(int))
