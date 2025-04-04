@@ -51,10 +51,20 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 					Computed:    true,
 					Description: "Primary IPv4 address assigned by OpenNebula",
 				},
-				"ip6_global": {
+				"ip6": {
 					Type:        schema.TypeString,
 					Computed:    true,
 					Description: "Primary IPv6 address assigned by OpenNebula",
+				},
+				"ip6_ula": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Unique local IPv6 address assigned by OpenNebula",
+				},
+				"ip6_global": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Global IPv6 address assigned by OpenNebula",
 				},
 				"ip6_link": {
 					Type:        schema.TypeString,
@@ -88,6 +98,14 @@ func nicComputedVMFields() map[string]*schema.Schema {
 			Computed: true,
 		},
 		"computed_ip": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_ip6": {
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"computed_ip6_ula": {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
@@ -888,8 +906,10 @@ func flattenNICComputed(nic shared.NIC, ignoreSGIDs []int) map[string]interface{
 	ip, _ := nic.Get(shared.IP)
 	mac, _ := nic.Get(shared.MAC)
 	physicalDevice, _ := nic.GetStr("PHYDEV")
-	ip6Global, _ := nic.GetStr("IP6_GLOBAL")
-	ip6Link, _ := nic.GetStr("IP6_LINK")
+	ip6, _ := nic.Get(shared.IP6)
+	ip6ULA, _ := nic.Get(shared.IP6_ULA)
+	ip6Global, _ := nic.Get(shared.IP6_GLOBAL)
+	ip6Link, _ := nic.Get(shared.IP6_LINK)
 	network, _ := nic.Get(shared.Network)
 
 	model, _ := nic.Get(shared.Model)
@@ -921,6 +941,8 @@ func flattenNICComputed(nic shared.NIC, ignoreSGIDs []int) map[string]interface{
 		"nic_id":                   nicID,
 		"network":                  network,
 		"computed_ip":              ip,
+		"computed_ip6":             ip6,
+		"computed_ip6_ula":         ip6ULA,
 		"computed_ip6_global":      ip6Global,
 		"computed_ip6_link":        ip6Link,
 		"computed_mac":             mac,
@@ -940,6 +962,12 @@ func flattenVMNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) map[
 
 	if len(NICConfig["ip"].(string)) > 0 {
 		NICMap["ip"] = NICMap["computed_ip"]
+	}
+	if len(NICConfig["ip6"].(string)) > 0 {
+		NICMap["ip6"] = NICMap["computed_ip6"]
+	}
+	if len(NICConfig["ip6_ula"].(string)) > 0 {
+		NICMap["ip6_ula"] = NICMap["computed_ip6_ula"]
 	}
 	if len(NICConfig["ip6_global"].(string)) > 0 {
 		NICMap["ip6_global"] = NICMap["computed_ip6_global"]
@@ -1006,6 +1034,8 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 
 		if i == 0 {
 			d.Set("ip", nicRead["computed_ip"])
+			d.Set("ip6", nicRead["computed_ip6"])
+			d.Set("ip6_ula", nicRead["computed_ip6_ula"])
 			d.Set("ip6_global", nicRead["computed_ip6_global"])
 			d.Set("ip6_link", nicRead["computed_ip6_link"])
 		}
@@ -1022,8 +1052,10 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 
 	ip, _ := NIC.Get(shared.IP)
-	ip6Global, _ := NIC.GetStr("IP6_GLOBAL")
-	ip6Link, _ := NIC.GetStr("IP6_LINK")
+	ip6, _ := NIC.Get(shared.IP6)
+	ip6ULA, _ := NIC.Get(shared.IP6_ULA)
+	ip6Global, _ := NIC.Get(shared.IP6_GLOBAL)
+	ip6Link, _ := NIC.Get(shared.IP6_LINK)
 	mac, _ := NIC.Get(shared.MAC)
 	physicalDevice, _ := NIC.GetStr("PHYDEV")
 
@@ -1070,6 +1102,8 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 	dns, _ := NIC.Get(shared.DNS)
 
 	return emptyOrEqual(NICConfig["ip"], ip) &&
+		emptyOrEqual(NICConfig["ip6"], ip6) &&
+		emptyOrEqual(NICConfig["ip6_ula"], ip6ULA) &&
 		emptyOrEqual(NICConfig["ip6_global"], ip6Global) &&
 		emptyOrEqual(NICConfig["ip6_link"], ip6Link) &&
 		emptyOrEqual(NICConfig["mac"], mac) &&
@@ -1086,8 +1120,10 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 
 func matchNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 	ip, _ := NIC.Get(shared.IP)
-	ip6Global, _ := NIC.GetStr("IP6_GLOBAL")
-	ip6Link, _ := NIC.GetStr("IP6_LINK")
+	ip6, _ := NIC.Get(shared.IP6)
+	ip6ULA, _ := NIC.Get(shared.IP6_ULA)
+	ip6Global, _ := NIC.Get(shared.IP6_GLOBAL)
+	ip6Link, _ := NIC.Get(shared.IP6_LINK)
 	mac, _ := NIC.Get(shared.MAC)
 	physicalDevice, _ := NIC.GetStr("PHYDEV")
 
@@ -1117,6 +1153,8 @@ func matchNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 	dns, _ := NIC.Get(shared.DNS)
 
 	return ip == NICConfig["computed_ip"].(string) &&
+		ip6 == NICConfig["computed_ip6"].(string) &&
+		ip6ULA == NICConfig["computed_ip6_ula"].(string) &&
 		ip6Global == NICConfig["computed_ip6_global"].(string) &&
 		ip6Link == NICConfig["computed_ip6_link"].(string) &&
 		mac == NICConfig["computed_mac"].(string) &&
@@ -1188,6 +1226,8 @@ NICLoop:
 
 		if i == 0 {
 			d.Set("ip", nicMap["computed_ip"])
+			d.Set("ip6", nicMap["computed_ip6"])
+			d.Set("ip6_ula", nicMap["computed_ip6_ula"])
 			d.Set("ip6_global", nicMap["computed_ip6_global"])
 			d.Set("ip6_link", nicMap["computed_ip6_link"])
 		}
@@ -1982,6 +2022,8 @@ func updateNIC(ctx context.Context, d *schema.ResourceData, meta interface{}) er
 		},
 		"network_id",
 		"ip",
+		"ip6",
+		"ip6_ula",
 		"ip6_global",
 		"ip6_link",
 		"mac",
@@ -2066,6 +2108,8 @@ nicCFGsLoop:
 
 			// compare other attributes
 			if (NIC["ip"] == newNIC["ip"] &&
+				NIC["ip6"] == newNIC["ip6"] &&
+				NIC["ip6_ula"] == newNIC["ip6_ula"] &&
 				NIC["ip6_global"] == newNIC["ip6_global"] &&
 				NIC["ip6_link"] == newNIC["ip6_link"] &&
 				NIC["mac"] == newNIC["mac"]) &&

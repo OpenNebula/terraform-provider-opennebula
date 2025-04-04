@@ -1,3 +1,9 @@
+# 1.4.2 (Unreleased)
+
+FEATURES:
+
+* provider: Added a `--debug` flag for enabling provider debugging (#582)
+
 # 1.4.1 (October 22nd, 2024)
 
 FEATURES:
