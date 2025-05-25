@@ -1398,9 +1398,9 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 
 	if d.HasChange("physical_device") {
 		tpl.Del(string(vnk.PhyDev))
-		physicaldevice := d.Get("physical_device").(string)
-		if len(physicaldevice) > 0 {
-			tpl.Add(vnk.PhyDev, physicaldevice)
+		vnphydev := d.Get("physical_device").(string)
+		if len(vnphydev) > 0 {
+			tpl.Add(vnk.PhyDev, vnphydev)
 		}
 		update = true
 	}
