@@ -68,7 +68,7 @@ jobs:
 
   test-6_4:
     name: "Test OpenNebula 6.4"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [lint-Go_Formating]
     steps:
       - name: "Checkout"
