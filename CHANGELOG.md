@@ -3,6 +3,7 @@
 FEATURES:
 
 * provider: Added a `--debug` flag for enabling provider debugging (#582)
+* shared_schemas: Add `machine`, `kernel`, `kernel_ds`, `initrd`, `initrd_ds`, `root`, `kernel_cmd`, `bootloader`, `sd_disk_bus`, `uuid`, `firmware` and `firmware_secure` to OS schema (#558)
 
 # 1.4.1 (October 22nd, 2024)
 
