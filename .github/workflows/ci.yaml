@@ -41,7 +41,7 @@ jobs:
       - name: "Set up Go"
         uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: '1.20'
       - name: "Install Go dependencies"
         run: go install
       - name: "Test Go formating"
@@ -57,7 +57,7 @@ jobs:
       - name: "Set up Go"
         uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: '1.20'
       - run: wget -q -O- https://downloads.opennebula.io/repo/repo2.key | sudo apt-key add -
       - run: sudo sh -c 'echo "deb https://downloads.opennebula.io/repo/6.10/Ubuntu/24.04 stable opennebula" > /etc/apt/sources.list.d/opennebula.list'
       - run: sudo apt-get -y update

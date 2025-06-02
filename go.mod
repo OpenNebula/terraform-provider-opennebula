@@ -1,6 +1,6 @@
 module github.com/OpenNebula/terraform-provider-opennebula
 
-go 1.18
+go 1.20
 
 require (
 	github.com/OpenNebula/one/src/oca/go/src/goca v0.0.0-20250330210054-7d85b71c5fe7
