@@ -190,6 +190,27 @@ func TestAccVirtualMachineAddNIC(t *testing.T) {
 	})
 }
 
+func TestAccVirtualMachineNicIpv6(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDualStackARVMTemplate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_ipv6", "name", "test-ipv6"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_ipv6", "nic.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_ipv6", "nic.0.computed_ip6", "fd00:ffff:ffff::7"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_ipv6", "nic.0.computed_ip6_global", "2001:0db8::3"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_ipv6", "nic.0.computed_ip6_link", "fe80::5"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_ipv6", "nic.0.computed_ip6_ula", "fd00:ffff:ffff::2"),
+				),
+			},
+		},
+	})
+}
+
 var testNICVNetResources = `
 
 resource "opennebula_security_group" "mysecgroup" {
@@ -472,23 +493,23 @@ var testAccVirtualMachineTemplateConfigMultipleNICs = testNICVNetResources + `
 	  permissions = "642"
 	  memory = 128
 	  cpu = 0.1
-	
+
 	  context = {
 		NETWORK  = "YES"
 		SET_HOSTNAME = "$NAME"
 	  }
-	
+
 	  graphics {
 		type   = "VNC"
 		listen = "0.0.0.0"
 		keymap = "en-us"
 	  }
-	
+
 	  os {
 		arch = "x86_64"
 		boot = ""
 	  }
-	
+
 	  tags = {
 		env = "prod"
 		customer = "test"
@@ -514,7 +535,7 @@ var testAccVirtualMachineTemplateConfigMultipleNICs = testNICVNetResources + `
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.133"
 	  }
-	
+
 	  timeout = 5
 }
 `
@@ -527,23 +548,23 @@ var testAccVirtualMachineTemplateConfigMultipleNICsOrderedUpdate = testNICVNetRe
 	  permissions = "642"
 	  memory = 128
 	  cpu = 0.1
-	
+
 	  context = {
 		NETWORK  = "YES"
 		SET_HOSTNAME = "$NAME"
 	  }
-	
+
 	  graphics {
 		type   = "VNC"
 		listen = "0.0.0.0"
 		keymap = "en-us"
 	  }
-	
+
 	  os {
 		arch = "x86_64"
 		boot = ""
 	  }
-	
+
 	  tags = {
 		env = "prod"
 		customer = "test"
@@ -569,7 +590,7 @@ var testAccVirtualMachineTemplateConfigMultipleNICsOrderedUpdate = testNICVNetRe
 		network_id = opennebula_virtual_network.network1.id
 		ip         = "172.16.100.133"
 	  }
-	
+
 	  timeout = 5
 }
 `
@@ -702,12 +723,12 @@ resource "opennebula_virtual_machine" "test" {
 	cpu         = 1
 	vcpu        = 2
 	memory      = 128
-  
+
 	context = {
 	  SET_HOSTNAME = "$NAME"
 	  NETWORK      = "YES"
 	}
-  
+
 	nic {
 		model           = "virtio"
 		network_id      = opennebula_virtual_network.network1.id
@@ -731,4 +752,61 @@ resource "opennebula_virtual_machine" "test" {
 	  NETWORK      = "YES"
 	}
   }
+`
+
+var testAccIPv6VNetBasicResources = `
+resource "opennebula_virtual_network" "test_ipv6_1" {
+	name = "test-ipv6-1"
+	type            = "dummy"
+	bridge          = "onebr"
+	mtu             = 1500
+	permissions = "642"
+	group = "oneadmin"
+	gateway = "192.200.100.1"
+	dns = "8.8.8.8"
+}
+`
+
+var testAccDualStackARVMTemplate = testAccIPv6VNetBasicResources + `
+resource "opennebula_virtual_network_address_range" "test_ar_ip6_static" {
+    virtual_network_id = opennebula_virtual_network.test_ipv6_1.id
+	ar_type            = "IP4_6_STATIC"
+	size               = 100
+    ip4                = "192.200.100.0"
+	ip6                = "fd00:ffff:ffff::"
+	prefix_length      = 127
+}
+
+resource "opennebula_virtual_machine" "test_ipv6" {
+	name        = "test-ipv6"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.5
+
+	context = {
+	  NETWORK  = "YES"
+	  SET_HOSTNAME = "$NAME"
+	}
+
+	os {
+	  arch = "x86_64"
+	  boot = ""
+	}
+
+	nic {
+		network_id = opennebula_virtual_network.test_ipv6_1.id
+        ip6 = "fd00:ffff:ffff::7"
+        ip6_global = "2001:0db8::3"
+        ip6_link = "fe80::5"
+        ip6_ula = "fd00:ffff:ffff::2"
+	}
+
+    timeouts {
+        create = "2m"
+        delete = "1m"
+    }
+
+	depends_on = [opennebula_virtual_network_address_range.test_ar_ip6_static]
+}
 `

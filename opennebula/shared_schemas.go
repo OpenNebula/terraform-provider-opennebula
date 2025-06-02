@@ -192,6 +192,22 @@ func nicFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"ip6": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_ula": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_link": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_global": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"mac": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -585,6 +601,14 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 		switch k {
 		case "ip":
 			nic.Add(shared.IP, v.(string))
+		case "ip6":
+			nic.Add(shared.IP6, v.(string))
+		case "ip6_ula":
+			nic.Add(shared.IP6_ULA, v.(string))
+		case "ip6_link":
+			nic.Add(shared.IP6_LINK, v.(string))
+		case "ip6_global":
+			nic.Add(shared.IP6_GLOBAL, v.(string))
 		case "mac":
 			nic.Add(shared.MAC, v.(string))
 		case "model":
@@ -849,6 +873,10 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
+	ip6, _ := nic.Get(shared.IP6)
+	ip6_ula, _ := nic.Get(shared.IP6_ULA)
+	ip6_link, _ := nic.Get(shared.IP6_LINK)
+	ip6_global, _ := nic.Get(shared.IP6_GLOBAL)
 	mac, _ := nic.Get(shared.MAC)
 	physicalDevice, _ := nic.GetStr("PHYDEV")
 	network, _ := nic.Get(shared.Network)
@@ -881,6 +909,10 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	return map[string]interface{}{
 		"ip":                 ip,
+		"ip6":                ip6,
+		"ip6_ula":            ip6_ula,
+		"ip6_link":           ip6_link,
+		"ip6_global":         ip6_global,
 		"mac":                mac,
 		"network_id":         networkId,
 		"physical_device":    physicalDevice,
