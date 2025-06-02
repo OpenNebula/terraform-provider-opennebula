@@ -64,4 +64,4 @@ jobs:
       - run: sudo apt-get -y install opennebula opennebula-flow opennebula-node-lxc # opennebula-node-lxc to ensure node dependencies for monitoring are installed
       - run: source ${{ github.workspace }}/.github/scripts/oned.sh
       - run: go install
-      - run: go test $(go list ./... | grep -v 'vendor') -v ${TESTARGS} -timeout 120m
+      - run: go test $(go list ./... | grep -v 'vendor') -v ${TESTARGS} -tags=legacy -timeout 120m
