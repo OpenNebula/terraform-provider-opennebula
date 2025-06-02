@@ -1,3 +1,5 @@
+//go:build !legacy
+
 package opennebula
 
 import (
@@ -91,13 +93,15 @@ resource "opennebula_service_template" "test" {
           {
             name        = "role0"
             cooldown    = 5 # seconds
-            vm_template = tonumber(opennebula_template.test.id)
+            type        = "vm"
+            template_id = tonumber(opennebula_template.test.id)
           },
           {
             name        = "role1"
             parents     = ["role0"]
             cooldown    = 5 # seconds
-            vm_template = tonumber(opennebula_template.test.id)
+            type        = "vm"
+            template_id = tonumber(opennebula_template.test.id)
           },
         ]
       }
