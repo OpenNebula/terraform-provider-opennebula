@@ -37,7 +37,8 @@ resource "opennebula_service_template" "example" {
         {
           "name": "master",
           "cardinality": 3,
-          "vm_template": 0,
+          "type": "vm",
+          "template_id": 0,
           "min_vms": 2
         }
       ]

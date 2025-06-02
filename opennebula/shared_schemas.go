@@ -192,6 +192,22 @@ func nicFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"ip6": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_ula": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_link": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ip6_global": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"mac": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -414,7 +430,7 @@ func osSchema() *schema.Schema {
 		Type:        schema.TypeList,
 		Optional:    true,
 		MaxItems:    1,
-		Description: "Definition of OS boot and type for the Virtual Machine",
+		Description: "Definition of OS parameters for the Virtual Machine",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"arch": {
@@ -424,6 +440,59 @@ func osSchema() *schema.Schema {
 				"boot": {
 					Type:     schema.TypeString,
 					Required: true,
+				},
+				"machine": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"kernel": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.kernel_ds"},
+				},
+				"kernel_ds": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.kernel"},
+				},
+				"initrd": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.initrd_ds"},
+				},
+				"initrd_ds": {
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"os.0.initrd"},
+				},
+				"root": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"kernel_cmd": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"bootloader": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"sd_disk_bus": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"uuid": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Computed: true,
+				},
+				"firmware": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"firmware_secure": {
+					Type:     schema.TypeBool,
+					Optional: true,
 				},
 			},
 		},
@@ -585,6 +654,14 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 		switch k {
 		case "ip":
 			nic.Add(shared.IP, v.(string))
+		case "ip6":
+			nic.Add(shared.IP6, v.(string))
+		case "ip6_ula":
+			nic.Add(shared.IP6_ULA, v.(string))
+		case "ip6_link":
+			nic.Add(shared.IP6_LINK, v.(string))
+		case "ip6_global":
+			nic.Add(shared.IP6_GLOBAL, v.(string))
 		case "mac":
 			nic.Add(shared.MAC, v.(string))
 		case "model":
@@ -622,7 +699,19 @@ func addOS(tpl *vm.Template, os []interface{}) {
 		if os[i] != nil {
 			osconfig := os[i].(map[string]interface{})
 			tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
+			tpl.AddOS(vmk.Machine, osconfig["machine"].(string))
+			tpl.AddOS(vmk.Kernel, osconfig["kernel"].(string))
+			tpl.AddOS(vmk.KernelDS, osconfig["kernel_ds"].(string))
+			tpl.AddOS(vmk.Initrd, osconfig["initrd"].(string))
+			tpl.AddOS(vmk.InitrdDS, osconfig["initrd_ds"].(string))
+			tpl.AddOS(vmk.Root, osconfig["root"].(string))
+			tpl.AddOS(vmk.KernelCmd, osconfig["kernel_cmd"].(string))
+			tpl.AddOS(vmk.Bootloader, osconfig["bootloader"].(string))
 			tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
+			tpl.AddOS(vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
+			tpl.AddOS(vmk.UUID, osconfig["uuid"].(string))
+			tpl.AddOS(vmk.Firmware, osconfig["firmware"].(string))
+			tpl.AddOS(vmk.FirmwareSecure, osconfig["firmware_secure"].(bool))
 		}
 	}
 
@@ -849,6 +938,10 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
+	ip6, _ := nic.Get(shared.IP6)
+	ip6_ula, _ := nic.Get(shared.IP6_ULA)
+	ip6_link, _ := nic.Get(shared.IP6_LINK)
+	ip6_global, _ := nic.Get(shared.IP6_GLOBAL)
 	mac, _ := nic.Get(shared.MAC)
 	physicalDevice, _ := nic.GetStr("PHYDEV")
 	network, _ := nic.Get(shared.Network)
@@ -881,6 +974,10 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	return map[string]interface{}{
 		"ip":                 ip,
+		"ip6":                ip6,
+		"ip6_ula":            ip6_ula,
+		"ip6_link":           ip6_link,
+		"ip6_global":         ip6_global,
 		"mac":                mac,
 		"network_id":         networkId,
 		"physical_device":    physicalDevice,
@@ -960,7 +1057,19 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	// OS
 	osMap := make([]map[string]interface{}, 0, 1)
 	arch, _ := vmTemplate.GetOS(vmk.Arch)
+	machine, _ := vmTemplate.GetOS(vmk.Machine)
+	kernel, _ := vmTemplate.GetOS(vmk.Kernel)
+	kernelDS, _ := vmTemplate.GetOS(vmk.KernelDS)
+	initrd, _ := vmTemplate.GetOS(vmk.Initrd)
+	initrdDS, _ := vmTemplate.GetOS(vmk.InitrdDS)
+	root, _ := vmTemplate.GetOS(vmk.Root)
+	kernelCmd, _ := vmTemplate.GetOS(vmk.KernelCmd)
+	bootloader, _ := vmTemplate.GetOS(vmk.Bootloader)
 	boot, _ := vmTemplate.GetOS(vmk.Boot)
+	sdDiskBus, _ := vmTemplate.GetOS(vmk.SDDiskBus)
+	uuid, _ := vmTemplate.GetOS(vmk.UUID)
+	firmware, _ := vmTemplate.GetOS(vmk.Firmware)
+	firmwareSecure, firmwareSecureErr := vmTemplate.GetOS(vmk.FirmwareSecure)
 	// CPU Model
 	cpumodelMap := make([]map[string]interface{}, 0, 1)
 	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
@@ -1017,9 +1126,26 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 
 	// Set OS to resource
 	if arch != "" {
+		firmwareSecureBool := false
+		if firmwareSecureErr == nil && firmwareSecure == "true" {
+			firmwareSecureBool = true
+		}
+
 		osMap = append(osMap, map[string]interface{}{
-			"arch": arch,
-			"boot": boot,
+			"arch":            arch,
+			"machine":         machine,
+			"kernel":          kernel,
+			"kernel_ds":       kernelDS,
+			"initrd":          initrd,
+			"initrd_ds":       initrdDS,
+			"root":            root,
+			"kernel_cmd":      kernelCmd,
+			"bootloader":      bootloader,
+			"boot":            boot,
+			"sd_disk_bus":     sdDiskBus,
+			"uuid":            uuid,
+			"firmware":        firmware,
+			"firmware_secure": firmwareSecureBool,
 		})
 		_, inherited := inheritedVectors["OS"]
 		if !inherited {
