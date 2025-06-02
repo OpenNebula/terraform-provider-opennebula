@@ -195,6 +195,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "reservation_size", "5"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "reservation_first_ip", "172.16.100.115"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "permissions", "660"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "tags.MY_TAG", "tag_value"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation1", "tags.environment", "DEV"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "uid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "gid"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_network.reservation1", "uname"),
@@ -544,6 +546,10 @@ var testAccVirtualNetworkReservationConfig = `
 	  permissions = "660"
 	  group = "users"
 
+ 	  tags = {
+	    environment = "example"
+	    app = "test_app"
+ 	  }
 	  lifecycle {
 	    ignore_changes = [ar, hold_ips]
 	  }
@@ -579,14 +585,18 @@ var testAccVirtualNetworkReservationConfig = `
 	}
 
 	resource "opennebula_virtual_network" "reservation1" {
-	    name = "terravnetres"
-	    description = "my terraform vnet"
-	    reservation_vnet = opennebula_virtual_network.test.id
-	    reservation_size = 5
+		name = "terravnetres"
+		description = "my terraform vnet"
+		reservation_vnet = opennebula_virtual_network.test.id
+		reservation_size = 5
 		reservation_ar_id = opennebula_virtual_network_address_range.test.id
 		reservation_first_ip = "172.16.100.115"
-	    security_groups = [0]
-	    permissions = 660
+		security_groups = [0]
+		permissions = 660
+		tags = {
+			MY_TAG = "tag_value"
+			environment = "DEV"
+		}
 	}
 
 	resource "opennebula_virtual_network" "reservation2" {
