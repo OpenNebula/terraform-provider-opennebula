@@ -287,6 +287,10 @@ func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Sc
 			Optional:    true,
 			Description: "Image Id  of the image to attach to the VM. Defaults to -1: no image attached.",
 		},
+		"image": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"size": {
 			Type:     schema.TypeInt,
 			Optional: true,
@@ -605,6 +609,14 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 			continue
 		}
 
+		if k == "image" {
+			image := v.(string)
+			if image != "" {
+				disk.Add(shared.Image, image)
+			}
+			continue
+		}
+
 		if isEmptyValue(reflect.ValueOf(v)) {
 			continue
 		}
@@ -767,14 +779,16 @@ func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 
 		// ConflictsWith can't be used among attributes of a nested part: disk, nic etc.
 		// So we need to add a check here
-		if diskconfig["image_id"].(int) != -1 &&
+		if (diskconfig["image_id"].(int) != -1 ||
+			diskconfig["image"].(string) != "") &&
 			(len(diskconfig["volatile_type"].(string)) > 0 ||
 				len(diskconfig["volatile_format"].(string)) > 0) {
-			return fmt.Errorf("disk attritutes image_id can't be defined at the same time as volatile_type or volatile_format")
+			return fmt.Errorf("disk attritutes image_id or image can't be defined at the same time as volatile_type or volatile_format")
 		}
 
-		// Ignore disk creation if Image ID is -1
-		if diskconfig["image_id"].(int) == -1 &&
+		// Ignore disk creation if Image ID is -1 and Image is empty
+		if (diskconfig["image_id"].(int) == -1 &&
+			diskconfig["image"].(string) == "") &&
 			len(diskconfig["volatile_type"].(string)) == 0 {
 			continue
 		}
@@ -1007,11 +1021,13 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	discard, _ := disk.Get("DISCARD")
 	io, _ := disk.Get("IO")
 	imageID, _ := disk.GetI(shared.ImageID)
+	image, _ := disk.Get(shared.Image)
 	volatileType, _ := disk.Get("TYPE")
 	volatileFormat, _ := disk.Get("FORMAT")
 
 	return map[string]interface{}{
 		"image_id":        imageID,
+		"image":           image,
 		"size":            size,
 		"target":          target,
 		"dev_prefix":      dev_prefix,
