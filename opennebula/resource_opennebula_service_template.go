@@ -3,6 +3,7 @@ package opennebula
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -665,6 +666,17 @@ func deepEqualIgnoreEmpty(old_template, new_template string) bool {
 		}
 	}
 
+	// New parameters
+	for key, newValue := range new_map_template {
+		if key == "registration_time" {
+			continue
+		}
+		oldValue, ok := old_map_template[key]
+		if !ok || !reflect.DeepEqual(oldValue, newValue) {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -673,6 +685,9 @@ func templateRequest(c *goca.Controller, templateID int) (*goca.Response, error)
 	if err != nil {
 		return nil, err
 	}
+	if !getReqStatusValue(response) {
+		return nil, errors.New("failed to get template: " + response.Body())
+	}
 	return response, nil
 }
 
@@ -680,6 +695,9 @@ func applyTemplate(c *goca.Controller, endpoint string, body map[string]interfac
 	response, err := c.ClientFlow.HTTPMethod("POST", endpoint, body)
 	if err != nil {
 		return nil, err
+	}
+	if !getReqStatusValue(response) {
+		return nil, errors.New("failed to apply template: " + response.Body())
 	}
 	return response, nil
 }
@@ -766,4 +784,22 @@ func updateTemplateRequest(c *goca.Controller, templateID int,
 	}
 	_, err = applyTemplate(c, templateEndpointAction(templateID), action)
 	return err
+}
+
+func getReqStatusValue(response *goca.Response) bool {
+	if response == nil {
+		return false
+	}
+	defer func() {
+		if recover() != nil {
+			log.Printf("[ERROR] Failed to retrieve status from response: %v", response)
+		}
+	}()
+	v := reflect.ValueOf(response).Elem()
+	statusField := v.FieldByName("status")
+
+	if statusField.IsValid() && statusField.Kind() == reflect.Bool {
+		return statusField.Bool()
+	}
+	return false
 }
