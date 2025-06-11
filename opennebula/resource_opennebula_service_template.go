@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -750,6 +751,9 @@ func convertPermissions(permissions map[string]interface{}) string {
 		}
 		n, err := strconv.Atoi(s)
 		if err != nil {
+			return 0
+		}
+		if n < math.MinInt8 || n > math.MaxInt8 {
 			return 0
 		}
 		return int8(n)
