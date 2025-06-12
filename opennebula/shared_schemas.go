@@ -187,11 +187,6 @@ func commonInstanceSchema() map[string]*schema.Schema {
 
 func commonFieldsInNICAndAlias() map[string]*schema.Schema {
     return map[string]*schema.Schema{
-        "name": {
-            Type:     schema.TypeString,
-            Optional: true,
-            Computed: true,
-        },
 		"ip": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -748,8 +743,6 @@ func addNicAndAliasCommonValues(nicOrAlias *shared.NIC, config map[string]interf
         }
 
         switch k {
-        case "name":
-            nicOrAlias.Add(shared.Name, v.(string))
 		case "ip":
 			nicOrAlias.Add(shared.IP, v.(string))
 		case "ip6":
@@ -1017,7 +1010,6 @@ func updateRaw(d *schema.ResourceData, tpl *dyn.Template) {
 func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	sg := make([]int, 0)
-    name, _ := nic.Get(shared.Name)
 	ip, _ := nic.Get(shared.IP)
 	ip6, _ := nic.Get(shared.IP6)
 	ip6_ula, _ := nic.Get(shared.IP6_ULA)
@@ -1054,7 +1046,6 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	dns, _ := nic.Get(shared.DNS)
 
 	return map[string]interface{}{
-        "name":               name,
 		"ip":                 ip,
 		"ip6":                ip6,
 		"ip6_ula":            ip6_ula,
