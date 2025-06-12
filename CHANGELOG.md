@@ -1,14 +1,16 @@
-# 1.5.0 (June 5th, 2025)
+# 1.5.0 (June 12th, 2025)
 
 FEATURES:
 
 * provider: Added a `--debug` flag for enabling provider debugging (#582)
 * shared_schemas: Add `machine`, `kernel`, `kernel_ds`, `initrd`, `initrd_ds`, `root`, `kernel_cmd`, `bootloader`, `sd_disk_bus`, `uuid`, `firmware` and `firmware_secure` to OS schema (#558)
 * adapt provider for OpenNebula 7.0 API (#595)
+* add CI job for OpenNebula 7.0 (#611)
 
 ENHANCEMENTS:
 
 * resources/opennebula_virtual_machine: allow to retrieve IPv6 address information after VM creation (#247)
+* add support for oneFlow 7.0 (#613)
 
 BUG FIXES:
 
