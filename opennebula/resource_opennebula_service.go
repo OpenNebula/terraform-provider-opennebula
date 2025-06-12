@@ -344,14 +344,113 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	id, _ := getDocumentKey("ID", serviceJSON)
-	uid, _ := getDocumentKey("UID", serviceJSON)
-	gid, _ := getDocumentKey("GID", serviceJSON)
-	uname, _ := getDocumentKey("UNAME", serviceJSON)
-	gname, _ := getDocumentKey("GNAME", serviceJSON)
-	name, _ := getDocumentKey("NAME", serviceJSON)
-	permissions, _ := getDocumentKey("PERMISSIONS", serviceJSON)
-	state, _ := getDocumentKey("state", serviceBody)
+	id, err := getDocumentKey("ID", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service ID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	uid, err := getDocumentKey("UID", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service UID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+	if uid != nil {
+		if uidStr, ok := uid.(string); ok {
+			uidInt, err := strconv.Atoi(uidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service owner ID",
+					Detail:   fmt.Sprintf("Error converting service owner ID: %s", err),
+				})
+				return diags
+			}
+			uid = uidInt
+		}
+	}
+
+	gid, err := getDocumentKey("GID", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service GID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+	if gid != nil {
+		if gidStr, ok := gid.(string); ok {
+			gidInt, err := strconv.Atoi(gidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service group ID",
+					Detail:   fmt.Sprintf("Error converting service group ID: %s", err),
+				})
+				return diags
+			}
+			gid = gidInt
+		}
+	}
+
+	uname, err := getDocumentKey("UNAME", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service UNAME",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	gname, err := getDocumentKey("GNAME", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service GNAME",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	name, err := getDocumentKey("NAME", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service name",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	permissions, err := getDocumentKey("PERMISSIONS", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service permissions",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	state, err := getDocumentKey("state", serviceBody)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service state",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
 
 	d.SetId(fmt.Sprintf("%v", id))
 	d.Set("name", name)

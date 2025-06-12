@@ -279,13 +279,103 @@ func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.Resour
 		return diags
 	}
 
-	name, _ := getDocumentKey("NAME", templateJSON)
-	uid, _ := getDocumentKey("UID", templateJSON)
-	gid, _ := getDocumentKey("GID", templateJSON)
-	uname, _ := getDocumentKey("UNAME", templateJSON)
-	gname, _ := getDocumentKey("GNAME", templateJSON)
-	permissions, _ := getDocumentKey("PERMISSIONS", templateJSON)
-	template, _ := getDocumentKey("TEMPLATE", templateJSON)
+	name, err := getDocumentKey("NAME", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template name",
+			Detail:   fmt.Sprintf("Error retrieving service template name: %s", err),
+		})
+		return diags
+	}
+
+	uid, err := getDocumentKey("UID", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template owner ID",
+			Detail:   fmt.Sprintf("Error retrieving service template owner ID: %s", err),
+		})
+		return diags
+	}
+	if uid != nil {
+		if uidStr, ok := uid.(string); ok {
+			uidInt, err := strconv.Atoi(uidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service template owner ID",
+					Detail:   fmt.Sprintf("Error converting service template owner ID: %s", err),
+				})
+				return diags
+			}
+			uid = uidInt
+		}
+	}
+
+	gid, err := getDocumentKey("GID", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template group ID",
+			Detail:   fmt.Sprintf("Error retrieving service template group ID: %s", err),
+		})
+		return diags
+	}
+	if gid != nil {
+		if gidStr, ok := gid.(string); ok {
+			gidInt, err := strconv.Atoi(gidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service template group ID",
+					Detail:   fmt.Sprintf("Error converting service template group ID: %s", err),
+				})
+				return diags
+			}
+			gid = gidInt
+		}
+	}
+
+	uname, err := getDocumentKey("UNAME", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template owner name",
+			Detail:   fmt.Sprintf("Error retrieving service template owner name: %s", err),
+		})
+		return diags
+	}
+
+	gname, err := getDocumentKey("GNAME", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template group name",
+			Detail:   fmt.Sprintf("Error retrieving service template group name: %s", err),
+		})
+		return diags
+	}
+
+	permissions, err := getDocumentKey("PERMISSIONS", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template permissions",
+			Detail:   fmt.Sprintf("Error retrieving service template permissions: %s", err),
+		})
+		return diags
+	}
+
+	template, err := getDocumentKey("TEMPLATE", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template body",
+			Detail:   fmt.Sprintf("Error retrieving service template body: %s", err),
+		})
+		return diags
+	}
 	templateString, err := json.Marshal(template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
@@ -663,6 +753,9 @@ func deepEqualIgnoreEmpty(old_template, new_template string) bool {
 		// If the field is not present or not equal in the new template, return false
 		newValue, ok := new_map_template[key]
 		if !ok || !reflect.DeepEqual(oldValue, newValue) {
+			if key == "description" && oldValue == "" && newValue == nil {
+				continue
+			}
 			return false
 		}
 	}
@@ -674,6 +767,9 @@ func deepEqualIgnoreEmpty(old_template, new_template string) bool {
 		}
 		oldValue, ok := old_map_template[key]
 		if !ok || !reflect.DeepEqual(oldValue, newValue) {
+			if key == "description" && newValue == "" && oldValue == nil {
+				continue
+			}
 			return false
 		}
 	}
