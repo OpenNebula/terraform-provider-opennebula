@@ -1006,6 +1006,7 @@ func flattenNICAliasComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[st
 }
 
 func flattenNICAndAliasCommonComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
+    name, _ := nic.Get(shared.Name)
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
 	mac, _ := nic.Get(shared.MAC)
@@ -1035,6 +1036,7 @@ func flattenNICAndAliasCommonComputedAttributes(nic shared.NIC, ignoreSGIDs []in
 	}
 
 	return map[string]interface{}{
+        "computed_name":            name,
 		"computed_ip":              ip,
 		"computed_ip6":             ip6,
 		"computed_ip6_ula":         ip6ULA,
@@ -1131,6 +1133,9 @@ func flattenVMNICAndAliasCommonComputedAttributes(NICConfig map[string]interface
 	NICMap := flattenNICAndAliasCommonComputedAttributes(NIC, []int{0})
 
     //Override the resource values with the computed ones
+    if len(NICConfig["name"].(string)) > 0 {
+        NICMap["name"] = NICMap["computed_name"]
+    }
     if len(NICConfig["ip"].(string)) > 0 {
 		NICMap["ip"] = NICMap["computed_ip"]
 	}
@@ -1237,6 +1242,7 @@ func matchNICAlias(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 }
 
 func matchNICAndAliasCommonAttributes(NICConfig map[string]interface{}, NIC shared.NIC) bool {
+    name, _ := NIC.Get(shared.Name)
 	ip, _ := NIC.Get(shared.IP)
 	ip6, _ := NIC.Get(shared.IP6)
 	ip6ULA, _ := NIC.Get(shared.IP6_ULA)
@@ -1249,6 +1255,7 @@ func matchNICAndAliasCommonAttributes(NICConfig map[string]interface{}, NIC shar
     sgMatches := checkNICSGMatches(NICConfig, NIC)
 
     return sgMatches &&
+        emptyOrEqual(NICConfig["name"], name) &&
         emptyOrEqual(NICConfig["ip"], ip) &&
 		emptyOrEqual(NICConfig["ip6"], ip6) &&
 		emptyOrEqual(NICConfig["ip6_ula"], ip6ULA) &&
@@ -1296,6 +1303,7 @@ func checkNICSGMatches(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 }
 
 func matchNICAndAliasCommonComputedAttributes(NICConfig map[string]interface{}, NIC shared.NIC) bool {
+    name, _ := NIC.Get(shared.Name)
 	ip, _ := NIC.Get(shared.IP)
 	ip6, _ := NIC.Get(shared.IP6)
 	ip6ULA, _ := NIC.Get(shared.IP6_ULA)
@@ -1324,7 +1332,8 @@ func matchNICAndAliasCommonComputedAttributes(NICConfig map[string]interface{}, 
 	gateway, _ := NIC.Get(shared.Gateway)
 	dns, _ := NIC.Get(shared.DNS)
 
-	return ip == NICConfig["computed_ip"].(string) &&
+	return name == NICConfig["computed_name"] &&
+        ip == NICConfig["computed_ip"].(string) &&
 		ip6 == NICConfig["computed_ip6"].(string) &&
 		ip6ULA == NICConfig["computed_ip6_ula"].(string) &&
 		ip6Global == NICConfig["computed_ip6_global"].(string) &&
