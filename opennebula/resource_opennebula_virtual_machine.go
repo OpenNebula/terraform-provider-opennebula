@@ -94,6 +94,10 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 
 func nicAndAliasCommonComputedFields() map[string]*schema.Schema {
    return map[string]*schema.Schema{
+        "nic_id": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
         "computed_name": {
             Type:     schema.TypeString,
             Computed: true,
@@ -148,10 +152,10 @@ func nicComputedVMFields() map[string]*schema.Schema {
 	return mergeSchemas(
         nicAndAliasCommonComputedFields(),
         map[string]*schema.Schema{
-		"nic_id": {
-			Type:     schema.TypeInt,
-			Computed: true,
-		},
+        "computed_alias_ids": {
+            Type:     schema.TypeString,
+            Computed: true,
+        },
 		"computed_virtio_queues": {
 			Type:     schema.TypeString,
 			Computed: true,
@@ -967,15 +971,16 @@ diskLoop:
 }
 
 func flattenNICComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
-	nicID, _ := nic.ID()
+
+    aliasIDs, _ := nic.Get(shared.AliasIDs)
+    network, _ := nic.Get(shared.Network)
 	physicalDevice, _ := nic.GetStr("PHYDEV")
 	model, _ := nic.Get(shared.Model)
 	virtioQueues, _ := nic.GetStr("VIRTIO_QUEUES")
 	method, _ := nic.Get(shared.Method)
-    network, _ := nic.Get(shared.Network)
 
 	attributeMap := map[string]interface{}{
-		"nic_id":                   nicID,
+        "computed_alias_ids":       aliasIDs,
         "network":                  network,
 		"computed_physical_device": physicalDevice,
 		"computed_model":           model,
@@ -1006,6 +1011,7 @@ func flattenNICAliasComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[st
 }
 
 func flattenNICAndAliasCommonComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
+    nicID, _ := nic.ID()
     name, _ := nic.Get(shared.Name)
 	sg := make([]int, 0)
 	ip, _ := nic.Get(shared.IP)
@@ -1036,6 +1042,7 @@ func flattenNICAndAliasCommonComputedAttributes(nic shared.NIC, ignoreSGIDs []in
 	}
 
 	return map[string]interface{}{
+        "nic_id":                   nicID,
         "computed_name":            name,
 		"computed_ip":              ip,
 		"computed_ip6":             ip6,
@@ -1222,7 +1229,7 @@ func matchNIC(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 
 func matchNICAlias(NICConfig map[string]interface{}, NIC shared.NIC) bool {
     parent, _ := NIC.Get(shared.NICAliasParent)
-    aliasId, _ := NIC.GetI(shared.NICAliasID)
+    //aliasId, _ := NIC.GetI(shared.NICAliasID)
     network, _ := NIC.Get(shared.Network)
     networkId, _ := NIC.GetI(shared.NetworkID)
 
@@ -1235,7 +1242,7 @@ func matchNICAlias(NICConfig map[string]interface{}, NIC shared.NIC) bool {
     matchCommonFields := matchNICAndAliasCommonAttributes(NICConfig, NIC)
 
 	return matchCommonFields &&
-        emptyOrEqual(NICConfig["alias_id"], aliasId) &&
+        //emptyOrEqual(NICConfig["alias_id"], aliasId) &&
 		emptyOrEqual(NICConfig["parent"], parent) &&
         emptyOrEqual(NICConfig["network"], network) &&
         emptyOrEqual(resourceNetworkID, networkId)
@@ -1447,8 +1454,8 @@ func flattenVMNICAliases(d *schema.ResourceData, vmTemplate *vm.Template) error 
         }
 
         if !match {
-			ID, _ := remoteNicAlias.GetI(shared.NICAliasID)
-			log.Printf("[WARN] Configuration for NIC Alias ID: %d not found.", ID)
+			nicAliasName, _ := remoteNicAlias.Get(shared.Name)
+			log.Printf("[WARN] Configuration for NIC Alias: %s not found.", nicAliasName)
             continue
 		}
 
@@ -1547,7 +1554,17 @@ func customVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, met
 		}
 	}
 
-    //TODO: nic_alias update
+    if d.HasChange("nic_alias") {
+        err := updateNICAlias(ctx, d, meta)
+        if err != nil {
+            diags = append(diags, diag.Diagnostic{
+                Severity: diag.Error,
+                Summary:  "Failed to update NIC Alias",
+                Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
+            })
+            return diags
+        }
+    }
 
 	return nil
 }
@@ -2258,6 +2275,65 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
+func updateNICAlias(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+    log.Printf("[INFO] Update NIC_ALIAS configuration")
+
+    timeout := time.Duration(d.Get("timeout").(int)) * time.Minute
+	if timeout == defaultVMTimeout {
+		timeout = d.Timeout(schema.TimeoutUpdate)
+	}
+
+    oldNicAliasCfg, updatedNicAliasCfg := d.GetChange("nic_alias")
+    oldNicAliasList, ok := oldNicAliasCfg.([]any)
+    if !ok {
+        return fmt.Errorf("invalid old NIC_ALIAS configuration: %v", oldNicAliasCfg)
+    }
+    updatedNicAliasList, ok := updatedNicAliasCfg.([]any)
+    if !ok {
+        return fmt.Errorf("invalid updated NIC_ALIAS configuration: %v", updatedNicAliasCfg)
+    }
+    toDetach, toAttach := getNICAliasUpdateDiff(updatedNicAliasList, oldNicAliasList)
+
+    nicAliasesToDetach := toDetach
+    nicAliasesToAttach := toAttach
+
+    // in case of NIC Aliases updated in the middle of the NIC Alias list
+	// they would be reattached at the end of the list (we don't have in place XML-RPC update method).
+	// keep_nic_order prevent this behavior adding more NIC Aliases to detach/attach to keep initial ordering
+	if keepNicOrder, ok := d.Get("keep_nic_order").(bool); ok && keepNicOrder && len(toDetach) > 0 {
+        nicAliasesToRecreateOrderedList, err := getNicsToRecreateOrderedList(oldNicAliasList, toDetach)
+        if err != nil {
+            return fmt.Errorf("failed to get NICs to recreate ordered list: %w", err)
+        }
+        nicAliasesToDetach = append(nicAliasesToDetach, nicAliasesToRecreateOrderedList...)
+        nicAliasesToAttach = append(nicAliasesToAttach, nicAliasesToRecreateOrderedList...)
+    }
+
+    // reorder nic_alias to attach list according to new nic_alias list order
+    orderedNicAliasesToAttach, err := orderMatchingNicsByReference(updatedNicAliasList, nicAliasesToAttach, nicAliasMatchByAttributes)
+    if err != nil {
+        return fmt.Errorf("failed to order NIC aliases to attach: %w", err)
+    }
+
+    vmc, err := getVirtualMachineController(d, meta)
+	if err != nil {
+		return err
+	}
+
+    err = detachNicAliasList(ctx, vmc, nicAliasesToDetach, timeout)
+    if err != nil {
+        return fmt.Errorf("failed to detach NICs: %w", err)
+    }
+
+    err = attachNicAliasList(ctx, vmc, orderedNicAliasesToAttach, timeout)
+    if err != nil {
+        return fmt.Errorf("failed to attach NICs: %w", err)
+    }
+
+
+    return nil
+}
+
 func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
     log.Printf("[INFO] Update NIC configuration")
 
@@ -2281,6 +2357,9 @@ func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, 
     }
     toDetach, toAttach := getNICUpdateDiff(updatedNicsList, oldNicsList)
 
+    nicsToDetach := toDetach
+    nicsToAttach := toAttach
+
     // in case of NICs updated in the middle of the NIC list
 	// they would be reattached at the end of the list (we don't have in place XML-RPC update method).
 	// keep_nic_order prevent this behavior adding more NICs to detach/attach to keep initial ordering
@@ -2289,13 +2368,13 @@ func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, 
         if err != nil {
             return fmt.Errorf("failed to get NICs to recreate ordered list: %w", err)
         }
-        toDetach = append(toDetach, nicsToRecreateOrderedList...)
-        toAttach = append(toAttach, nicsToRecreateOrderedList...)
+        nicsToDetach = append(nicsToDetach, nicsToRecreateOrderedList...)
+        nicsToAttach = append(nicsToAttach, nicsToRecreateOrderedList...)
         //TODO: Get the nic aliases from NICs to recreate and recreate them as well
     }
 
     // reorder toAttach NIC list according to new nics list order
-    orderedNicsToAttach, err := orderMatchingNicsByReference(updatedNicsList, toAttach)
+    orderedNicsToAttach, err := orderMatchingNicsByReference(updatedNicsList, nicsToAttach, nicMatchByAttributes)
     if err != nil {
         return fmt.Errorf("failed to order NICs to attach: %w", err)
     }
@@ -2305,7 +2384,13 @@ func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, 
 		return err
 	}
 
-    err = detachNicList(ctx, vmc, toDetach, timeout)
+    //TODO: Get the nics that are going to be detached and no recreated (toDetach)
+    //TODO: Check if the nics in toDetach are referenced by any nic_alias (or have nic_aliases)
+    //TODO: Check if those nic_aliases are going to be detached as well
+    //TODO: If those nic_aliases are not going to be deleted, throw an error before deleting the nic
+
+
+    err = detachNicList(ctx, vmc, nicsToDetach, timeout)
     if err != nil {
         return fmt.Errorf("failed to detach NICs: %w", err)
     }
@@ -2341,6 +2426,26 @@ func getNICUpdateDiff(oldNics []any, updatedNics []any) ([]any, []any) {
 		"network_mode_auto",
 		"sched_requirements",
 		"sched_rank",
+	)
+}
+
+func getNICAliasUpdateDiff(oldNicAliases []any, updatedNicAliases []any) ([]any, []any) {
+    return diffListConfig(oldNicAliases, updatedNicAliases,
+		&schema.Resource{
+			Schema: nicAliasFields(),
+		},
+		"network",
+        "network_id",
+        "parent",
+        "ip",
+		"ip6",
+		"ip6_ula",
+		"ip6_global",
+		"ip6_link",
+		"mac",
+		"security_groups",
+		"gateway",
+		"dns",
 	)
 }
 
@@ -2394,7 +2499,7 @@ func getNicsMap(nicsList []any) (map[int]any, []int, error) {
 	return nicsMap, sortedNicIDs, nil
 }
 
-func orderMatchingNicsByReference(nicsReferenceList []any, nicsToOrderList []any) ([]any, error) {
+func orderMatchingNicsByReference(nicsReferenceList []any, nicsToOrderList []any, matchingFunction func(map[string]any, map[string]any) (bool, error)) ([]any, error) {
 
     orderedNics := make([]any, len(nicsToOrderList))
     i := 0
@@ -2403,7 +2508,7 @@ func orderMatchingNicsByReference(nicsReferenceList []any, nicsToOrderList []any
         if !ok {
             return nil, fmt.Errorf("invalid NIC reference configuration: %v", nicRef)
         }
-        mathcingNic, found, err := findMatchingNic(nicRefCfg, nicsToOrderList)
+        mathcingNic, found, err := findMatchingNic(nicRefCfg, nicsToOrderList, matchingFunction)
         if err != nil {
             return nil, fmt.Errorf("failed to find matching NIC for reference: %v, error: %w", nicRefCfg, err)
         }
@@ -2423,14 +2528,14 @@ func orderMatchingNicsByReference(nicsReferenceList []any, nicsToOrderList []any
     return orderedNics, nil
 }
 
-func findMatchingNic(referenceNic map[string]any, nicsList []any) (map[string]any, bool, error) {
+func findMatchingNic(referenceNic map[string]any, nicsList []any, matchingFunction func(map[string]any, map[string]any) (bool, error)) (map[string]any, bool, error) {
     for _, nic := range nicsList {
         nicMap, ok := nic.(map[string]any)
         if !ok {
             return nil, false, fmt.Errorf("invalid NIC configuration: %v", nic)
         }
 
-        match, err := nicMatchByAttributes(referenceNic, nicMap)
+        match, err := matchingFunction(referenceNic, nicMap)
         if err != nil {
             return nil, false, fmt.Errorf("failed to match NICs by attributes: %w", err)
         }
@@ -2468,6 +2573,34 @@ func nicMatchByAttributes(nic map[string]any, otherNic map[string]any) (bool, er
     return matches, nil
 }
 
+func nicAliasMatchByAttributes(nicAlias map[string]any, otherNicAlias map[string]any) (bool, error) {
+
+    nicAliasSecGroup, ok := nicAlias["security_groups"].([]any)
+    if !ok {
+        return false, fmt.Errorf("invalid security_groups in NIC Alias configuration: %v", nicAlias)
+    }
+
+    otherNICAliasSecGroup, ok := otherNicAlias["security_groups"].([]any)
+    if !ok {
+        return false, fmt.Errorf("invalid security_groups in other NIC Alias configuration: %v", otherNicAlias)
+    }
+
+    matches := ArrayToString(nicAliasSecGroup, ",") == ArrayToString(otherNICAliasSecGroup, ",") &&
+        nicAlias["ip"] == otherNicAlias["ip"] &&
+        nicAlias["ip6"] == otherNicAlias["ip6"] &&
+        nicAlias["ip6_ula"] == otherNicAlias["ip6_ula"] &&
+        nicAlias["ip6_global"] == otherNicAlias["ip6_global"] &&
+        nicAlias["ip6_link"] == otherNicAlias["ip6_link"] &&
+        nicAlias["mac"] == otherNicAlias["mac"] &&
+        nicAlias["gateway"] == otherNicAlias["gateway"] &&
+        nicAlias["dns"] == otherNicAlias["dns"] &&
+        nicAlias["network"] == otherNicAlias["network"] &&
+        nicAlias["network_id"] == otherNicAlias["network_id"] &&
+        nicAlias["parent"] == otherNicAlias["parent"]
+
+    return matches, nil
+}
+
 
 func detachNicList(ctx context.Context, vmc *goca.VMController, nicList []any, timeout time.Duration) error {
     for _, nic := range nicList {
@@ -2481,8 +2614,6 @@ func detachNicList(ctx context.Context, vmc *goca.VMController, nicList []any, t
             return fmt.Errorf("invalid nic_id in NIC configuration: %v", nicConfig)
         }
 
-        //TODO: Temporarily detach vs definitive detach
-        // IF definitive detach have nic_alias, then fail.
 		err := vmNICDetach(ctx, vmc, timeout, nicID)
 		if err != nil {
 			return fmt.Errorf("vm nic detach: %s", err)
@@ -2504,6 +2635,44 @@ func attachNicList(ctx context.Context, vmc *goca.VMController, nicList []any, t
 		_, err := vmNICAttach(ctx, vmc, timeout, nicTpl)
 		if err != nil {
 			return fmt.Errorf("vm nic attach: %s", err)
+		}
+	}
+    return nil
+}
+
+func detachNicAliasList(ctx context.Context, vmc *goca.VMController, nicAliasList []any, timeout time.Duration) error {
+    for _, nicAlias := range nicAliasList {
+		nicConfig, ok := nicAlias.(map[string]any)
+        if !ok {
+            return fmt.Errorf("invalid NIC Alias configuration: %v", nicAlias)
+        }
+
+		nicID, ok := nicConfig["nic_id"].(int)
+        if !ok {
+            return fmt.Errorf("invalid nic_id in NIC Alias configuration: %v", nicConfig)
+        }
+
+		err := vmNICAliasDetach(ctx, vmc, timeout, nicID)
+		if err != nil {
+			return fmt.Errorf("vm nic detach: %s", err)
+
+		}
+	}
+    return nil
+}
+
+func attachNicAliasList(ctx context.Context, vmc *goca.VMController, nicAliasList []any, timeout time.Duration) error {
+    for _, nicAlias := range nicAliasList {
+		nicAliasConfig, ok := nicAlias.(map[string]any)
+        if !ok {
+            return fmt.Errorf("invalid NIC Alias configuration: %v", nicAlias)
+        }
+
+        nicAliasTpl := makeNICAliasVector(nicAliasConfig)
+
+		_, err := vmNICAliasAttach(ctx, vmc, timeout, nicAliasTpl)
+		if err != nil {
+			return fmt.Errorf("vm nic alias attach: %s", err)
 		}
 	}
     return nil

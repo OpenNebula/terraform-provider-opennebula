@@ -156,3 +156,28 @@ func ParseIntFromInterface(i interface{}) (int, error) {
 	}
 	return -1, fmt.Errorf("Does not look like a number")
 }
+
+func ArraysAreEqual[T comparable](a, b []T) bool {
+    if len(a) != len(b) {
+        return false
+    }
+
+    mapA := make(map[T]int)
+    mapB := make(map[T]int)
+
+    for _, v := range a {
+        mapA[v]++
+    }
+
+    for _, v := range b {
+        mapB[v]++
+    }
+
+    for k, v := range mapA {
+        if mapB[k] != v {
+            return false
+        }
+    }
+
+    return true
+}
