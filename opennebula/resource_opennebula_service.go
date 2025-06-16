@@ -3,6 +3,7 @@ package opennebula
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -16,8 +17,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
-	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/service"
 )
+
+const endpointFService = "service"
 
 var (
 	defaultServiceTimeoutMin = 20
@@ -176,7 +178,15 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 	var serviceID int
 
 	// if template id is set, instantiate a Service from this template
-	tc := controller.STemplate(d.Get("template_id").(int))
+	templateID, ok := d.Get("template_id").(int)
+	if !ok {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get template ID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
 
 	var extra_template = ""
 	if v, ok := d.GetOk("extra_template"); ok {
@@ -184,7 +194,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 	}
 
 	// Instantiate template
-	service, err := tc.Instantiate(extra_template)
+	response, err := instantiateTemplate(templateID, extra_template, controller)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -193,8 +203,25 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 		})
 		return diags
 	}
-
-	serviceID = service.ID
+	responseBody, err := getDocumentJSON(response)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse response",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+	log.Printf("[INFO] Successfully instantiated service template %d with response: %s\n", templateID, response.BodyMap())
+	serviceID, err = strconv.Atoi(responseBody["ID"].(string))
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template ID",
+			Detail:   fmt.Sprintf("Response body: %v", responseBody),
+		})
+		return diags
+	}
 
 	d.SetId(fmt.Sprintf("%v", serviceID))
 	sc := controller.Service(serviceID)
@@ -249,7 +276,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 	}
 
 	timeout := d.Timeout(schema.TimeoutCreate)
-	_, err = waitForServiceState(ctx, d, meta, "running", timeout)
+	_, err = waitForServiceState(ctx, d, meta, "running", timeout, controller)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -265,6 +292,7 @@ func resourceOpennebulaServiceCreate(ctx context.Context, d *schema.ResourceData
 func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	config := meta.(*Configuration)
+	controller := config.Controller
 
 	var diags diag.Diagnostics
 
@@ -287,24 +315,151 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	sv, err := sc.Info()
+	response, err := getServiceInfo(controller, sc.ID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to retrieve informations",
+			Summary:  "Failed to retrieve service information",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+	serviceJSON, err := getDocumentJSON(response)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse service document",
 			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
 		})
 		return diags
 	}
 
-	d.SetId(fmt.Sprintf("%v", sv.ID))
-	d.Set("name", sv.Name)
-	d.Set("uid", sv.UID)
-	d.Set("gid", sv.GID)
-	d.Set("uname", sv.UName)
-	d.Set("gname", sv.GName)
-	d.Set("state", sv.Template.Body.StateRaw)
-	err = d.Set("permissions", permissionsUnixString(*sv.Permissions))
+	serviceBody, err := getTemplateBody(serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service template body",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	id, err := getDocumentKey("ID", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service ID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	uid, err := getDocumentKey("UID", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service UID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+	if uid != nil {
+		if uidStr, ok := uid.(string); ok {
+			uidInt, err := strconv.Atoi(uidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service owner ID",
+					Detail:   fmt.Sprintf("Error converting service owner ID: %s", err),
+				})
+				return diags
+			}
+			uid = uidInt
+		}
+	}
+
+	gid, err := getDocumentKey("GID", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service GID",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+	if gid != nil {
+		if gidStr, ok := gid.(string); ok {
+			gidInt, err := strconv.Atoi(gidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service group ID",
+					Detail:   fmt.Sprintf("Error converting service group ID: %s", err),
+				})
+				return diags
+			}
+			gid = gidInt
+		}
+	}
+
+	uname, err := getDocumentKey("UNAME", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service UNAME",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	gname, err := getDocumentKey("GNAME", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service GNAME",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	name, err := getDocumentKey("NAME", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service name",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	permissions, err := getDocumentKey("PERMISSIONS", serviceJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service permissions",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	state, err := getDocumentKey("state", serviceBody)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get service state",
+			Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	d.SetId(fmt.Sprintf("%v", id))
+	d.Set("name", name)
+	d.Set("uid", uid)
+	d.Set("gid", gid)
+	d.Set("uname", uname)
+	d.Set("gname", gname)
+	d.Set("state", state)
+	err = d.Set("permissions", convertPermissions(permissions.(map[string]interface{})))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -314,58 +469,139 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
+	networksVal, _ := getDocumentKey("networks_values", serviceBody)
 	// Retrieve networks
 	var networks = make(map[string]int)
-	for _, val := range sv.Template.Body.NetworksVals {
-		for k, v := range val {
-			if v == nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Network ID is nil",
-					Detail:   fmt.Sprintf("service (ID: %s): Network ID is nil", d.Id()),
-				})
-				return diags
+	if networksVal != nil {
+		networksArray, ok := networksVal.([]interface{})
+		if ok && len(networksArray) > 0 {
+			for _, val := range networksVal.([]interface{}) {
+				for k, v := range val.(map[string]interface{}) {
+					if v == nil {
+						diags = append(diags, diag.Diagnostic{
+							Severity: diag.Error,
+							Summary:  "Network ID is nil",
+							Detail:   fmt.Sprintf("service (ID: %s): Network ID is nil", d.Id()),
+						})
+						return diags
+					}
+					idInterface, ok := v.(map[string]interface{})["id"]
+					if !ok {
+						diags = append(diags, diag.Diagnostic{
+							Severity: diag.Error,
+							Summary:  "Network ID is missing",
+							Detail:   fmt.Sprintf("service (ID: %s): Network ID is missing", d.Id()),
+						})
+						return diags
+					}
+					networkID, err := ParseIntFromInterface(idInterface)
+					if err != nil {
+						diags = append(diags, diag.Diagnostic{
+							Severity: diag.Error,
+							Summary:  "Failed to parse network ID",
+							Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+						})
+						return diags
+					}
+					networks[k] = networkID
+				}
 			}
-			idInterface, ok := v.(map[string]interface{})["id"]
-			if !ok {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Network ID is missing",
-					Detail:   fmt.Sprintf("service (ID: %s): Network ID is missing", d.Id()),
-				})
-				return diags
-			}
-			networkID, err := ParseIntFromInterface(idInterface)
-			if err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to parse network ID",
-					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
-				})
-				return diags
-			}
-			networks[k] = networkID
 		}
 	}
 	d.Set("networks", networks)
 
 	// Retrieve roles
+	rolesBody, _ := getDocumentKey("roles", serviceBody)
 	var roles []map[string]interface{}
-	for _, role := range sv.Template.Body.Roles {
+	for _, role := range rolesBody.([]interface{}) {
 		role_tf := make(map[string]interface{})
-		role_tf["name"] = role.Name
-		role_tf["cardinality"] = role.Cardinality
-		role_tf["state"] = role.StateRaw
+		name, err := getDocumentKey("name", role.(map[string]interface{}))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get role name",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		cardinality, err := getDocumentKey("cardinality", role.(map[string]interface{}))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get role cardinality",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		stateRaw, err := getDocumentKey("state", role.(map[string]interface{}))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get role state",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		role_tf["name"] = name
+		role_tf["cardinality"] = cardinality
+		role_tf["state"] = stateRaw
 
 		var nodes_ids []int
-		for _, node := range role.Nodes {
-			nodes_ids = append(nodes_ids, node.VMInfo.VM.ID)
+		nodes, err := getDocumentKey("nodes", role.(map[string]interface{}))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get role state",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		for _, node := range nodes.([]interface{}) {
+			vmInfo, err := getDocumentKey("vm_info", node.(map[string]interface{}))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to get VM info",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+			vmInfoVM, err := getDocumentKey("VM", vmInfo.(map[string]interface{}))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to get VM info",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+			vmID, err := getDocumentKey("ID", vmInfoVM.(map[string]interface{}))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to get VM ID",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+			if vmIDStr, ok := vmID.(string); ok {
+				if id, err := strconv.Atoi(vmIDStr); err == nil {
+					nodes_ids = append(nodes_ids, id)
+				} else {
+					diags = append(diags, diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Failed to convert VM ID to int",
+						Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+					})
+					return diags
+				}
+			}
 		}
 
 		role_tf["nodes"] = nodes_ids
-
 		roles = append(roles, role_tf)
 	}
+
 	d.Set("roles", roles)
 
 	return nil
@@ -374,6 +610,7 @@ func resourceOpennebulaServiceRead(ctx context.Context, d *schema.ResourceData, 
 func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	config := meta.(*Configuration)
+	controller := config.Controller
 
 	var diags diag.Diagnostics
 
@@ -414,8 +651,8 @@ func resourceOpennebulaServiceDelete(ctx context.Context, d *schema.ResourceData
 	}
 
 	timeout := d.Timeout(schema.TimeoutDelete)
-	_, err = waitForServiceState(ctx, d, meta, "done", timeout)
-	if err != nil {
+	_, err = waitForServiceState(ctx, d, meta, "done", timeout, controller)
+	if err != nil && !strings.Contains(err.Error(), "failed to get service") {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to wait service to be in DONE state",
@@ -433,12 +670,12 @@ func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (
 	config := meta.(*Configuration)
 	controller := config.Controller
 
-	imageID, err := strconv.ParseInt(d.Id(), 10, 0)
+	serviceID, err := strconv.ParseInt(d.Id(), 10, 0)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = controller.Service(int(imageID)).Info()
+	_, err = getServiceInfo(controller, int(serviceID))
 	if NoExists(err) {
 		return false, err
 	}
@@ -473,7 +710,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		return diags
 	}
 
-	service, err := sc.Info()
+	response, err := getServiceInfo(controller, sc.ID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -493,9 +730,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			})
 			return diags
 		}
-
-		service, err := sc.Info()
-		log.Printf("[INFO] Successfully updated name (%s) for Service ID %x\n", service.Name, service.ID)
+		log.Printf("[INFO] Successfully updated name for Service ID %d\n", sc.ID)
 	}
 
 	if d.HasChange("permissions") && d.Get("permissions") != "" {
@@ -510,7 +745,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 				return diags
 			}
 		}
-		log.Printf("[INFO] Successfully updated Permissions for Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully updated Permissions for Service %d\n", sc.ID)
 	}
 
 	if d.HasChange("gid") {
@@ -535,7 +770,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		}
 
 		d.Set("gname", group.Name)
-		log.Printf("[INFO] Successfully updated group for Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully updated group for Service %d\n", sc.ID)
 	} else if d.HasChange("gname") {
 		group := d.Get("group").(string)
 		gid, err := controller.Groups().ByName(group)
@@ -558,7 +793,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		}
 
 		d.Set("gid", gid)
-		log.Printf("[INFO] Successfully updated group for Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully updated group for Service %d\n", sc.ID)
 	}
 
 	if d.HasChange("uid") {
@@ -582,7 +817,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		}
 
 		d.Set("uname", user.Name)
-		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully updated owner for Service %d\n", sc.ID)
 	} else if d.HasChange("uname") {
 		uid, err := controller.Users().ByName(d.Get("uname").(string))
 		if err != nil {
@@ -604,7 +839,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		}
 
 		d.Set("uid", uid)
-		log.Printf("[INFO] Successfully updated owner for Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully updated owner for Service %d\n", sc.ID)
 	}
 
 	if d.HasChange("extra_template") {
@@ -628,11 +863,58 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 		}
 
 		desc := []roleDesc{}
+		serviceJSON, err := getDocumentJSON(response)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to parse service document",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+		serviceBody, err := getTemplateBody(serviceJSON)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get service template body",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
 
-		for _, role := range service.Template.Body.Roles {
+		roles, err := getDocumentKey("roles", serviceBody)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to get roles from service template",
+				Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+
+		for _, role := range roles.([]interface{}) {
+			roleName, err := getDocumentKey("name", role.(map[string]interface{}))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to get role name",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
+
+			roleCardinality, err := getDocumentKey("cardinality", role.(map[string]interface{}))
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to get role cardinality",
+					Detail:   fmt.Sprintf("service (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
 			desc = append(desc, roleDesc{
-				name:           role.Name,
-				oldCardinality: role.Cardinality,
+				name:           roleName.(string),
+				oldCardinality: int(roleCardinality.(float64)),
 			})
 		}
 
@@ -668,7 +950,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 				}
 
 				timeout := d.Timeout(schema.TimeoutUpdate)
-				if _, err := waitForServiceState(ctx, d, meta, "running", timeout); err != nil {
+				if _, err := waitForServiceState(ctx, d, meta, "running", timeout, controller); err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
 						Summary:  "Failed to wait service to be in RUNNING state",
@@ -679,7 +961,7 @@ func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData
 			}
 		}
 
-		log.Printf("[INFO] Successfully scaled roles of Service %s\n", service.Name)
+		log.Printf("[INFO] Successfully scaled roles of Service %d\n", sc.ID)
 	}
 
 	return resourceOpennebulaServiceRead(ctx, d, meta)
@@ -762,14 +1044,14 @@ func changeServiceName(d *schema.ResourceData, meta interface{}, sc *goca.Servic
 	return nil
 }
 
-func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta interface{}, state string, timeout time.Duration) (interface{}, error) {
-	var service *service.Service
+func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta interface{}, state string, timeout time.Duration, c *goca.Controller) (interface{}, error) {
+	var svState = -1
 	var err error
 
 	//Get Service controller
 	sc, err := getServiceController(d, meta)
 	if err != nil {
-		return service, err
+		return svState, err
 	}
 
 	log.Printf("Waiting for Service (%s) to be in state %s", d.Id(), state)
@@ -783,45 +1065,53 @@ func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta inter
 				//Get Service controller
 				sc, err = getServiceController(d, meta)
 				if err != nil {
-					return service, "", fmt.Errorf("Could not find Service by ID %s", d.Id())
+					return svState, "", fmt.Errorf("Could not find Service by ID %s", d.Id())
 				}
 			}
 
-			service, err = sc.Info()
+			response, err := getServiceInfo(c, sc.ID)
 			if err != nil {
 				if strings.Contains(err.Error(), "Error getting") {
 					if state == "done" {
-						return service, "done", nil // DONE == notfound for ONE > 5.12
+						return svState, "done", nil // DONE == notfound for ONE > 5.12
 					} else {
-						return service, "notfound", nil
+						return svState, "notfound", nil
 					}
 				}
-				return service, "", err
+				return svState, "", err
 			}
-			svState := service.Template.Body.StateRaw
+			serviceDocument, err := getDocumentJSON(response)
 			if err != nil {
-				if strings.Contains(err.Error(), "Error getting") {
-					return service, "notfound", nil
-				}
-				return service, "", err
+				return svState, "", fmt.Errorf("Could not get template document for Service ID %s: %s", d.Id(), err)
 			}
-			log.Printf("Service %v is currently in state %v", service.ID, svState)
+			serviceBody, err := getTemplateBody(serviceDocument)
+			if err != nil {
+				return svState, "", fmt.Errorf("Could not get template body for Service ID %s: %s", d.Id(), err)
+			}
+
+			state, err := getDocumentKey("state", serviceBody)
+			if err != nil {
+				return svState, "", fmt.Errorf("Could not get state from Service template body for Service ID %s: %s", d.Id(), err)
+			}
+
+			svState = int(state.(float64))
+			log.Printf("Service %v is currently in state %v", d.Id(), svState)
 			if svState == 2 {
-				return service, "running", nil
+				return svState, "running", nil
 			} else if svState == 4 {
-				return service, "warning", fmt.Errorf("Service ID %s entered warning state", d.Id())
+				return svState, "warning", fmt.Errorf("Service ID %s entered warning state", d.Id())
 			} else if svState == 5 {
-				return service, "done", nil
+				return svState, "done", nil
 			} else if svState == 6 {
-				return service, "failed_undeploying", fmt.Errorf("Service ID %s entered failed_undeploying state", d.Id())
+				return svState, "failed_undeploying", fmt.Errorf("Service ID %s entered failed_undeploying state", d.Id())
 			} else if svState == 7 {
-				return service, "failed_deploying", fmt.Errorf("Service ID %s entered failed_deploying state", d.Id())
+				return svState, "failed_deploying", fmt.Errorf("Service ID %s entered failed_deploying state", d.Id())
 			} else if svState == 9 {
-				return service, "failed_scaling", fmt.Errorf("Service ID %s entered failed_scaling state", d.Id())
+				return svState, "failed_scaling", fmt.Errorf("Service ID %s entered failed_scaling state", d.Id())
 			} else if svState == 10 {
-				return service, "cooldown", nil
+				return svState, "cooldown", nil
 			} else {
-				return service, "anythingelse", nil
+				return svState, "anythingelse", nil
 			}
 		},
 		Timeout:    timeout,
@@ -830,4 +1120,49 @@ func waitForServiceState(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	return stateConf.WaitForStateContext(ctx)
+}
+
+func instantiateTemplate(templateID int, extraTmpl string, c *goca.Controller) (*goca.Response, error) {
+	url := templateEndpointAction(templateID)
+	action := make(map[string]interface{})
+	args := make(map[string]interface{})
+	params := make(map[string]interface{})
+
+	if extraTmpl != "" {
+		err := json.Unmarshal([]byte(extraTmpl), &args)
+		if err != nil {
+			return nil, err
+		}
+
+		params["merge_template"] = args
+	}
+
+	action["action"] = map[string]interface{}{
+		"perform": "instantiate",
+		"params":  params,
+	}
+
+	response, err := c.ClientFlow.HTTPMethod("POST", url, action)
+	if err != nil {
+		return nil, err
+	}
+	if !getReqStatusValue(response) {
+		return nil, errors.New("failed to update service: " + strconv.Itoa(templateID))
+	}
+	return response, nil
+}
+
+func getServiceInfo(c *goca.Controller, serviceID int) (*goca.Response, error) {
+	response, err := c.ClientFlow.HTTPMethod("GET", serviceEndpoint(serviceID))
+	if err != nil {
+		return nil, err
+	}
+	if !getReqStatusValue(response) {
+		return nil, errors.New("failed to get service: " + strconv.Itoa(serviceID))
+	}
+	return response, nil
+}
+
+func serviceEndpoint(serviceID int) string {
+	return fmt.Sprintf("%s/%s", endpointFService, strconv.Itoa(serviceID))
 }

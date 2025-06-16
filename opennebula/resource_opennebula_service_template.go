@@ -3,8 +3,10 @@ package opennebula
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,8 +15,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
-	srv_tmpl "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/service_template"
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
+
+const endpointFTemplate = "service_template"
+const endpointFTemplateAction = "action"
 
 func resourceOpennebulaServiceTemplate() *schema.Resource {
 	return &schema.Resource{
@@ -41,21 +46,8 @@ func resourceOpennebulaServiceTemplate() *schema.Resource {
 				Description: "Service Template body in json format",
 				// Check JSON structure diffs, not binary diffs
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					old_template := &srv_tmpl.ServiceTemplate{}
-					new_template := &srv_tmpl.ServiceTemplate{}
-
-					err := json.Unmarshal([]byte(old), &old_template)
-					if err != nil {
-						return false
-					}
-
-					err = json.Unmarshal([]byte(new), &new_template)
-					if err != nil {
-						return false
-					}
-
 					// Custom deepEqual func to avoid empty fields #468
-					return deepEqualIgnoreEmpty(old_template, new_template)
+					return deepEqualIgnoreEmpty(old, new)
 				},
 			},
 			"permissions": {
@@ -116,6 +108,7 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 	controller := config.Controller
 
 	var diags diag.Diagnostics
+	var template map[string]interface{}
 
 	if !config.isFlowConfigured() {
 		diags = append(diags, diag.Diagnostic{
@@ -126,9 +119,7 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 		return diags
 	}
 
-	// Marshall the json
-	stemplate := &srv_tmpl.ServiceTemplate{}
-	err := json.Unmarshal([]byte(d.Get("template").(string)), stemplate)
+	err := json.Unmarshal([]byte(d.Get("template").(string)), &template)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -138,7 +129,17 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 		return diags
 	}
 
-	err = controller.STemplates().Create(stemplate)
+	body, err := getTemplateBody(template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve template body",
+			Detail:   fmt.Sprintf("Error retrieving template body: %s", err),
+		})
+		return diags
+	}
+
+	response, err := applyTemplate(controller, endpointFTemplate, body)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -148,8 +149,28 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 		return diags
 	}
 
-	d.SetId(fmt.Sprintf("%v", stemplate.ID))
-	stc := controller.STemplate(stemplate.ID)
+	respondeBody, err := getDocumentJSON(response)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse service template response",
+			Detail:   fmt.Sprintf("Error parsing service template response: %s", err),
+		})
+		return diags
+	}
+
+	templateID, err := strconv.Atoi(respondeBody["ID"].(string))
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template ID",
+			Detail:   fmt.Sprintf("Response body: %v", respondeBody),
+		})
+		return diags
+	}
+
+	d.SetId(fmt.Sprintf("%v", templateID))
+	stc := controller.STemplate(templateID)
 
 	// Set the permissions on the service template if it was defined,
 	// otherwise use the UMASK in OpenNebula
@@ -206,6 +227,7 @@ func resourceOpennebulaServiceTemplateCreate(ctx context.Context, d *schema.Reso
 
 func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*Configuration)
+	controller := config.Controller
 
 	var diags diag.Diagnostics
 
@@ -228,23 +250,150 @@ func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.Resour
 		return diags
 	}
 
-	st, err := stc.Info()
+	templateDocument, err := templateRequest(controller, stc.ID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to retrieve informations",
-			Detail:   fmt.Sprintf("service template (ID: %s): %s", d.Id(), err),
+			Summary:  "Failed to read service template",
+			Detail:   fmt.Sprintf("Error reading service template: %s", err),
+		})
+		return diags
+	}
+	templateJSON, err := getDocumentJSON(templateDocument)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to parse service template JSON",
+			Detail:   fmt.Sprintf("Error parsing service template: %s", err),
 		})
 		return diags
 	}
 
-	d.SetId(fmt.Sprintf("%v", st.ID))
-	d.Set("name", st.Name)
-	d.Set("uid", st.UID)
-	d.Set("gid", st.GID)
-	d.Set("uname", st.UName)
-	d.Set("gname", st.GName)
-	err = d.Set("permissions", permissionsUnixString(*st.Permissions))
+	templateID, err := strconv.Atoi(templateJSON["ID"].(string))
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template ID",
+			Detail:   fmt.Sprintf("Response body: %v", templateDocument),
+		})
+		return diags
+	}
+
+	name, err := getDocumentKey("NAME", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template name",
+			Detail:   fmt.Sprintf("Error retrieving service template name: %s", err),
+		})
+		return diags
+	}
+
+	uid, err := getDocumentKey("UID", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template owner ID",
+			Detail:   fmt.Sprintf("Error retrieving service template owner ID: %s", err),
+		})
+		return diags
+	}
+	if uid != nil {
+		if uidStr, ok := uid.(string); ok {
+			uidInt, err := strconv.Atoi(uidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service template owner ID",
+					Detail:   fmt.Sprintf("Error converting service template owner ID: %s", err),
+				})
+				return diags
+			}
+			uid = uidInt
+		}
+	}
+
+	gid, err := getDocumentKey("GID", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template group ID",
+			Detail:   fmt.Sprintf("Error retrieving service template group ID: %s", err),
+		})
+		return diags
+	}
+	if gid != nil {
+		if gidStr, ok := gid.(string); ok {
+			gidInt, err := strconv.Atoi(gidStr)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to convert service template group ID",
+					Detail:   fmt.Sprintf("Error converting service template group ID: %s", err),
+				})
+				return diags
+			}
+			gid = gidInt
+		}
+	}
+
+	uname, err := getDocumentKey("UNAME", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template owner name",
+			Detail:   fmt.Sprintf("Error retrieving service template owner name: %s", err),
+		})
+		return diags
+	}
+
+	gname, err := getDocumentKey("GNAME", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template group name",
+			Detail:   fmt.Sprintf("Error retrieving service template group name: %s", err),
+		})
+		return diags
+	}
+
+	permissions, err := getDocumentKey("PERMISSIONS", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template permissions",
+			Detail:   fmt.Sprintf("Error retrieving service template permissions: %s", err),
+		})
+		return diags
+	}
+
+	template, err := getDocumentKey("TEMPLATE", templateJSON)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to retrieve service template body",
+			Detail:   fmt.Sprintf("Error retrieving service template body: %s", err),
+		})
+		return diags
+	}
+	templateString, err := json.Marshal(template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to marshal service template",
+			Detail:   fmt.Sprintf("Error marshaling service template: %s", err),
+		})
+		return diags
+	}
+
+	d.SetId(fmt.Sprintf("%v", templateID))
+	d.Set("name", name)
+	d.Set("uid", uid)
+	d.Set("gid", gid)
+	d.Set("uname", uname)
+	d.Set("gname", gname)
+	d.Set("template", "{\"TEMPLATE\":"+string(templateString)+"}")
+	err = d.Set("permissions", convertPermissions(permissions.(map[string]interface{})))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -253,18 +402,6 @@ func resourceOpennebulaServiceTemplateRead(ctx context.Context, d *schema.Resour
 		})
 		return diags
 	}
-
-	// Get service.Template as map
-	tmpl_byte, err := json.Marshal(st.Template)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to generate json description",
-			Detail:   fmt.Sprintf("service template (ID: %s): %s", d.Id(), err),
-		})
-		return diags
-	}
-	d.Set("template", "{\"TEMPLATE\":"+string(tmpl_byte)+"}")
 
 	return nil
 }
@@ -319,7 +456,7 @@ func resourceOpennebulaServiceTemplateExists(d *schema.ResourceData, meta interf
 		return false, err
 	}
 
-	_, err = controller.STemplate(int(serviceTemplateID)).Info()
+	_, err = templateRequest(controller, int(serviceTemplateID))
 	if NoExists(err) {
 		return false, err
 	}
@@ -332,6 +469,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 	controller := config.Controller
 
 	var diags diag.Diagnostics
+	var newTemplate map[string]interface{}
 
 	if !config.isFlowConfigured() {
 		diags = append(diags, diag.Diagnostic{
@@ -353,46 +491,37 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 		return diags
 	}
 
-	stemplate, err := stc.Info()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to retrieve informations",
-			Detail:   fmt.Sprintf("service template (ID: %s): %s", d.Id(), err),
-		})
-		return diags
-	}
-
 	if d.HasChange("template") {
-		newTemplate := d.Get("template").(string)
-
-		// Unmarshal the new template
-		newSTemplate := &srv_tmpl.ServiceTemplate{}
-		err := json.Unmarshal([]byte(newTemplate), newSTemplate)
+		err := json.Unmarshal([]byte(d.Get("template").(string)), &newTemplate)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to parse the new template",
+				Summary:  "Failed to parse service template json description",
 				Detail:   err.Error(),
 			})
 			return diags
 		}
 
-		// Update the template
-		stemplate.Template = newSTemplate.Template
-
+		body, err := getTemplateBody(newTemplate)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to retrieve template body",
+				Detail:   fmt.Sprintf("Error retrieving template body: %s", err),
+			})
+			return diags
+		}
 		// Apply the changes
-		err = stc.Update(stemplate, true)
+		err = updateTemplateRequest(controller, stc.ID, body)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Failed to update the service template",
-				Detail:   err.Error(),
+				Summary:  "Failed to update service template",
+				Detail:   fmt.Sprintf("Error updating service template: %s", err),
 			})
 			return diags
 		}
-
-		log.Printf("[INFO] Successfully updated the template for service template ID %x\n", stemplate.ID)
+		log.Printf("[INFO] Successfully updated the template for service template ID %x\n", stc.ID)
 	}
 
 	if d.HasChange("name") {
@@ -406,8 +535,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 			return diags
 		}
 
-		stemplate, err := stc.Info()
-		log.Printf("[INFO] Successfully updated name (%s) for service template ID %x\n", stemplate.Name, stemplate.ID)
+		log.Printf("[INFO] Successfully updated name for service template ID %x\n", stc.ID)
 	}
 
 	if d.HasChange("permissions") && d.Get("permissions") != "" {
@@ -422,7 +550,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 				return diags
 			}
 		}
-		log.Printf("[INFO] Successfully updated Permissions for service template %s\n", stemplate.Name)
+		log.Printf("[INFO] Successfully updated Permissions for service template ID %x\n", stc.ID)
 	}
 
 	if d.HasChange("gid") {
@@ -447,7 +575,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 		}
 
 		d.Set("gname", group.Name)
-		log.Printf("[INFO] Successfully updated group for service template %s\n", stemplate.Name)
+		log.Printf("[INFO] Successfully updated group for service template ID %d\n", stc.ID)
 	} else if d.HasChange("gname") {
 		group := d.Get("group").(string)
 		gid, err := controller.Groups().ByName(group)
@@ -470,7 +598,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 		}
 
 		d.Set("gid", gid)
-		log.Printf("[INFO] Successfully updated group for service template %s\n", stemplate.Name)
+		log.Printf("[INFO] Successfully updated group for service template ID %d\n", stc.ID)
 	}
 
 	if d.HasChange("uid") {
@@ -494,7 +622,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 		}
 
 		d.Set("uname", user.Name)
-		log.Printf("[INFO] Successfully updated owner for service template %s\n", stemplate.Name)
+		log.Printf("[INFO] Successfully updated owner for service template ID %d\n", stc.ID)
 	} else if d.HasChange("uname") {
 		uid, err := controller.Users().ByName(d.Get("uname").(string))
 		if err != nil {
@@ -516,7 +644,7 @@ func resourceOpennebulaServiceTemplateUpdate(ctx context.Context, d *schema.Reso
 		}
 
 		d.Set("uid", uid)
-		log.Printf("[INFO] Successfully updated owner for service template %s\n", stemplate.Name)
+		log.Printf("[INFO] Successfully updated owner for service template ID %d\n", stc.ID)
 	}
 
 	return resourceOpennebulaServiceTemplateRead(ctx, d, meta)
@@ -599,19 +727,49 @@ func changeServiceTemplateName(d *schema.ResourceData, meta interface{}, stc *go
 	return nil
 }
 
-func deepEqualIgnoreEmpty(old_template, new_template *srv_tmpl.ServiceTemplate) bool {
-	old_map := structToMap(old_template)
-	new_map := structToMap(new_template)
+func deepEqualIgnoreEmpty(old_template, new_template string) bool {
+	var old_map, new_map map[string]interface{}
+	err := json.Unmarshal([]byte(old_template), &old_map)
+	if err != nil {
+		return false
+	}
+	err = json.Unmarshal([]byte(new_template), &new_map)
+	if err != nil {
+		return false
+	}
+	old_map_template, err := getTemplateBody(old_map)
+	if err != nil {
+		return false
+	}
+	new_map_template, err := getTemplateBody(new_map)
+	if err != nil {
+		return false
+	}
 
-	for key, oldValue := range old_map {
-		// Ignore empty fields since they are not returned by the OCA
-		if isEmptyValue(reflect.ValueOf(oldValue)) {
+	for key, oldValue := range old_map_template {
+		if key == "registration_time" {
 			continue
 		}
-
 		// If the field is not present or not equal in the new template, return false
-		newValue, ok := new_map[key]
+		newValue, ok := new_map_template[key]
 		if !ok || !reflect.DeepEqual(oldValue, newValue) {
+			if key == "description" && oldValue == "" && newValue == nil {
+				continue
+			}
+			return false
+		}
+	}
+
+	// New parameters
+	for key, newValue := range new_map_template {
+		if key == "registration_time" {
+			continue
+		}
+		oldValue, ok := old_map_template[key]
+		if !ok || !reflect.DeepEqual(oldValue, newValue) {
+			if key == "description" && newValue == "" && oldValue == nil {
+				continue
+			}
 			return false
 		}
 	}
@@ -619,9 +777,129 @@ func deepEqualIgnoreEmpty(old_template, new_template *srv_tmpl.ServiceTemplate) 
 	return true
 }
 
-func structToMap(obj interface{}) map[string]interface{} {
-	jsonBytes, _ := json.Marshal(obj)
-	var mapObj map[string]interface{}
-	json.Unmarshal(jsonBytes, &mapObj)
-	return mapObj
+func templateRequest(c *goca.Controller, templateID int) (*goca.Response, error) {
+	response, err := c.ClientFlow.HTTPMethod("GET", templateEndpoint(templateID))
+	if err != nil {
+		return nil, err
+	}
+	if !getReqStatusValue(response) {
+		return nil, errors.New("failed to get template: " + response.Body())
+	}
+	return response, nil
+}
+
+func applyTemplate(c *goca.Controller, endpoint string, body map[string]interface{}) (*goca.Response, error) {
+	response, err := c.ClientFlow.HTTPMethod("POST", endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+	if !getReqStatusValue(response) {
+		return nil, errors.New("failed to apply template: " + response.Body())
+	}
+	return response, nil
+}
+
+func getDocumentJSON(r *goca.Response) (map[string]interface{}, error) {
+	docJSON, ok := r.BodyMap()["DOCUMENT"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("DOCUMENT key not found in response body")
+	}
+
+	return docJSON, nil
+}
+
+func getTemplateBody(template map[string]interface{}) (map[string]interface{}, error) {
+	tmpl, ok := template["TEMPLATE"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid template structure: missing TEMPLATE")
+	}
+
+	body, ok := tmpl["BODY"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid template structure: missing BODY")
+	}
+	return body, nil
+}
+
+func templateEndpoint(templateID int) string {
+	return fmt.Sprintf("%s/%s", endpointFTemplate, strconv.Itoa(templateID))
+}
+
+func templateEndpointAction(templateID int) string {
+	return fmt.Sprintf("%s/%s", templateEndpoint(templateID), endpointFTemplateAction)
+}
+
+func getDocumentKey(key string, doc map[string]interface{}) (interface{}, error) {
+	if doc == nil {
+		return "", fmt.Errorf("document is nil")
+	}
+	if value, exists := doc[key]; exists {
+		return value, nil
+	}
+	return "", fmt.Errorf("key %s not found in document", key)
+}
+
+func convertPermissions(permissions map[string]interface{}) string {
+	parse := func(key string) int8 {
+		s, ok := permissions[key].(string)
+		if !ok {
+			return 0
+		}
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return 0
+		}
+		if n < math.MinInt8 || n > math.MaxInt8 {
+			return 0
+		}
+		return int8(n)
+	}
+
+	return permissionsUnixString(shared.Permissions{
+		OwnerU: parse("OWNER_U"),
+		OwnerM: parse("OWNER_M"),
+		OwnerA: parse("OWNER_A"),
+		GroupU: parse("GROUP_U"),
+		GroupM: parse("GROUP_M"),
+		GroupA: parse("GROUP_A"),
+		OtherU: parse("OTHER_U"),
+		OtherM: parse("OTHER_M"),
+		OtherA: parse("OTHER_A"),
+	})
+}
+
+func updateTemplateRequest(c *goca.Controller, templateID int,
+	newTemplate map[string]interface{}) error {
+	newTemplateString, err := json.Marshal(newTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to marshal new template: %s", err)
+	}
+	action := make(map[string]interface{})
+	action["action"] = map[string]interface{}{
+		"perform": "update",
+		"params": map[string]interface{}{
+			"append":        false,
+			"template_json": string(newTemplateString),
+		},
+	}
+	_, err = applyTemplate(c, templateEndpointAction(templateID), action)
+	return err
+}
+
+func getReqStatusValue(response *goca.Response) bool {
+	if response == nil {
+		return false
+	}
+	defer func() {
+		if recover() != nil {
+			log.Printf("[ERROR] Failed to retrieve status from response: %v", response)
+		}
+	}()
+	v := reflect.ValueOf(response).Elem()
+	statusField := v.FieldByName("status")
+
+	if statusField.IsValid() && statusField.Kind() == reflect.Bool {
+		return statusField.Bool()
+	}
+	return false
 }
