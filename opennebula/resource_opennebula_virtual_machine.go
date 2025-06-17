@@ -247,6 +247,7 @@ func nicAliasVMSchema() *schema.Schema {
 		},
 	}
 }
+
 func diskComputedVMFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"disk_id": {
@@ -1541,6 +1542,18 @@ func customVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, met
 
 	var diags diag.Diagnostics
 
+    if d.HasChange("nic_alias") {
+        err := updateNICAlias(ctx, d, meta)
+        if err != nil {
+            diags = append(diags, diag.Diagnostic{
+                Severity: diag.Error,
+                Summary:  "Failed to update NIC Alias",
+                Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
+            })
+            return diags
+        }
+    }
+
 	if d.HasChange("nic") {
 		//err := updateNIC(ctx, d, meta)
         err := updateNICAndReferencedAliases(ctx, d, meta)
@@ -1553,18 +1566,6 @@ func customVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, met
 			return diags
 		}
 	}
-
-    if d.HasChange("nic_alias") {
-        err := updateNICAlias(ctx, d, meta)
-        if err != nil {
-            diags = append(diags, diag.Diagnostic{
-                Severity: diag.Error,
-                Summary:  "Failed to update NIC Alias",
-                Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
-            })
-            return diags
-        }
-    }
 
 	return nil
 }
@@ -2371,6 +2372,11 @@ func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, 
         nicsToDetach = append(nicsToDetach, nicsToRecreateOrderedList...)
         nicsToAttach = append(nicsToAttach, nicsToRecreateOrderedList...)
         //TODO: Get the nic aliases from NICs to recreate and recreate them as well
+        //TODO: Detach the nic aliases at the end, before detaching NICs
+        _, err = getDependantNICAliases(nicsToRecreateOrderedList)
+        if err != nil {
+            return fmt.Errorf("failed to get NICs to recreate dependant NIC Aliases: %w", err)
+        }
     }
 
     // reorder toAttach NIC list according to new nics list order
@@ -2385,6 +2391,10 @@ func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, 
 	}
 
     //TODO: Get the nics that are going to be detached and no recreated (toDetach)
+    _, err = getDependantNICAliases(nicsToDetach)
+    if err != nil {
+        return fmt.Errorf("failed to get NICs to detach dependant NIC Aliases: %w", err)
+    }
     //TODO: Check if the nics in toDetach are referenced by any nic_alias (or have nic_aliases)
     //TODO: Check if those nic_aliases are going to be detached as well
     //TODO: If those nic_aliases are not going to be deleted, throw an error before deleting the nic
@@ -2401,6 +2411,39 @@ func updateNICAndReferencedAliases(ctx context.Context, d *schema.ResourceData, 
     }
 
     return nil
+}
+
+func getDependantNICAliases(nics []any) (map[int][]int, error) {
+    nicAliasesMap := make(map[int][]int)
+    for _, nic := range nics {
+        nicCfg, ok := nic.(map[string]any)
+        if !ok {
+            return nil, fmt.Errorf("invalid NIC configuration: %v", nic)
+        }
+        nicID, ok := nicCfg["nic_id"].(int)
+        if !ok {
+            return nil, fmt.Errorf("invalid nic_id in NIC configuration: %v", nicCfg)
+        }
+
+        nicAliasesMap[nicID] = parseNICAliasIds(nicCfg)
+    }
+    return nicAliasesMap, nil
+}
+
+func parseNICAliasIds(nic map[string]any) []int {
+    nicAliases := make([]int, 0)
+    nicAliasesStr, ok := nic["alias_ids"].(string)
+    if ok && len(nicAliasesStr) > 0 {
+        nicAliases := strings.Split(nicAliasesStr, ",")
+        for _, nicAlias := range nicAliases {
+            nicAlias = strings.TrimSpace(nicAlias)
+            if len(nicAlias) == 0 {
+                continue
+            }
+            nicAliases = append(nicAliases, nicAlias)
+        }
+    }
+    return nicAliases
 }
 
 

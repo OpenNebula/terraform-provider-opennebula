@@ -142,7 +142,7 @@ func TestAccVirtualMachineUpdateNICAlias(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
-            {
+           {
                 Config: testNICAliasUpdateBaseResource,
                 Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "name", "test-nic-alias-update"),
@@ -171,6 +171,7 @@ func TestAccVirtualMachineUpdateNICAlias(t *testing.T) {
             {
                 //Update parent NIC on nic_alias 2 (forces recreation) without keeping order
 				Config: testAccVMUpdateNICAliasParent,
+                ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "name", "test-nic-alias-update"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "keep_nic_order", "false"),
@@ -182,6 +183,27 @@ func TestAccVirtualMachineUpdateNICAlias(t *testing.T) {
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_network", "test-net2"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "192.168.100.4"),
                     // as we are not keeping order, nic_alias 2 will be recreated and attached at the end of nics list and previous nic 3 will be swapped to pos 2
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.parent", "test-nic-0"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net2"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "192.168.100.10"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.parent", "test-nic-0"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_network", "test-net1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "172.16.100.140"),
+				),
+			},
+            {
+                //Fixes previous plan diff reordering the nics in the resource (plan diff should be empty)
+				Config: testAccVMUpdateNICAliasParentFixedOrder,
+				Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "name", "test-nic-alias-update"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "keep_nic_order", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.#", "4"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.parent", "test-nic-1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_network", "test-net1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_ip", "172.16.100.147"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.parent", "test-nic-0"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_network", "test-net2"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "192.168.100.4"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.parent", "test-nic-0"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net2"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "192.168.100.10"),
@@ -202,38 +224,59 @@ func TestAccVirtualMachineUpdateNICAlias(t *testing.T) {
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_ip", "172.16.100.147"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.parent", "test-nic-0"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_network", "test-net1"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "172.16.100.6"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "172.16.100.131"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.parent", "test-nic-0"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net1"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "172.16.100.140"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net2"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "192.168.100.10"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.parent", "test-nic-0"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_network", "test-net2"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "192.168.100.10"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_network", "test-net1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "172.16.100.140"),
 				),
             },
-            {
-                //change aliases order without changing parameters (will be recreated)
+            /*{
+                // Changing the order of already existing NIC aliases in the resource configuration does not affect their actual order.
+                // The provider always orders NICs according to the OpenNebula API response, not the user-defined order.
+                // As a result, reordering aliases in the resource will be ignored unless their parameters are changed.
                 Config: testAccVMUpdateNICAliasOrder,
                 Check: resource.ComposeTestCheckFunc(
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "name", "test-nic-alias-update"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "keep_nic_order", "true"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.#", "4"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.parent", "test-nic-1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_network", "test-net1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_ip", "172.16.100.147"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.parent", "test-nic-0"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_network", "test-net1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "172.16.100.131"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.parent", "test-nic-0"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net2"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "192.168.100.10"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.parent", "test-nic-0"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_network", "test-net1"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "172.16.100.140"),
+                 ),
+            },
+            {
+                //change order of aliases, and modify nic_alias1 network and ip
+                Config: testAccVMUpdateNICAliasOrderChangingParameter,
+                Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "name", "test-nic-alias-update"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "keep_nic_order", "true"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.#", "4"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.parent", "test-nic-1"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_network", "test-net1"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.0.computed_ip", "172.16.100.147"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.parent", "test-nic-0"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_network", "test-net2"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "172.16.100.10"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.1.computed_ip", "192.168.100.13"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.parent", "test-nic-0"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net1"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "192.168.100.140"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_network", "test-net2"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.2.computed_ip", "192.168.100.10"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.parent", "test-nic-0"),
                     resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_network", "test-net1"),
-                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "172.16.100.6"),
+                    resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "172.16.100.140"),
                  ) ,
-            },
-            //{
-                //TODO: change order of aliases, delete one and add another one
-            //},
+            },*/
 		},
 	})
 }
@@ -967,6 +1010,78 @@ resource "opennebula_virtual_machine" "test_nic_alias_update" {
 }
 `
 
+var testAccVMUpdateNICAliasParentFixedOrder = testNICAliasVNetResources + `
+
+resource "opennebula_virtual_machine" "test_nic_alias_update" {
+	name        = "test-nic-alias-update"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.1
+
+	context = {
+	  NETWORK  = "YES"
+	  SET_HOSTNAME = "$NAME"
+	}
+
+	graphics {
+	  type   = "VNC"
+	  listen = "0.0.0.0"
+	  keymap = "en-us"
+	}
+
+	os {
+	  arch = "x86_64"
+	  boot = ""
+	}
+
+	tags = {
+	  env = "prod"
+	  customer = "test"
+	}
+
+    keep_nic_order = false
+
+	nic {
+		network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.150"
+        name = "test-nic-0"
+	}
+
+    nic {
+		network_id = opennebula_virtual_network.network2.id
+		ip = "192.168.100.1"
+        name = "test-nic-1"
+	}
+
+    nic_alias {
+        parent = "test-nic-1"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.147"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network2.id
+		ip = "192.168.100.4"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network2.id
+		ip = "192.168.100.10"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.140"
+	}
+
+	timeout = 5
+}
+`
+
 var testAccVMUpdateNICAliasNetwork = testNICAliasVNetResources + `
 
 resource "opennebula_virtual_machine" "test_nic_alias_update" {
@@ -1020,19 +1135,19 @@ resource "opennebula_virtual_machine" "test_nic_alias_update" {
     nic_alias {
         parent = "test-nic-0"
         network_id = opennebula_virtual_network.network1.id
-		ip = "172.16.100.6"
-	}
-
-    nic_alias {
-        parent = "test-nic-0"
-        network_id = opennebula_virtual_network.network1.id
-		ip = "172.16.100.140"
+		ip = "172.16.100.131"
 	}
 
     nic_alias {
         parent = "test-nic-0"
         network_id = opennebula_virtual_network.network2.id
 		ip = "192.168.100.10"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.140"
 	}
 
 	timeout = 5
@@ -1069,6 +1184,80 @@ resource "opennebula_virtual_machine" "test_nic_alias_update" {
 	  customer = "test"
 	}
 
+    keep_nic_order = true
+
+	nic {
+		network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.150"
+        name = "test-nic-0"
+	}
+
+    nic {
+		network_id = opennebula_virtual_network.network2.id
+		ip = "192.168.100.1"
+        name = "test-nic-1"
+	}
+
+    nic_alias {
+        parent = "test-nic-1"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.147"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.140"
+    }
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.131"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network2.id
+		ip = "192.168.100.10"
+	}
+
+	timeout = 5
+}
+`
+
+var testAccVMUpdateNICAliasOrderChangingParameter = testNICAliasVNetResources + `
+
+resource "opennebula_virtual_machine" "test_nic_alias_update" {
+	name        = "test-nic-alias-update"
+	group       = "oneadmin"
+	permissions = "642"
+	memory = 128
+	cpu = 0.1
+
+	context = {
+	  NETWORK  = "YES"
+	  SET_HOSTNAME = "$NAME"
+	}
+
+	graphics {
+	  type   = "VNC"
+	  listen = "0.0.0.0"
+	  keymap = "en-us"
+	}
+
+	os {
+	  arch = "x86_64"
+	  boot = ""
+	}
+
+	tags = {
+	  env = "prod"
+	  customer = "test"
+	}
+
+    keep_nic_order = true
+
 	nic {
 		network_id = opennebula_virtual_network.network1.id
 		ip = "172.16.100.150"
@@ -1090,19 +1279,19 @@ resource "opennebula_virtual_machine" "test_nic_alias_update" {
     nic_alias {
         parent = "test-nic-0"
         network_id = opennebula_virtual_network.network2.id
+		ip = "192.168.100.13"
+    }
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network1.id
+		ip = "172.16.100.131"
+	}
+
+    nic_alias {
+        parent = "test-nic-0"
+        network_id = opennebula_virtual_network.network2.id
 		ip = "192.168.100.10"
-	}
-
-    nic_alias {
-        parent = "test-nic-0"
-        network_id = opennebula_virtual_network.network1.id
-		ip = "172.16.100.140"
-	}
-
-    nic_alias {
-        parent = "test-nic-0"
-        network_id = opennebula_virtual_network.network1.id
-		ip = "172.16.100.6"
 	}
 
 	timeout = 5

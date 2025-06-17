@@ -398,7 +398,7 @@ func vmNICAliasAttach(ctx context.Context, vmc *goca.VMController, timeout time.
 	networkID, netIDErr := nicAliasTpl.GetI(shared.NetworkID)
     network, networkErr := nicAliasTpl.Get(shared.Network)
 
-	if netIDErr == nil && networkErr == nil {
+	if netIDErr != nil && networkErr != nil {
         return -1, fmt.Errorf("NIC_ALIAS template must have a 'NETWORK_ID or 'NETWORK' field")
 	}
     if networkID > 0 {
