@@ -392,20 +392,19 @@ func vmNICDetach(ctx context.Context, vmc *goca.VMController, timeout time.Durat
 	return nil
 }
 
-
 func vmNICAliasAttach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, nicAliasTpl *shared.NIC) (int, error) {
 
 	networkID, netIDErr := nicAliasTpl.GetI(shared.NetworkID)
-    network, networkErr := nicAliasTpl.Get(shared.Network)
+	network, networkErr := nicAliasTpl.Get(shared.Network)
 
 	if netIDErr != nil && networkErr != nil {
-        return -1, fmt.Errorf("NIC_ALIAS template must have a 'NETWORK_ID or 'NETWORK' field")
+		return -1, fmt.Errorf("NIC_ALIAS template must have a 'NETWORK_ID or 'NETWORK' field")
 	}
-    if networkID > 0 {
-        log.Printf("[DEBUG] Attach NIC Alias to network with ID:%d)", networkID)
-    } else {
-        log.Printf("[DEBUG] Attach NIC Alias to network %s", network)
-    }
+	if networkID > 0 {
+		log.Printf("[DEBUG] Attach NIC Alias to network with ID:%d)", networkID)
+	} else {
+		log.Printf("[DEBUG] Attach NIC Alias to network %s", network)
+	}
 
 	// Retrieve NIC Alias list
 	vm, err := vmc.Info(false)
@@ -463,13 +462,13 @@ func vmNICAliasAttach(ctx context.Context, vmc *goca.VMController, timeout time.
 	} else {
 		// If at least one nic has been updated, try to identify the one we just attached
 		for _, updatedNicAlias := range updatedNICAliases {
-            if (findNicInTemplate(*nicAliasTpl, updatedNicAlias)) {
-                attachedNICAlias = &updatedNicAlias
-			    break
-            }
+			if findNicInTemplate(*nicAliasTpl, updatedNicAlias) {
+				attachedNICAlias = &updatedNicAlias
+				break
+			}
 		}
 		if attachedNICAlias == nil {
-            return -1, fmt.Errorf("network (ID: %d / Name: %s): can't find the NIC Alias", networkID, network)
+			return -1, fmt.Errorf("network (ID: %d / Name: %s): can't find the NIC Alias", networkID, network)
 		}
 	}
 
@@ -528,28 +527,28 @@ func vmNICAliasDetach(ctx context.Context, vmc *goca.VMController, timeout time.
 }
 
 func findNicInTemplate(nicTemplate shared.NIC, nic shared.NIC) bool {
-    for _, templatePair := range nicTemplate.Pairs {
-        value, err := nic.GetStr(templatePair.Key())
-        if err != nil {
-            return false
-        }
-        if templatePair.Key() == string(shared.SecurityGroups) && !securityGroupIdsMatches(templatePair, value) {
-            return false
-        }
-        if value != templatePair.Value {
-            return false
-        }
-    }
-    return true
+	for _, templatePair := range nicTemplate.Pairs {
+		value, err := nic.GetStr(templatePair.Key())
+		if err != nil {
+			return false
+		}
+		if templatePair.Key() == string(shared.SecurityGroups) && !securityGroupIdsMatches(templatePair, value) {
+			return false
+		}
+		if value != templatePair.Value {
+			return false
+		}
+	}
+	return true
 }
 
 func securityGroupIdsMatches(templatePair dyn.Pair, nicSgsStr string) bool {
-    if templatePair.Key() != string(shared.SecurityGroups){
-        return false
-    }
+	if templatePair.Key() != string(shared.SecurityGroups) {
+		return false
+	}
 
-    templateSGIds := strings.Split(templatePair.Value, ",")
-    nicSGIds := strings.Split(nicSgsStr, ",")
+	templateSGIds := strings.Split(templatePair.Value, ",")
+	nicSGIds := strings.Split(nicSgsStr, ",")
 
-   return ArraysAreEqual(templateSGIds, nicSGIds)
+	return ArraysAreEqual(templateSGIds, nicSGIds)
 }

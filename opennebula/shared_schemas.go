@@ -186,12 +186,12 @@ func commonInstanceSchema() map[string]*schema.Schema {
 }
 
 func commonFieldsInNICAndAlias() map[string]*schema.Schema {
-    return map[string]*schema.Schema{
-        "name": {
-            Type:     schema.TypeString,
-            Optional: true,
-            Computed: true,
-        },
+	return map[string]*schema.Schema{
+		"name": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+		},
 		"ip": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -236,48 +236,48 @@ func commonFieldsInNICAndAlias() map[string]*schema.Schema {
 
 func nicFields() map[string]*schema.Schema {
 	return mergeSchemas(
-        commonFieldsInNICAndAlias(),
-        map[string]*schema.Schema{
-            "network": {
-			    Type:     schema.TypeString,
-			    Computed: true,
-		    },
-            "network_id": {
-                Type:     schema.TypeInt,
-                Optional: true,
-                Default:  -1,
-            },
-            "network_mode_auto": {
-                Type:     schema.TypeBool,
-                Optional: true,
-            },
-            "sched_requirements": {
-                Type:     schema.TypeString,
-                Optional: true,
-            },
-            "sched_rank": {
-                Type:     schema.TypeString,
-                Optional: true,
-            },
-            "model": {
-                Type:     schema.TypeString,
-                Optional: true,
-            },
-            "method": {
-                Type:     schema.TypeString,
-                Optional: true,
-            },
-            "virtio_queues": {
-                Type:        schema.TypeString,
-                Optional:    true,
-                Description: "Only if model is virtio",
-            },
-            "physical_device": {
-                Type:     schema.TypeString,
-                Optional: true,
-            },
-	    },
-    )
+		commonFieldsInNICAndAlias(),
+		map[string]*schema.Schema{
+			"network": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"network_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  -1,
+			},
+			"network_mode_auto": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"sched_requirements": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sched_rank": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"model": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"method": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"virtio_queues": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Only if model is virtio",
+			},
+			"physical_device": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	)
 }
 
 func nicSchema() *schema.Schema {
@@ -292,43 +292,43 @@ func nicSchema() *schema.Schema {
 }
 
 func nicAliasFields() map[string]*schema.Schema {
-    return mergeSchemas(
-        commonFieldsInNICAndAlias(),
-        map[string]*schema.Schema{
-            "network": {
-			    Type:     schema.TypeString,
-			    Optional: true,
-		    },
-            "network_id": {
-                Type:     schema.TypeInt,
-                Optional: true,
-                Default: -1,
-            },
-            "alias_id": {
-                Type:     schema.TypeInt,
-                Computed: true,
-            },
-            "parent": {
-                Type:     schema.TypeString,
-                Required: true,
-            },
-            "parent_id": {
-                Type:     schema.TypeInt,
-                Computed: true,
-            },
-        },
-    )
+	return mergeSchemas(
+		commonFieldsInNICAndAlias(),
+		map[string]*schema.Schema{
+			"network": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"network_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  -1,
+			},
+			"alias_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"parent": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"parent_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	)
 }
 
 func nicAliasSchema() *schema.Schema {
-    return &schema.Schema{
-        Type:        schema.TypeList,
-        Optional:    true,
-        Description: "Definition of network adapter(s) assigned to the Virtual Machine via alias",
-        Elem: &schema.Resource{
-            Schema: nicAliasFields(),
-        },
-    }
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Definition of network adapter(s) assigned to the Virtual Machine via alias",
+		Elem: &schema.Resource{
+			Schema: nicAliasFields(),
+		},
+	}
 }
 
 func diskFields(customFields ...map[string]*schema.Schema) map[string]*schema.Schema {
@@ -689,67 +689,67 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 	nic := shared.NewNIC()
 
-    addNicAndAliasCommonValues(nic, nicConfig)
+	addNicAndAliasCommonValues(nic, nicConfig)
 
-    if v, ok := nicConfig["virtio_queues"]; ok && v.(string) != "" {
-        nic.Add("VIRTIO_QUEUES", v.(string))
-    }
-    if v, ok := nicConfig["physical_device"]; ok && v.(string) != "" {
-        nic.Add("PHYDEV", v.(string))
-    }
-    if v, ok := nicConfig["model"]; ok && v.(string) != "" {
-        nic.Add(shared.Model, v.(string))
-    }
-    if v, ok := nicConfig["method"]; ok && v.(string) != "" {
-        nic.Add(shared.Method, v.(string))
-    }
-    if v, ok := nicConfig["network_mode_auto"]; ok && v.(bool) {
-        nic.Add(shared.NetworkMode, "auto")
-    }
-    if v, ok := nicConfig["sched_requirements"]; ok && v.(string) != "" {
-        nic.Add(shared.SchedRequirements, v.(string))
-    }
-    if v, ok := nicConfig["sched_rank"]; ok && v.(string) != "" {
-        nic.Add(shared.SchedRank, v.(string))
-    }
+	if v, ok := nicConfig["virtio_queues"]; ok && v.(string) != "" {
+		nic.Add("VIRTIO_QUEUES", v.(string))
+	}
+	if v, ok := nicConfig["physical_device"]; ok && v.(string) != "" {
+		nic.Add("PHYDEV", v.(string))
+	}
+	if v, ok := nicConfig["model"]; ok && v.(string) != "" {
+		nic.Add(shared.Model, v.(string))
+	}
+	if v, ok := nicConfig["method"]; ok && v.(string) != "" {
+		nic.Add(shared.Method, v.(string))
+	}
+	if v, ok := nicConfig["network_mode_auto"]; ok && v.(bool) {
+		nic.Add(shared.NetworkMode, "auto")
+	}
+	if v, ok := nicConfig["sched_requirements"]; ok && v.(string) != "" {
+		nic.Add(shared.SchedRequirements, v.(string))
+	}
+	if v, ok := nicConfig["sched_rank"]; ok && v.(string) != "" {
+		nic.Add(shared.SchedRank, v.(string))
+	}
 
 	return nic
 }
 
 func makeNICAliasVector(nicAliasConfig map[string]interface{}) *shared.NIC {
-    nicAlias := shared.NewNICAlias()
+	nicAlias := shared.NewNICAlias()
 
-    addNicAndAliasCommonValues(nicAlias, nicAliasConfig)
+	addNicAndAliasCommonValues(nicAlias, nicAliasConfig)
 
-    if parent, ok := nicAliasConfig["parent"].(string); ok && parent != "" {
-        nicAlias.Add(shared.NICAliasParent, parent)
-    }
-    //TODO: network is a common attribute that is only sent in NICAlias, in NIC is computed
-    if network, ok := nicAliasConfig["network"].(string); ok && len(network) > 0 {
-        nicAlias.Add(shared.Network, network)
-    }
+	if parent, ok := nicAliasConfig["parent"].(string); ok && parent != "" {
+		nicAlias.Add(shared.NICAliasParent, parent)
+	}
+	//TODO: network is a common attribute that is only sent in NICAlias, in NIC is computed
+	if network, ok := nicAliasConfig["network"].(string); ok && len(network) > 0 {
+		nicAlias.Add(shared.Network, network)
+	}
 
-    return nicAlias
+	return nicAlias
 }
 
-//adds common values from the config to a NIC or NIC_ALIAS vector
+// adds common values from the config to a NIC or NIC_ALIAS vector
 func addNicAndAliasCommonValues(nicOrAlias *shared.NIC, config map[string]interface{}) {
-    for k, v := range config {
+	for k, v := range config {
 
-        if k == "network_id" {
-            if networkID, ok := v.(int); ok && networkID >= 0 {
-            nicOrAlias.Add(shared.NetworkID, strconv.Itoa(networkID))
-            }
-            continue
-        }
+		if k == "network_id" {
+			if networkID, ok := v.(int); ok && networkID >= 0 {
+				nicOrAlias.Add(shared.NetworkID, strconv.Itoa(networkID))
+			}
+			continue
+		}
 
-        if isEmptyValue(reflect.ValueOf(v)) {
-            continue
-        }
+		if isEmptyValue(reflect.ValueOf(v)) {
+			continue
+		}
 
-        switch k {
-        case "name":
-            nicOrAlias.Add(shared.Name, v.(string))
+		switch k {
+		case "name":
+			nicOrAlias.Add(shared.Name, v.(string))
 		case "ip":
 			nicOrAlias.Add(shared.IP, v.(string))
 		case "ip6":
@@ -769,8 +769,8 @@ func addNicAndAliasCommonValues(nicOrAlias *shared.NIC, config map[string]interf
 			nicOrAlias.Add(shared.Gateway, v.(string))
 		case "dns":
 			nicOrAlias.Add(shared.DNS, v.(string))
-        }
-    }
+		}
+	}
 }
 
 func addOS(tpl *vm.Template, os []interface{}) {
@@ -1017,7 +1017,7 @@ func updateRaw(d *schema.ResourceData, tpl *dyn.Template) {
 func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	sg := make([]int, 0)
-    name, _ := nic.Get(shared.Name)
+	name, _ := nic.Get(shared.Name)
 	ip, _ := nic.Get(shared.IP)
 	ip6, _ := nic.Get(shared.IP6)
 	ip6_ula, _ := nic.Get(shared.IP6_ULA)
@@ -1054,7 +1054,7 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	dns, _ := nic.Get(shared.DNS)
 
 	return map[string]interface{}{
-        "name":               name,
+		"name":               name,
 		"ip":                 ip,
 		"ip6":                ip6,
 		"ip6_ula":            ip6_ula,

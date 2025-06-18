@@ -158,124 +158,121 @@ func ParseIntFromInterface(i interface{}) (int, error) {
 }
 
 func ArraysAreEqual[T comparable](a, b []T) bool {
-    if len(a) != len(b) {
-        return false
-    }
+	if len(a) != len(b) {
+		return false
+	}
 
-    mapA := make(map[T]int)
-    mapB := make(map[T]int)
+	mapA := make(map[T]int)
+	mapB := make(map[T]int)
 
-    for _, v := range a {
-        mapA[v]++
-    }
+	for _, v := range a {
+		mapA[v]++
+	}
 
-    for _, v := range b {
-        mapB[v]++
-    }
+	for _, v := range b {
+		mapB[v]++
+	}
 
-    for k, v := range mapA {
-        if mapB[k] != v {
-            return false
-        }
-    }
+	for k, v := range mapA {
+		if mapB[k] != v {
+			return false
+		}
+	}
 
-    return true
+	return true
 }
-
 
 // ArrayDifference returns the elements that are in "src" but not in "other"
 func ArrayDifference[T comparable](src, other []T) []T {
-    counter := map[T]int{}
+	counter := map[T]int{}
 
-    for _, elem := range other {
-        counter[elem]++
-    }
+	for _, elem := range other {
+		counter[elem]++
+	}
 
-    diff := []T{}
-    for _, elem := range src {
-        if counter[elem] == 0 {
-            diff = append(diff, elem)
-        }
-    }
+	diff := []T{}
+	for _, elem := range src {
+		if counter[elem] == 0 {
+			diff = append(diff, elem)
+		}
+	}
 
-    return diff
+	return diff
 }
-
 
 // returns the elements from src that are not present in other based on a key value
-func MapArrayDifferenceByKeyValue (src, other []any, key string) ([]any, error) {
-    if len(src) == 0 {
-        return nil, nil
-    }
+func MapArrayDifferenceByKeyValue(src, other []any, key string) ([]any, error) {
+	if len(src) == 0 {
+		return nil, nil
+	}
 
-    counter := map[string]int{}
-    for _, elem := range other {
-        v, ok := elem.(map[string]any)
-        if !ok {
-            return nil, fmt.Errorf("element %v is not a map", elem)
-        }
-        if val, exists := v[key]; exists {
-            counter[fmt.Sprintf("%v", val)]++
-        }
-    }
+	counter := map[string]int{}
+	for _, elem := range other {
+		v, ok := elem.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("element %v is not a map", elem)
+		}
+		if val, exists := v[key]; exists {
+			counter[fmt.Sprintf("%v", val)]++
+		}
+	}
 
-    diff := []any{}
-    for _, elem := range src {
-        v, ok := elem.(map[string]any)
-        if !ok {
-            return nil, fmt.Errorf("element %v is not a map", elem)
-        }
-        if val, exists := v[key]; exists {
-            if counter[fmt.Sprintf("%v", val)] == 0 {
-                diff = append(diff, elem)
-            }
-        } else {
-            diff = append(diff, elem)
-        }
-    }
-    return diff, nil
+	diff := []any{}
+	for _, elem := range src {
+		v, ok := elem.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("element %v is not a map", elem)
+		}
+		if val, exists := v[key]; exists {
+			if counter[fmt.Sprintf("%v", val)] == 0 {
+				diff = append(diff, elem)
+			}
+		} else {
+			diff = append(diff, elem)
+		}
+	}
+	return diff, nil
 }
 
-
 // returns the elements from src that has the same key value as existing elements in other
-func MapArrayIntersectionByKeyValue(src, other[]any, key string)([]any, error) {
+func MapArrayIntersectionByKeyValue(src, other []any, key string) ([]any, error) {
 
-    if len(src) == 0 || len(other) == 0 {
-        return nil, nil
-    }
+	if len(src) == 0 || len(other) == 0 {
+		return nil, nil
+	}
 
-    counter := map[string]int{}
-    for _, elem := range other {
-        v, ok := elem.(map[string]any)
-        if !ok {
-            return nil, fmt.Errorf("Element %v is not a map", elem)
-        }
-        if val, exists := v[key]; exists {
-            counter[fmt.Sprintf("%v", val)]++
-        }
-    }
+	counter := map[string]int{}
+	for _, elem := range other {
+		v, ok := elem.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("Element %v is not a map", elem)
+		}
+		if val, exists := v[key]; exists {
+			counter[fmt.Sprintf("%v", val)]++
+		}
+	}
 
-    intersection := []any{}
-    for _, elem := range src {
-        v, ok := elem.(map[string]any)
-        if !ok {
-            return nil, fmt.Errorf("Element %v is not a map", elem)
-        }
-        if val, exists := v[key]; exists {
-            if counter[fmt.Sprintf("%v", val)] > 0 {
-                intersection = append(intersection, elem)
-            }
-        }
-    }
-    return intersection, nil
+	intersection := []any{}
+	for _, elem := range src {
+		v, ok := elem.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("Element %v is not a map", elem)
+		}
+		if val, exists := v[key]; exists {
+			if counter[fmt.Sprintf("%v", val)] > 0 {
+				intersection = append(intersection, elem)
+			}
+		}
+	}
+	return intersection, nil
 }
 
 // Generic function to check if a value is present in array
 func ValueInArray[T comparable](value T, array []T) bool {
-    for _, v := range array {
-        if v == value {
-            return true
-        }
-    }
-    return false
+	for _, v := range array {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
