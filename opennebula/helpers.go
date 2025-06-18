@@ -185,23 +185,16 @@ func ArraysAreEqual[T comparable](a, b []T) bool {
 
 // ArrayDifference returns the elements that are in "src" but not in "other"
 func ArrayDifference[T comparable](src, other []T) []T {
-    srcCounter := map[T]int{}
-    otherCounter := map[T]int{}
-
-    for _, elem := range src {
-        srcCounter[elem]++
-    }
+    counter := map[T]int{}
 
     for _, elem := range other {
-        otherCounter[elem]++
+        counter[elem]++
     }
 
     diff := []T{}
-    for k, v := range srcCounter {
-        if otherCounter[k] == 0 {
-            for i := 0; i < v; i++ {
-                diff = append(diff, k)
-            }
+    for _, elem := range src {
+        if counter[elem] == 0 {
+            diff = append(diff, elem)
         }
     }
 
