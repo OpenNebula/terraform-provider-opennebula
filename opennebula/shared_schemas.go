@@ -1076,6 +1076,52 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	}
 }
 
+func flattenNICAlias(nicAlias shared.NIC) map[string]interface{} {
+
+	parent, _ := nicAlias.Get(shared.NICAliasParent)
+
+	sg := make([]int, 0)
+	name, _ := nicAlias.Get(shared.Name)
+	ip, _ := nicAlias.Get(shared.IP)
+	ip6, _ := nicAlias.Get(shared.IP6)
+	ip6_ula, _ := nicAlias.Get(shared.IP6_ULA)
+	ip6_link, _ := nicAlias.Get(shared.IP6_LINK)
+	ip6_global, _ := nicAlias.Get(shared.IP6_GLOBAL)
+	mac, _ := nicAlias.Get(shared.MAC)
+	network, _ := nicAlias.Get(shared.Network)
+
+	networkId, _ := nicAlias.GetI(shared.NetworkID)
+
+	securityGroupsArray, _ := nicAlias.Get(shared.SecurityGroups)
+	if len(securityGroupsArray) > 0 {
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
+	}
+
+	gateway, _ := nicAlias.Get(shared.Gateway)
+	dns, _ := nicAlias.Get(shared.DNS)
+
+	return map[string]interface{}{
+		"parent": parent,
+		//
+		"name":            name,
+		"ip":              ip,
+		"ip6":             ip6,
+		"ip6_ula":         ip6_ula,
+		"ip6_link":        ip6_link,
+		"ip6_global":      ip6_global,
+		"mac":             mac,
+		"network_id":      networkId,
+		"network":         network,
+		"security_groups": sg,
+		"gateway":         gateway,
+		"dns":             dns,
+	}
+}
+
 func flattenDisk(disk shared.Disk) map[string]interface{} {
 
 	size, _ := disk.GetI(shared.Size)

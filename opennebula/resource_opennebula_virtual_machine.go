@@ -122,7 +122,8 @@ func resourceOpennebulaVirtualMachine() *schema.Resource {
 					ForceNew:    true,
 					Description: "Id of the VM template to use. Defaults to -1: no template used.",
 				},
-				"template_nic": templateNICVMSchema(),
+				"template_nic":       templateNICVMSchema(),
+				"template_nic_alias": templateNICAliasVMSchema(),
 			},
 		),
 	}
@@ -246,6 +247,30 @@ func templateNICVMSchema() *schema.Schema {
 					Computed: true,
 				},
 				"network": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+			}),
+		},
+	}
+}
+
+func templateNICAliasVMSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Computed:    true,
+		Description: "Network adapter(s) assigned to the Virtual Machine via a template",
+		Elem: &schema.Resource{
+			Schema: mergeSchemas(nicAliasComputedVMFields(), map[string]*schema.Schema{
+				"network": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
+				"network_id": {
+					Type:     schema.TypeInt,
+					Computed: true,
+				},
+				"parent": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
@@ -605,6 +630,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 
 		flattenDiskFunc := flattenVMDisk
 		flattenNICFunc := flattenVMNIC
+		flattenNICAliasFunc := flattenVMNICAliases
 
 		if len(d.Get("disk").([]interface{})) == 0 {
 			// if no disks overrides those from templates
@@ -618,6 +644,13 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 			flattenNICFunc = flattenVMTemplateNIC
 		} else {
 			d.Set("template_nic", []interface{}{})
+		}
+
+		if len(d.Get("nic_alias").([]interface{})) == 0 {
+			// if no nics overrides those from templates
+			flattenNICAliasFunc = flattenVMTemplateNICAliases
+		} else {
+			d.Set("template_nic_alias", []interface{}{})
 		}
 
 		return resourceOpennebulaVirtualMachineReadCustom(ctx, d, meta, func(ctx context.Context, d *schema.ResourceData, vmInfos *vm.VM) diag.Diagnostics {
@@ -641,6 +674,16 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 				})
 				return diags
 			}
+
+			err = flattenNICAliasFunc(d, &vmInfos.Template)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to flatten NIC Aliases",
+					Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
+				})
+				return diags
+			}
 			return nil
 		})
 
@@ -648,6 +691,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 
 	d.Set("template_nic", []interface{}{})
 	d.Set("template_disk", []interface{}{})
+	d.Set("template_nic_alias", []interface{}{})
 
 	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
@@ -761,6 +805,10 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 
 			if _, ok := d.GetOk("template_nic"); !ok {
 				d.Set("template_nic", []interface{}{})
+			}
+
+			if _, ok := d.GetOk("template_nic_alias"); !ok {
+				d.Set("template_nic_alias", []interface{}{})
 			}
 		}
 
@@ -1018,6 +1066,17 @@ func flattenNICComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]
 	return flattenedNICComputedAttributes
 }
 
+func flattenNICAliasComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
+	nicAliasExclusiveComputedAttributes := flattenNICAliasExclusiveComputedAttributes(nic)
+	nicAndAliasCommonComputedAttributes := flattenNICAndAliasCommonComputedAttributes(nic, ignoreSGIDs)
+
+	flattenedNICAliasComputedAttributes := nicAndAliasCommonComputedAttributes
+	for k, v := range nicAliasExclusiveComputedAttributes {
+		flattenedNICAliasComputedAttributes[k] = v
+	}
+	return flattenedNICAliasComputedAttributes
+}
+
 func flattenNICExclusiveComputedAttributes(nic shared.NIC) map[string]interface{} {
 
 	aliasIDs, _ := nic.Get(shared.AliasIDs)
@@ -1039,11 +1098,11 @@ func flattenNICExclusiveComputedAttributes(nic shared.NIC) map[string]interface{
 	return attributeMap
 }
 
-func flattenNICAliasExclusiveComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
+func flattenNICAliasExclusiveComputedAttributes(nic shared.NIC) map[string]interface{} {
 	aliasID, _ := nic.GetI(shared.NICAliasID)
 	parent, _ := nic.Get(shared.NICAliasParent)
 	parentID, _ := nic.GetI(shared.NICAliasParentID)
-	//network ID could be set or computed in NIC Alias
+	//network and network ID could be set or computed in NIC Alias
 	networkID, _ := nic.GetI(shared.NetworkID)
 	network, _ := nic.Get(shared.Network)
 
@@ -1152,7 +1211,7 @@ func flattenVMNICComputedAttributes(NICConfig map[string]interface{}, NIC shared
 // Flatten VM NIC Alias attributes from OpenNebula API computed values
 func flattenVMNICAliasComputedAttributes(NICConfig map[string]interface{}, NIC shared.NIC) map[string]interface{} {
 
-	NICMap := flattenNICAliasExclusiveComputedAttributes(NIC, []int{0})
+	NICMap := flattenNICAliasExclusiveComputedAttributes(NIC)
 
 	//Override the resource values with the computed ones
 	if len(NICConfig["network"].(string)) > 0 {
@@ -1246,6 +1305,33 @@ func flattenVMTemplateNIC(d *schema.ResourceData, vmTemplate *vm.Template) error
 	}
 
 	err := d.Set("template_nic", nicList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// flattenVMTemplateNIC read NIC Alias that come from template when instantiating a VM
+func flattenVMTemplateNICAliases(d *schema.ResourceData, vmTemplate *vm.Template) error {
+
+	// Set Nics to resource
+	nicAliases := vmTemplate.GetNICAliases()
+	nicAliasList := make([]interface{}, 0, len(nicAliases))
+
+	for _, nicAlias := range nicAliases {
+		networkID, _ := nicAlias.GetI(shared.NetworkID)
+		network, _ := nicAlias.Get(shared.Network)
+		parent, _ := nicAlias.Get(shared.NICAliasParent)
+
+		nicAliasRead := flattenNICAliasComputedAttributes(nicAlias, nil)
+		nicAliasRead["network_id"] = networkID
+		nicAliasRead["network"] = network
+		nicAliasRead["parent"] = parent
+		nicAliasList = append(nicAliasList, nicAliasRead)
+	}
+
+	err := d.Set("template_nic_alias", nicAliasList)
 	if err != nil {
 		return err
 	}
@@ -1415,13 +1501,13 @@ func matchNICComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 
 func matchNICAliasComputed(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 	parent, _ := NIC.Get(shared.NICAliasParent)
-	parentId, _ := NIC.Get(shared.NICAliasParentID)
+	parentId, _ := NIC.GetI(shared.NICAliasParentID)
 
 	matchCommon := matchNICAndAliasCommonComputedAttributes(NICConfig, NIC)
 
 	return matchCommon &&
 		parent == NICConfig["computed_parent"].(string) &&
-		parentId == NICConfig["computed_parent_id"].(string)
+		parentId == NICConfig["computed_parent_id"].(int)
 }
 
 // flattenVMNIC is similar to flattenNIC but deal with computed_* attributes
@@ -1434,17 +1520,11 @@ func flattenVMNIC(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
 	nicList := make([]interface{}, 0, len(nics))
 
-NICLoop:
 	for i, nic := range nics {
 
 		// exclude NIC listed in template_nic
-		tplNICConfigs := d.Get("template_nic").([]interface{})
-		for _, tplNICConfigIf := range tplNICConfigs {
-			tplNICConfig := tplNICConfigIf.(map[string]interface{})
-
-			if matchNICComputed(tplNICConfig, nic) {
-				continue NICLoop
-			}
+		if isNicInTemplate(d, nic) {
+			continue
 		}
 
 		matchingNicConfig, match, err := findMatchingNICConfig(nicsConfigs, nic, matchNIC)
@@ -1488,6 +1568,17 @@ NICLoop:
 	return nil
 }
 
+func isNicInTemplate(d *schema.ResourceData, nic shared.NIC) bool {
+	tplNICConfigs := d.Get("template_nic").([]interface{})
+	for _, tplNICConfigIf := range tplNICConfigs {
+		tplNICConfig := tplNICConfigIf.(map[string]interface{})
+		if matchNICComputed(tplNICConfig, nic) {
+			return true
+		}
+	}
+	return false
+}
+
 func flattenVMNICAliases(d *schema.ResourceData, vmTemplate *vm.Template) error {
 
 	remoteNicAliases := vmTemplate.GetNICAliases()       //nic_alias from opennebula
@@ -1495,6 +1586,12 @@ func flattenVMNICAliases(d *schema.ResourceData, vmTemplate *vm.Template) error 
 
 	nicAliasList := make([]interface{}, 0, len(remoteNicAliases))
 	for _, remoteNicAlias := range remoteNicAliases {
+
+		// exclude NIC Alias listed in template_nic_alias
+		if isNicAliasInTemplate(d, remoteNicAlias) {
+			continue
+		}
+
 		matchingNicAliasConfig, match, err := findMatchingNICConfig(resourceConfig, remoteNicAlias, matchNICAlias)
 		if err != nil {
 			return fmt.Errorf("could not find matching NIC Alias config: %v", err)
@@ -1536,6 +1633,17 @@ func flattenVMNICAliases(d *schema.ResourceData, vmTemplate *vm.Template) error 
 		return err
 	}
 	return nil
+}
+
+func isNicAliasInTemplate(d *schema.ResourceData, nicAlias shared.NIC) bool {
+	tplNICAliasConfigs := d.Get("template_nic_alias").([]interface{})
+	for _, tplNICAliasConfigIf := range tplNICAliasConfigs {
+		tplNICAliasConfig := tplNICAliasConfigIf.(map[string]interface{})
+		if matchNICAliasComputed(tplNICAliasConfig, nicAlias) {
+			return true
+		}
+	}
+	return false
 }
 
 func findMatchingNICConfig(nicConfigList []interface{}, nic shared.NIC,
