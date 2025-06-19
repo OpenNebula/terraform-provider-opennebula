@@ -340,7 +340,7 @@ func TestAccVirtualMachineUpdateNICAliasParentNIC(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "nic_alias.3.computed_ip", "192.168.100.10"),
 				),
 			},
-            {
+			{
 				Config: testNICAliasChangeParentAndDependantNICAliasParameterWithKeepOrder,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_update", "name", "test-nic-alias-update"),

@@ -1008,6 +1008,17 @@ diskLoop:
 }
 
 func flattenNICComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
+	nicExclusiveComputedAttributes := flattenNICExclusiveComputedAttributes(nic)
+	nicAndAliasCommonComputedAttributes := flattenNICAndAliasCommonComputedAttributes(nic, ignoreSGIDs)
+
+	flattenedNICComputedAttributes := nicAndAliasCommonComputedAttributes
+	for k, v := range nicExclusiveComputedAttributes {
+		flattenedNICComputedAttributes[k] = v
+	}
+	return flattenedNICComputedAttributes
+}
+
+func flattenNICExclusiveComputedAttributes(nic shared.NIC) map[string]interface{} {
 
 	aliasIDs, _ := nic.Get(shared.AliasIDs)
 	network, _ := nic.Get(shared.Network)
@@ -1028,7 +1039,7 @@ func flattenNICComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]
 	return attributeMap
 }
 
-func flattenNICAliasComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
+func flattenNICAliasExclusiveComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
 	aliasID, _ := nic.GetI(shared.NICAliasID)
 	parent, _ := nic.Get(shared.NICAliasParent)
 	parentID, _ := nic.GetI(shared.NICAliasParentID)
@@ -1096,7 +1107,7 @@ func flattenNICAndAliasCommonComputedAttributes(nic shared.NIC, ignoreSGIDs []in
 // Flatten VM NIC attributes from OpenNebula API computed values
 func flattenVMNICComputedAttributes(NICConfig map[string]interface{}, NIC shared.NIC) map[string]interface{} {
 
-	NICMap := flattenNICComputedAttributes(NIC, []int{0})
+	NICMap := flattenNICExclusiveComputedAttributes(NIC)
 
 	//Override the resource values with the computed ones
 	if len(NICConfig["model"].(string)) > 0 {
@@ -1141,7 +1152,7 @@ func flattenVMNICComputedAttributes(NICConfig map[string]interface{}, NIC shared
 // Flatten VM NIC Alias attributes from OpenNebula API computed values
 func flattenVMNICAliasComputedAttributes(NICConfig map[string]interface{}, NIC shared.NIC) map[string]interface{} {
 
-	NICMap := flattenNICAliasComputedAttributes(NIC, []int{0})
+	NICMap := flattenNICAliasExclusiveComputedAttributes(NIC, []int{0})
 
 	//Override the resource values with the computed ones
 	if len(NICConfig["network"].(string)) > 0 {
