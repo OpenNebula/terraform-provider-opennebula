@@ -72,6 +72,11 @@ func TestAccVirtualMachineDataSource(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"data.opennebula_virtual_machines.basic",
+						"virtual_machines.0.nic_alias.0.ip",
+						"172.20.0.3",
+					),
+					resource.TestCheckResourceAttr(
+						"data.opennebula_virtual_machines.basic",
 						"virtual_machines.0.vmgroup.0.vmgroup_id",
 						"0",
 					),
@@ -238,6 +243,12 @@ resource "opennebula_virtual_machine" "first_vm" {
   nic {
     network_mode_auto = false
     ip                = "172.20.0.1"
+    name = "vm_nic_0"
+  }
+
+  nic_alias {
+    parent = "vm_nic_0"
+    ip   = "172.20.0.3"
   }
 }
 `

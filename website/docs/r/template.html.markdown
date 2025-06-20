@@ -101,6 +101,7 @@ The following arguments are supported:
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
+* `nic_alias` - (Optional) Can be specified multiple times to attach several NIC Aliases. See [Nic alias parameters](#nic-alias-parameters) below for details.
 * `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `user_inputs` - (Optional) Ask the user instantiating the template to define the values described.
@@ -182,17 +183,45 @@ Minimum 1 item. Maximum 8 items.
 
 `nic` supports the following arguments
 
+* `name` - (Optional) The name of the NIC. This could be used for reference the NIC as a parent of a NIC Alias.
 * `network_id` - (Optional) ID of the virtual network to attach to the virtual machine.
-* `ip` - (Optional) IP of the virtual machine on this network.
+* `ip` - (Optional) IPv4 of the virtual machine on this network.
+* `ip6` - (Optional) IPv6 of the virtual machine on this network.
+* `ip6_ula` - (Optional) IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `ip6_global` - (Optional) IPv6 global address of the virtual machine on this network.
+* `ip6_link` - (Optional) IPv6 link-local address of the virtual machine on this network.
 * `mac` - (Optional) MAC of the virtual machine on this network.
 * `model` - (Optional) Nic model driver. Example: `virtio`.
+* `virtio_queues` - (Optional) Virtio multi-queue size. Only if `model` is `virtio`.
 * `physical_device` - (Optional) Physical device hosting the virtual network.
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
-* `network_mode_auto` - (Optional) A boolean letting the scheduler pick the Virtual Networks the VM NICs will be attached to.
-* `sched_requirements` - (Optional) A boolean expression to select virtual networks (evaluates to true) to attach the NIC,  when `network_mode_auto` is true.
-* `sched_rank` - (Optional) Arithmetic expression to sort the suitable Virtual Networks for this NIC, when `network_mode_auto` is true.
+* `method` - (Optional) Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `gateway` - (Optional) Default gateway set for the NIC.
+* `dns` - (Optional) DNS server set for the NIC. **Please make sure `INHERIT_VNET_ATTR="DNS"` is added to `/etc/one/oned.conf`.**
+* `network_mode_auto` - (Optional) A boolean letting the scheduler pick the Virtual Networks the VM NICs will be attached to. Can only be used at VM creation.
+* `sched_requirements` - (Optional) A boolean expression to select virtual networks (evaluates to true) to attach the NIC,  when `network_mode_auto` is true. Can only be used at VM creation.
+* `sched_rank` - (Optional) Arithmetic expression to sort the suitable Virtual Networks for this NIC, when `network_mode_auto` is true. Can only be used at VM creation.
 
 Minimum 1 item. Maximum 8 items.
+
+### NIC Alias parameters
+
+`nic_alias` supports the following arguments
+
+* `parent` - The parent NIC name.
+* `name` - (Optional) The name of the NIC Alias.
+* `network` - (Optional) The name of the virtual network to attach to the virtual machine.
+* `network_id` - (Optional) ID of the virtual network to attach to the virtual machine.
+* `ip` - (Optional) IP of the virtual machine on this network.
+* `ip6` - (Optional) IPv6 of the virtual machine on this network.
+* `ip6_ula` - (Optional) IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `ip6_global` - (Optional) IPv6 global address of the virtual machine on this network.
+* `ip6_link` - (Optional) IPv6 link-local address of the virtual machine on this network.
+* `mac` - (Optional) MAC of the virtual machine on this network.
+* `security_groups` - (Optional) List of security group IDs to use on the virtual network.
+* `method` - (Optional) Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `gateway` - (Optional) Default gateway set for the NIC.
+* `dns` - (Optional) DNS server set for the NIC. **Please make sure `INHERIT_VNET_ATTR="DNS"` is added to `/etc/one/oned.conf`.**
 
 ### Raw parameters
 
@@ -228,7 +257,7 @@ The following attribute are exported:
 * `tags_all` - Result of the applied `default_tags` and then resource `tags`.
 * `default_tags` - Default tags defined in the provider configuration.
 
-## Import 
+## Import
 
 `opennebula_template` can be imported using its ID:
 

@@ -104,6 +104,12 @@ func dataOpennebulaTemplate() *schema.Resource {
 					s.Optional = false
 					return s
 				}(),
+				"nic_alias": func() *schema.Schema {
+					s := nicAliasSchema()
+					s.Computed = true
+					s.Optional = false
+					return s
+				}(),
 				"vmgroup": func() *schema.Schema {
 					s := vmGroupSchema()
 					s.Computed = true
@@ -261,6 +267,16 @@ func datasourceOpennebulaTemplateRead(ctx context.Context, d *schema.ResourceDat
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "failed to flatten NICs",
+			Detail:   fmt.Sprintf("Template (ID: %d): %s", template.ID, err),
+		})
+		return diags
+	}
+
+	err = flattenTemplateNICAliases(d, &template.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "failed to flatten NIC Aliases",
 			Detail:   fmt.Sprintf("Template (ID: %d): %s", template.ID, err),
 		})
 		return diags

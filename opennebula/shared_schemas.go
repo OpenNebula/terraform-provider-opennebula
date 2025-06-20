@@ -185,9 +185,13 @@ func commonInstanceSchema() map[string]*schema.Schema {
 	}
 }
 
-func nicFields() map[string]*schema.Schema {
-
+func commonFieldsInNICAndAlias() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"name": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Computed: true,
+		},
 		"ip": {
 			Type:     schema.TypeString,
 			Optional: true,
@@ -212,38 +216,12 @@ func nicFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
-		"model": {
-			Type:     schema.TypeString,
-			Optional: true,
-		},
-		"virtio_queues": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "Only if model is virtio",
-		},
-		"network_id": {
-			Type:     schema.TypeInt,
-			Optional: true,
-			Default:  -1,
-		},
-		"network": {
-			Type:     schema.TypeString,
-			Computed: true,
-		},
-		"physical_device": {
-			Type:     schema.TypeString,
-			Optional: true,
-		},
 		"security_groups": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem: &schema.Schema{
 				Type: schema.TypeInt,
 			},
-		},
-		"method": {
-			Type:     schema.TypeString,
-			Optional: true,
 		},
 		"gateway": {
 			Type:     schema.TypeString,
@@ -253,19 +231,53 @@ func nicFields() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
-		"network_mode_auto": {
-			Type:     schema.TypeBool,
-			Optional: true,
-		},
-		"sched_requirements": {
-			Type:     schema.TypeString,
-			Optional: true,
-		},
-		"sched_rank": {
-			Type:     schema.TypeString,
-			Optional: true,
-		},
 	}
+}
+
+func nicFields() map[string]*schema.Schema {
+	return mergeSchemas(
+		commonFieldsInNICAndAlias(),
+		map[string]*schema.Schema{
+			"network": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"network_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  -1,
+			},
+			"network_mode_auto": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"sched_requirements": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sched_rank": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"model": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"method": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"virtio_queues": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Only if model is virtio",
+			},
+			"physical_device": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	)
 }
 
 func nicSchema() *schema.Schema {
@@ -275,6 +287,38 @@ func nicSchema() *schema.Schema {
 		Description: "Definition of network adapter(s) assigned to the Virtual Machine",
 		Elem: &schema.Resource{
 			Schema: nicFields(),
+		},
+	}
+}
+
+func nicAliasFields() map[string]*schema.Schema {
+	return mergeSchemas(
+		commonFieldsInNICAndAlias(),
+		map[string]*schema.Schema{
+			"network": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"network_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  -1,
+			},
+			"parent": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	)
+}
+
+func nicAliasSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Definition of network adapter(s) assigned to the Virtual Machine via alias",
+		Elem: &schema.Resource{
+			Schema: nicAliasFields(),
 		},
 	}
 }
@@ -637,12 +681,56 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 	nic := shared.NewNIC()
 
-	for k, v := range nicConfig {
+	addNicAndAliasCommonValues(nic, nicConfig)
+
+	if v, ok := nicConfig["virtio_queues"]; ok && v.(string) != "" {
+		nic.Add("VIRTIO_QUEUES", v.(string))
+	}
+	if v, ok := nicConfig["physical_device"]; ok && v.(string) != "" {
+		nic.Add("PHYDEV", v.(string))
+	}
+	if v, ok := nicConfig["model"]; ok && v.(string) != "" {
+		nic.Add(shared.Model, v.(string))
+	}
+	if v, ok := nicConfig["method"]; ok && v.(string) != "" {
+		nic.Add(shared.Method, v.(string))
+	}
+	if v, ok := nicConfig["network_mode_auto"]; ok && v.(bool) {
+		nic.Add(shared.NetworkMode, "auto")
+	}
+	if v, ok := nicConfig["sched_requirements"]; ok && v.(string) != "" {
+		nic.Add(shared.SchedRequirements, v.(string))
+	}
+	if v, ok := nicConfig["sched_rank"]; ok && v.(string) != "" {
+		nic.Add(shared.SchedRank, v.(string))
+	}
+
+	return nic
+}
+
+func makeNICAliasVector(nicAliasConfig map[string]interface{}) *shared.NIC {
+	nicAlias := shared.NewNICAlias()
+
+	addNicAndAliasCommonValues(nicAlias, nicAliasConfig)
+
+	if parent, ok := nicAliasConfig["parent"].(string); ok && parent != "" {
+		nicAlias.Add(shared.NICAliasParent, parent)
+	}
+	//TODO: network is a common attribute that is only sent in NICAlias, in NIC is computed
+	if network, ok := nicAliasConfig["network"].(string); ok && len(network) > 0 {
+		nicAlias.Add(shared.Network, network)
+	}
+
+	return nicAlias
+}
+
+// adds common values from the config to a NIC or NIC_ALIAS vector
+func addNicAndAliasCommonValues(nicOrAlias *shared.NIC, config map[string]interface{}) {
+	for k, v := range config {
 
 		if k == "network_id" {
-			networkID := v.(int)
-			if networkID != -1 {
-				nic.Add(shared.NetworkID, strconv.Itoa(networkID))
+			if networkID, ok := v.(int); ok && networkID >= 0 {
+				nicOrAlias.Add(shared.NetworkID, strconv.Itoa(networkID))
 			}
 			continue
 		}
@@ -652,45 +740,29 @@ func makeNICVector(nicConfig map[string]interface{}) *shared.NIC {
 		}
 
 		switch k {
+		case "name":
+			nicOrAlias.Add(shared.Name, v.(string))
 		case "ip":
-			nic.Add(shared.IP, v.(string))
+			nicOrAlias.Add(shared.IP, v.(string))
 		case "ip6":
-			nic.Add(shared.IP6, v.(string))
+			nicOrAlias.Add(shared.IP6, v.(string))
 		case "ip6_ula":
-			nic.Add(shared.IP6_ULA, v.(string))
+			nicOrAlias.Add(shared.IP6_ULA, v.(string))
 		case "ip6_link":
-			nic.Add(shared.IP6_LINK, v.(string))
+			nicOrAlias.Add(shared.IP6_LINK, v.(string))
 		case "ip6_global":
-			nic.Add(shared.IP6_GLOBAL, v.(string))
+			nicOrAlias.Add(shared.IP6_GLOBAL, v.(string))
 		case "mac":
-			nic.Add(shared.MAC, v.(string))
-		case "model":
-			nic.Add(shared.Model, v.(string))
-		case "virtio_queues":
-			nic.Add("VIRTIO_QUEUES", v.(string))
-		case "physical_device":
-			nic.Add("PHYDEV", v.(string))
+			nicOrAlias.Add(shared.MAC, v.(string))
 		case "security_groups":
 			nicSecGroups := ArrayToString(v.([]interface{}), ",")
-			nic.Add(shared.SecurityGroups, nicSecGroups)
-		case "method":
-			nic.Add(shared.Method, v.(string))
+			nicOrAlias.Add(shared.SecurityGroups, nicSecGroups)
 		case "gateway":
-			nic.Add(shared.Gateway, v.(string))
+			nicOrAlias.Add(shared.Gateway, v.(string))
 		case "dns":
-			nic.Add(shared.DNS, v.(string))
-		case "network_mode_auto":
-			if v.(bool) {
-				nic.Add(shared.NetworkMode, "auto")
-			}
-		case "sched_requirements":
-			nic.Add(shared.SchedRequirements, v.(string))
-		case "sched_rank":
-			nic.Add(shared.SchedRank, v.(string))
+			nicOrAlias.Add(shared.DNS, v.(string))
 		}
 	}
-
-	return nic
 }
 
 func addOS(tpl *vm.Template, os []interface{}) {
@@ -937,6 +1009,7 @@ func updateRaw(d *schema.ResourceData, tpl *dyn.Template) {
 func flattenNIC(nic shared.NIC) map[string]interface{} {
 
 	sg := make([]int, 0)
+	name, _ := nic.Get(shared.Name)
 	ip, _ := nic.Get(shared.IP)
 	ip6, _ := nic.Get(shared.IP6)
 	ip6_ula, _ := nic.Get(shared.IP6_ULA)
@@ -973,6 +1046,7 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 	dns, _ := nic.Get(shared.DNS)
 
 	return map[string]interface{}{
+		"name":               name,
 		"ip":                 ip,
 		"ip6":                ip6,
 		"ip6_ula":            ip6_ula,
@@ -991,6 +1065,50 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 		"network_mode_auto":  networkModeBool,
 		"sched_requirements": schedReqs,
 		"sched_rank":         schedRank,
+	}
+}
+
+func flattenNICAlias(nicAlias shared.NIC) map[string]interface{} {
+
+	parent, _ := nicAlias.Get(shared.NICAliasParent)
+	sg := make([]int, 0)
+	name, _ := nicAlias.Get(shared.Name)
+	ip, _ := nicAlias.Get(shared.IP)
+	ip6, _ := nicAlias.Get(shared.IP6)
+	ip6_ula, _ := nicAlias.Get(shared.IP6_ULA)
+	ip6_link, _ := nicAlias.Get(shared.IP6_LINK)
+	ip6_global, _ := nicAlias.Get(shared.IP6_GLOBAL)
+	mac, _ := nicAlias.Get(shared.MAC)
+	network, _ := nicAlias.Get(shared.Network)
+
+	networkId, _ := nicAlias.GetI(shared.NetworkID)
+
+	securityGroupsArray, _ := nicAlias.Get(shared.SecurityGroups)
+	if len(securityGroupsArray) > 0 {
+		sgString := strings.Split(securityGroupsArray, ",")
+		for _, s := range sgString {
+			sgInt, _ := strconv.ParseInt(s, 10, 32)
+			sg = append(sg, int(sgInt))
+		}
+	}
+
+	gateway, _ := nicAlias.Get(shared.Gateway)
+	dns, _ := nicAlias.Get(shared.DNS)
+
+	return map[string]interface{}{
+		"parent":          parent,
+		"name":            name,
+		"ip":              ip,
+		"ip6":             ip6,
+		"ip6_ula":         ip6_ula,
+		"ip6_link":        ip6_link,
+		"ip6_global":      ip6_global,
+		"mac":             mac,
+		"network_id":      networkId,
+		"network":         network,
+		"security_groups": sg,
+		"gateway":         gateway,
+		"dns":             dns,
 	}
 }
 
