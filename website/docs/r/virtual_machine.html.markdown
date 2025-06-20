@@ -54,12 +54,19 @@ resource "opennebula_virtual_machine" "example" {
   on_disk_change = "RECREATE"
 
   nic {
+    name            = "vm-nic-1"
     model           = "virtio"
     network_id      = var.vnetid
     security_groups = [opennebula_security_group.example.id]
 
     # NOTE: To make this work properly ensure /etc/one/oned.conf contains: INHERIT_VNET_ATTR="DNS"
     dns = "1.1.1.1"
+  }
+
+  nic_alias {
+    parent = "vm-nic-1"
+    network_id = var.vnetid
+    ip = "172.20.0.45"
   }
 
   vmgroup {
@@ -99,6 +106,7 @@ The following arguments are supported:
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
+* `nic_alias` (Optional) Can be specified multiple times to attach several NIC aliases. See [Nic alias parameters](#nic-alias-parameters) below for details.
 * `keep_nic_order` - (Optional) Indicates if the provider should keep NIC list ordering at update.
 * `vmgroup` - (Optional) See [VM group parameters](#vm-group-parameters) below for details. Changing this argument triggers a new resource.
 * `group` - (Optional) Name of the group which owns the virtual machine. Defaults to the caller primary group.
@@ -162,8 +170,13 @@ A disk update will be triggered in adding or removing a `disk` section, or by a 
 
 `nic` supports the following arguments
 
+* `name` - (Optional) The name of the NIC. This could be used for reference the NIC as a parent of a NIC Alias.
 * `network_id` - (Optional) ID of the virtual network to attach to the virtual machine.
-* `ip` - (Optional) IP of the virtual machine on this network.
+* `ip` - (Optional) IPv4 of the virtual machine on this network.
+* `ip6` - (Optional) IPv6 of the virtual machine on this network.
+* `ip6_ula` - (Optional) IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `ip6_global` - (Optional) IPv6 global address of the virtual machine on this network.
+* `ip6_link` - (Optional) IPv6 link-local address of the virtual machine on this network.
 * `mac` - (Optional) MAC of the virtual machine on this network.
 * `model` - (Optional) Nic model driver. Example: `virtio`.
 * `virtio_queues` - (Optional) Virtio multi-queue size. Only if `model` is `virtio`.
@@ -179,6 +192,27 @@ A disk update will be triggered in adding or removing a `disk` section, or by a 
 Minimum 1 item. Maximum 8 items.
 
 A NIC update will be triggered in adding or removing a `nic` section, or by a modification of any of these parameters: `network_id`, `ip`, `mac`, `security_groups`, `physical_device`
+
+### NIC Alias parameters
+
+`nic_alias` supports the following arguments
+
+* `parent` - The parent NIC name.
+* `name` - (Optional) The name of the NIC Alias.
+* `network` - (Optional) The name of the virtual network to attach to the virtual machine.
+* `network_id` - (Optional) ID of the virtual network to attach to the virtual machine.
+* `ip` - (Optional) IP of the virtual machine on this network.
+* `ip6` - (Optional) IPv6 of the virtual machine on this network.
+* `ip6_ula` - (Optional) IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `ip6_global` - (Optional) IPv6 global address of the virtual machine on this network.
+* `ip6_link` - (Optional) IPv6 link-local address of the virtual machine on this network.
+* `mac` - (Optional) MAC of the virtual machine on this network.
+* `security_groups` - (Optional) List of security group IDs to use on the virtual network.
+* `method` - (Optional) Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `gateway` - (Optional) Default gateway set for the NIC.
+* `dns` - (Optional) DNS server set for the NIC. **Please make sure `INHERIT_VNET_ATTR="DNS"` is added to `/etc/one/oned.conf`.**
+
+A NIC alias update will be triggered adding or removing a `nic_alias` section.
 
 ### VM group parameters
 
@@ -224,11 +258,37 @@ The following attribute are exported:
 * `network_id` - ID of the image attached to the virtual machine.
 * `nic_id` - nic attachment identifier
 * `network` - network name
+* `computed_name` - Name of the NIC resource.
 * `computed_ip` - IP of the virtual machine on this network.
+* `computed_ip6` - IPv6 of the virtual machine on this network.
+* `computed_ip6_ula` - IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `computed_ip6_global` - IPv6 global address of the virtual machine on this network.
+* `computed_ip6_link` - IPv6 link-local address of the virtual machine on this network.
 * `computed_mac` - MAC of the virtual machine on this network.
 * `computed_model` - Nic model driver.
 * `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
+* `computed_security_groups` - List of security group IDs to use on the virtual.
+* `computed_method` - Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `computed_gateway` - Default gateway set for the NIC.
+* `computed_dns` - DNS server set for the NIC.
+* `computed_alias_ids` - List of the dependants NIC aliases for this NIC.
+
+### Template NIC Alias
+
+* `nic_id` - nic alias attachment identifier
+* `computed_alias_id` - nic alias index (respective to the referenced NIC)
+* `computed_parent` - The parent NIC name.
+* `computed_parent_id` - The parent NIC ID.
+* `computed_network_id` - ID of the image attached to the virtual machine.
+* `computed_network` - network name
+* `computed_name` - Name of the NIC Alias resource.
+* `computed_ip` - IP of the virtual machine on this network.
+* `computed_ip6` - IPv6 of the virtual machine on this network.
+* `computed_ip6_ula` - IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `computed_ip6_global` - IPv6 global address of the virtual machine on this network.
+* `computed_ip6_link` - IPv6 link-local address of the virtual machine on this network.
+* `computed_mac` - MAC of the virtual machine on this network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
 * `computed_method` - Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
 * `computed_gateway` - Default gateway set for the NIC.
@@ -246,11 +306,38 @@ The following attribute are exported:
 
 * `nic_id` - nic attachment identifier
 * `network` - network name
+* `network_id` - ID of the image attached to the virtual machine.
+* `computed_name` - Name of the NIC resource.
 * `computed_ip` - IP of the virtual machine on this network.
+* `computed_ip6` - IPv6 of the virtual machine on this network.
+* `computed_ip6_ula` - IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `computed_ip6_global` - IPv6 global address of the virtual machine on this network.
+* `computed_ip6_link` - IPv6 link-local address of the virtual machine on this network.
 * `computed_mac` - MAC of the virtual machine on this network.
 * `computed_model` - Nic model driver.
 * `computed_virtio_queues` - Virtio multi-queue size.
 * `computed_physical_device` - Physical device hosting the virtual network.
+* `computed_security_groups` - List of security group IDs to use on the virtual.
+* `computed_method` - Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
+* `computed_gateway` - Default gateway set for the NIC.
+* `computed_dns` - DNS server set for the NIC.
+* `computed_alias_ids` - List of the dependants NIC aliases for this NIC.
+
+### NIC Alias
+
+* `nic_id` - nic alias attachment identifier
+* `computed_alias_id` - nic alias index (respective to the referenced NIC)
+* `computed_parent` - The parent NIC name.
+* `computed_parent_id` - The parent NIC ID.
+* `computed_network_id` - ID of the image attached to the virtual machine.
+* `computed_network` - network name
+* `computed_name` - Name of the NIC Alias resource.
+* `computed_ip` - IP of the virtual machine on this network.
+* `computed_ip6` - IPv6 of the virtual machine on this network.
+* `computed_ip6_ula` - IPv6 ULA (Unique Local Address) of the virtual machine on this network.
+* `computed_ip6_global` - IPv6 global address of the virtual machine on this network.
+* `computed_ip6_link` - IPv6 link-local address of the virtual machine on this network.
+* `computed_mac` - MAC of the virtual machine on this network.
 * `computed_security_groups` - List of security group IDs to use on the virtual.
 * `computed_method` - Method of obtaining IP addresses (empty or `static`, `dhcp`, `skip`).
 * `computed_gateway` - Default gateway set for the NIC.
@@ -271,7 +358,7 @@ When the attribute `template_id` is set, here is the behavior:
 For all parameters excepted context: parameters present in VM overrides parameters defined in template.
 For context: it merges them.
 
-For disks and NICs defined in the template, if they are not overriden, are described in `template_disk` and `template_nic` attributes of the instantiated VM and are not modifiable anymore.
+For disks and NICs defined in the template, if they are not overriden, are described in `template_disk`, `template_nic` and `template_nic_alias` attributes of the instantiated VM and are not modifiable anymore.
 
 ## Import
 

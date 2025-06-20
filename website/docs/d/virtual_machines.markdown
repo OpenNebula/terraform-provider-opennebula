@@ -44,7 +44,8 @@ The following attributes are exported:
 * `cpu` - Amount of CPU shares assigned to the VM.
 * `vcpu` - Number of CPU cores presented to the VM.
 * `memory` - Amount of RAM assigned to the VM in MB.
-* `disk` - Disk parameters
-* `nic` - NIC parameters
+* `disk` - Disk parameters.
+* `nic` - NIC parameters.
+* `nic_alias` - NIC Alias parameters.
 * `vmgroup` - VM group parameters
 * `tags` - Tags of the virtual machine (Key = Value).
