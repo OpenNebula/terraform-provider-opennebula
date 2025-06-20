@@ -1220,9 +1220,6 @@ func flattenVMNICAliasComputedAttributes(NICConfig map[string]interface{}, NIC s
 	if v, ok := NICConfig["network_id"].(int); ok && v > -1 {
 		NICMap["network_id"] = NICMap["computed_network_id"]
 	}
-	if v, ok := NICConfig["alias_id"].(int); ok && v > -1 {
-		NICMap["alias_id"] = NICMap["computed_alias_id"]
-	}
 	if len(NICConfig["parent"].(string)) > 0 {
 		NICMap["parent"] = NICMap["computed_parent"]
 	}
@@ -1376,7 +1373,6 @@ func matchNICAlias(NICConfig map[string]interface{}, NIC shared.NIC) bool {
 	matchCommonFields := matchNICAndAliasCommonAttributes(NICConfig, NIC)
 
 	return matchCommonFields &&
-		//emptyOrEqual(NICConfig["alias_id"], aliasId) &&
 		emptyOrEqual(NICConfig["parent"], parent) &&
 		emptyOrEqual(NICConfig["network"], network) &&
 		emptyOrEqual(resourceNetworkID, networkId)

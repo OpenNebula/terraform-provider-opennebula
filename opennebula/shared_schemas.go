@@ -304,10 +304,6 @@ func nicAliasFields() map[string]*schema.Schema {
 				Optional: true,
 				Default:  -1,
 			},
-			"alias_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"parent": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -1079,6 +1075,7 @@ func flattenNIC(nic shared.NIC) map[string]interface{} {
 func flattenNICAlias(nicAlias shared.NIC) map[string]interface{} {
 
 	parent, _ := nicAlias.Get(shared.NICAliasParent)
+	parentId, _ := nicAlias.Get(shared.NICAliasParentID)
 
 	sg := make([]int, 0)
 	name, _ := nicAlias.Get(shared.Name)
@@ -1105,8 +1102,8 @@ func flattenNICAlias(nicAlias shared.NIC) map[string]interface{} {
 	dns, _ := nicAlias.Get(shared.DNS)
 
 	return map[string]interface{}{
-		"parent": parent,
-		//
+		"parent":          parent,
+		"parent_id":       parentId,
 		"name":            name,
 		"ip":              ip,
 		"ip6":             ip6,
