@@ -1223,9 +1223,6 @@ func flattenVMNICAliasComputedAttributes(NICConfig map[string]interface{}, NIC s
 	if len(NICConfig["parent"].(string)) > 0 {
 		NICMap["parent"] = NICMap["computed_parent"]
 	}
-	if v, ok := NICConfig["parent_id"].(int); ok && v > -1 {
-		NICMap["parent_id"] = NICMap["computed_parent_id"]
-	}
 
 	//retrieve computed values for NIC and NICAlias common attributes
 	attributeMap := flattenVMNICAndAliasCommonComputedAttributes(NICConfig, NIC)

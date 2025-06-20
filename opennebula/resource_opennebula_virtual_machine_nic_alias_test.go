@@ -14,10 +14,6 @@ func TestAccVirtualMachineAddNICAlias(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccVMOneNICOneAliasParentID,
-				ExpectError: regexp.MustCompile(`.*`),
-			},
-			{
 				Config: testAccVMOneNICOneAliasWithoutIP,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test_nic_alias_no_ip", "name", "test-nic-alias-no-ip"),
@@ -528,50 +524,6 @@ resource "opennebula_virtual_network" "network1" {
 	security_groups = [0]
 	cluster_ids = [0]
   }
-`
-
-var testAccVMOneNICOneAliasParentID = testNICAliasVNetResources + `
-resource "opennebula_virtual_machine" "test_nic_alias_parent_id" {
-    name        = "test-nic-alias-parent-id"
-    group       = "oneadmin"
-	permissions = "642"
-	memory = 128
-	cpu = 0.1
-
-	context = {
-	  NETWORK  = "YES"
-	  SET_HOSTNAME = "$NAME"
-	}
-
-	graphics {
-	  type   = "VNC"
-	  listen = "0.0.0.0"
-	  keymap = "en-us"
-	}
-
-	os {
-	  arch = "x86_64"
-	  boot = ""
-	}
-
-	tags = {
-	  env = "prod"
-	  customer = "test"
-	}
-
-	nic {
-		network_id = opennebula_virtual_network.network1.id
-		ip = "172.16.100.155"
-	}
-
-    nic_alias {
-        network = opennebula_virtual_network.network1.name
-        parent_id = "0"
-		ip = "172.16.100.154"
-	}
-
-	timeout = 5
-}
 `
 
 var testAccVMOneNICOneAliasWithoutIP = testNICAliasVNetResources + `
