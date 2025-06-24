@@ -6,6 +6,7 @@ FEATURES:
 * shared_schemas: Add `machine`, `kernel`, `kernel_ds`, `initrd`, `initrd_ds`, `root`, `kernel_cmd`, `bootloader`, `sd_disk_bus`, `uuid`, `firmware` and `firmware_secure` to OS schema (#558)
 * adapt provider for OpenNebula 7.0 API (#595)
 * add CI job for OpenNebula 7.0 (#611)
+* implement nic_alias (#494)
 
 ENHANCEMENTS:
 
