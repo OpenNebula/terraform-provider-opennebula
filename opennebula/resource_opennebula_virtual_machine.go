@@ -2779,6 +2779,7 @@ func getNICUpdateDiff(oldNics []any, updatedNics []any) ([]any, []any) {
 		&schema.Resource{
 			Schema: nicFields(),
 		},
+		"name",
 		"network_id",
 		"ip",
 		"ip6",
@@ -2804,6 +2805,7 @@ func getNICAliasUpdateDiff(oldNicAliases []any, updatedNicAliases []any) ([]any,
 		&schema.Resource{
 			Schema: nicAliasFields(),
 		},
+		"name",
 		"network",
 		"network_id",
 		"parent",
