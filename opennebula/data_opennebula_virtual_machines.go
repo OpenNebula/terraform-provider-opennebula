@@ -148,6 +148,12 @@ func dataOpennebulaVirtualMachines() *schema.Resource {
 							s.Optional = false
 							return s
 						}(),
+						"nic_alias": func() *schema.Schema {
+							s := nicAliasSchema()
+							s.Computed = true
+							s.Optional = false
+							return s
+						}(),
 						"vmgroup": func() *schema.Schema {
 							s := vmGroupSchema()
 							s.Computed = true
@@ -272,6 +278,14 @@ func datasourceOpennebulaVirtualMachinesRead(ctx context.Context, d *schema.Reso
 			nicList = append(nicList, flattenNIC(nic))
 		}
 
+		// builds nic aliases list
+		nicAliases := vm.Template.GetNICAliases()
+		nicAliasList := make([]interface{}, 0, len(nicAliases))
+
+		for _, nicAlias := range nicAliases {
+			nicAliasList = append(nicAliasList, flattenNICAlias(nicAlias))
+		}
+
 		// builds VM Groups list
 		dynTemplate := vm.Template.Template
 		vmgMap := make([]map[string]interface{}, 0, 1)
@@ -288,14 +302,15 @@ func datasourceOpennebulaVirtualMachinesRead(ctx context.Context, d *schema.Reso
 		tplPairs := pairsToMap(vm.UserTemplate.Template)
 
 		vmMap := map[string]interface{}{
-			"name":    vm.Name,
-			"id":      vm.ID,
-			"cpu":     cpu,
-			"vcpu":    vcpu,
-			"memory":  memory,
-			"disk":    diskList,
-			"nic":     nicList,
-			"vmgroup": vmgMap,
+			"name":      vm.Name,
+			"id":        vm.ID,
+			"cpu":       cpu,
+			"vcpu":      vcpu,
+			"memory":    memory,
+			"disk":      diskList,
+			"nic":       nicList,
+			"nic_alias": nicAliasList,
+			"vmgroup":   vmgMap,
 		}
 
 		if len(tplPairs) > 0 {

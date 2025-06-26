@@ -35,6 +35,9 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			map[string]*schema.Schema{
 				"nic": nicSchema(),
 			},
+			map[string]*schema.Schema{
+				"nic_alias": nicAliasSchema(),
+			},
 		),
 	}
 }
@@ -219,6 +222,23 @@ func resourceOpennebulaTemplateCreate(ctx context.Context, d *schema.ResourceDat
 			tpl.Elements = append(tpl.Elements, nic)
 		}
 
+		//Generate NIC ALIAS definition
+		nicAliases, ok := d.Get("nic_alias").([]any)
+		if !ok {
+			return diag.FromErr(fmt.Errorf("invalid NIC Aliases configuration: %v", d.Get("nic_alias")))
+		}
+		log.Printf("Number of NIC Aliases: %d", len(nicAliases))
+
+		for _, nicAlias := range nicAliases {
+			nicAliasconfig, ok := nicAlias.(map[string]any)
+			if !ok {
+				return diag.FromErr(fmt.Errorf("invalid NIC Alias configuration: %v", nicAlias))
+			}
+
+			nicAlias := makeNICAliasVector(nicAliasconfig)
+			tpl.Elements = append(tpl.Elements, nicAlias)
+		}
+
 		return nil
 	})
 
@@ -333,6 +353,16 @@ func templateReadCustom(ctx context.Context, d *schema.ResourceData, templateInf
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to flatten NICs",
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
+	err = flattenTemplateNICAliases(d, &templateInfos.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten NIC Aliases",
 			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 		})
 		return diags
@@ -496,6 +526,23 @@ func flattenTemplateNICs(d *schema.ResourceData, tpl *vm.Template) error {
 	}
 
 	err := d.Set("nic", nicList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func flattenTemplateNICAliases(d *schema.ResourceData, tpl *vm.Template) error {
+
+	nicAliases := tpl.GetNICAliases()
+	nicAliasList := make([]any, 0, len(nicAliases))
+
+	for _, nicAlias := range nicAliases {
+		nicAliasList = append(nicAliasList, flattenNICAlias(nicAlias))
+	}
+
+	err := d.Set("nic_alias", nicAliasList)
 	if err != nil {
 		return err
 	}
@@ -733,7 +780,12 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	}
 
 	if d.HasChange("nic") {
-		newTpl.Del("NIC")
+		newTpl.Del(shared.NICVec)
+		addNICs(d, &newTpl)
+	}
+
+	if d.HasChange("nic_alias") {
+		newTpl.Del(shared.NICAliasVec)
 		addNICs(d, &newTpl)
 	}
 

@@ -106,6 +106,12 @@ func dataOpennebulaTemplates() *schema.Resource {
 								s.Optional = false
 								return s
 							}(),
+							"nic_alias": func() *schema.Schema {
+								s := nicAliasSchema()
+								s.Computed = true
+								s.Optional = false
+								return s
+							}(),
 							"vmgroup": func() *schema.Schema {
 								s := vmGroupSchema()
 								s.Computed = true
@@ -197,6 +203,14 @@ func datasourceOpennebulaTemplatesRead(ctx context.Context, d *schema.ResourceDa
 			nicList = append(nicList, flattenNIC(nic))
 		}
 
+		// builds nic aliases list
+		nicAliases := template.Template.GetNICAliases()
+		nicAliasList := make([]interface{}, 0, len(nicAliases))
+
+		for _, nicAlias := range nicAliases {
+			nicAliasList = append(nicAliasList, flattenNICAlias(nicAlias))
+		}
+
 		// builds VM Groups list
 		dynTemplate := template.Template.Template
 		vmgMap := make([]map[string]interface{}, 0, 1)
@@ -220,6 +234,7 @@ func datasourceOpennebulaTemplatesRead(ctx context.Context, d *schema.ResourceDa
 			"memory":        memory,
 			"disk":          diskList,
 			"nic":           nicList,
+			"nic_alias":     nicAliasList,
 			"vmgroup":       vmgMap,
 			"register_date": template.RegTime,
 		}
