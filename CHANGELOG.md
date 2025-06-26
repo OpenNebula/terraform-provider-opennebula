@@ -1,9 +1,26 @@
-# 1.4.2 (Unreleased)
+# 1.5.0 (June 26th, 2025)
 
 FEATURES:
 
 * provider: Added a `--debug` flag for enabling provider debugging (#582)
 * shared_schemas: Add `machine`, `kernel`, `kernel_ds`, `initrd`, `initrd_ds`, `root`, `kernel_cmd`, `bootloader`, `sd_disk_bus`, `uuid`, `firmware` and `firmware_secure` to OS schema (#558)
+* adapt provider for OpenNebula 7.0 API (#595)
+* add CI job for OpenNebula 7.0 (#611)
+* implement nic_alias (#494)
+
+ENHANCEMENTS:
+
+* resources/opennebula_virtual_machine: allow to retrieve IPv6 address information after VM creation (#247)
+* add support for oneFlow 7.0 (#613)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_network: correct vlan_id prevalence in vnet creation (#515)
+* resources/opennebula_virtual_network_address_range, opennebula_virtual_router_nic, opennebula_virtual_network: fix incomplete IPv6 handling in VRouter NIC and AddressRange (#586)
+* resources/opennebula_virtual_network: fix tag settings for reservations (#589)
+* bump Go to 1.20 to fix known CVEs (#600)
+* remove CI tests for 6.4 due to deprecated runner (#606)
+* bump GOCA version to latest commit (#608)
 
 ENHANCEMENTS:
 
