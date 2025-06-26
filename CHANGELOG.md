@@ -1,4 +1,4 @@
-# 1.5.0 (June 12th, 2025)
+# 1.5.0 (June 26th, 2025)
 
 FEATURES:
 
