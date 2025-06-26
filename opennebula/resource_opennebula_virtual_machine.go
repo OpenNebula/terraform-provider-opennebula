@@ -361,6 +361,10 @@ func templateDiskVMSchema() *schema.Schema {
 					Type:     schema.TypeInt,
 					Computed: true,
 				},
+				"image": {
+					Type:     schema.TypeString,
+					Computed: true,
+				},
 			}),
 		},
 	}
@@ -929,8 +933,10 @@ func flattenVMTemplateDisk(d *schema.ResourceData, vmTemplate *vm.Template) erro
 	for _, disk := range disks {
 
 		imageID, _ := disk.GetI(shared.ImageID)
+		image, _ := disk.Get(shared.Image)
 		diskRead := flattenDiskComputed(disk)
 		diskRead["image_id"] = imageID
+		diskRead["image"] = image
 		diskList = append(diskList, diskRead)
 	}
 
@@ -1024,12 +1030,14 @@ diskLoop:
 			match = true
 			diskMap = flattenVMDiskComputed(diskConfig, disk)
 
-			imageID, _ := disk.GetI(shared.ImageID)
+			imageID, _ := diskConfig["image_id"].(int)
+			image, _ := diskConfig["image"].(string)
 			diskMap["image_id"] = imageID
+			diskMap["image"] = image
 
 			// for volatile disk, TYPE has the same value
 			// than DISK_TYPE
-			if imageID == -1 {
+			if imageID == -1 && image == "" {
 				volatileType, _ := disk.Get("TYPE")
 				diskMap["volatile_type"] = volatileType
 			}
@@ -2379,6 +2387,7 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 			Schema: diskFields(),
 		},
 		"image_id",
+		"image",
 		"target",
 		"driver",
 		"dev_prefix",
@@ -2420,17 +2429,19 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 			Schema: diskFields(),
 		},
 		"image_id",
+		"image",
 		"size")
 
 	// Detach the disks
 	for _, diskIf := range toDetach {
 		diskConfig := diskIf.(map[string]interface{})
 
-		// ignore disk without image_id and type
-		if diskConfig["image_id"].(int) == -1 &&
+		// ignore disk without image_id, image and type
+		if (diskConfig["image_id"].(int) == -1 &&
+			diskConfig["image"].(string) == "") &&
 			len(diskConfig["volatile_type"].(string)) == 0 {
 
-			log.Printf("[INFO] ignore disk without image_id and type")
+			log.Printf("[INFO] ignore disk without image_id, image and type")
 			continue
 		}
 
@@ -2447,11 +2458,12 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 	for _, diskIf := range toAttach {
 		diskConfig := diskIf.(map[string]interface{})
 
-		// ignore disk without image_id and type
-		if diskConfig["image_id"].(int) == -1 &&
+		// ignore disk without image_id, image and type
+		if (diskConfig["image_id"].(int) == -1 &&
+			diskConfig["image"].(string) == "") &&
 			len(diskConfig["volatile_type"].(string)) == 0 {
 
-			log.Printf("[INFO] ignore disk without image_id and type")
+			log.Printf("[INFO] ignore disk without image_id, image and type")
 			continue
 		}
 
@@ -2467,11 +2479,12 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 	for _, diskIf := range toResize {
 		diskConfig := diskIf.(map[string]interface{})
 
-		// ignore disk without image_id and type
-		if diskConfig["image_id"].(int) == -1 &&
+		// ignore disk without image_id, image and type
+		if (diskConfig["image_id"].(int) == -1 &&
+			diskConfig["image"].(string) == "") &&
 			len(diskConfig["volatile_type"].(string)) == 0 {
 
-			log.Printf("[INFO] ignore disk without image_id and type")
+			log.Printf("[INFO] ignore disk without image_id, image and type")
 			continue
 		}
 
@@ -2479,7 +2492,8 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 		for _, d := range attachedDisksCfg {
 
 			cfg := d.(map[string]interface{})
-			if diskConfig["image_id"].(int) != cfg["image_id"].(int) ||
+			if (diskConfig["image_id"].(int) != cfg["image_id"].(int) &&
+				diskConfig["image"].(string) != cfg["image"].(string)) ||
 				(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != cfg["computed_target"]) ||
 				(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != cfg["computed_driver"]) ||
 				(len(diskConfig["dev_prefix"].(string)) > 0 && diskConfig["dev_prefix"] != cfg["computed_dev_prefix"]) ||
@@ -3334,12 +3348,14 @@ func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v i
 				Schema: diskFields(),
 			},
 			"image_id",
+			"image",
 			"target",
 			"driver")
 
 		if len(toDetach) > 0 {
 			for i := range oldDiskList {
 				diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
+				diff.ForceNew(fmt.Sprintf("disk.%d.image", i))
 				diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
 				diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
 				diff.ForceNew(fmt.Sprintf("disk.%d.dev_prefix", i))

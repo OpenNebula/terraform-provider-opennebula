@@ -197,6 +197,28 @@ func TestAccTemplate(t *testing.T) {
 					}),
 				),
 			},
+			{
+				Config: testAccTemplateImageDisk,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "name", "terratplimageDisk"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "permissions", "642"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "group", "oneadmin"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "cpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "vcpu", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "memory", "768"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "disk.0.image", "imageName"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "disk.0.image_id", "-1"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "disk.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "disk.0.target", "vda"),
+					resource.TestCheckResourceAttr("opennebula_template.template_disk_test", "disk.0.size", "64"),
+					resource.TestCheckResourceAttr("opennebula_image.image", "name", "imageName"),
+					resource.TestCheckResourceAttr("opennebula_image.image", "size", "16"),
+					resource.TestCheckResourceAttr("opennebula_image.image", "type", "DATABLOCK"),
+					resource.TestCheckResourceAttr("opennebula_image.image", "datastore_id", "1"),
+					resource.TestCheckResourceAttr("opennebula_image.image", "persistent", "false"),
+					resource.TestCheckResourceAttr("opennebula_image.image", "permissions", "660"),
+				),
+			},
 		},
 	})
 }
@@ -510,6 +532,34 @@ resource "opennebula_template" "template" {
 	elements = {
 		testkey3 = "testvalue3"
 	}
+  }
+}
+`
+
+var testAccTemplateImageDisk = `
+resource "opennebula_image" "image" {
+	name             = "imageName"
+	type             = "DATABLOCK"
+	size             = "16"
+	datastore_id     = 1
+	persistent       = false
+	permissions      = "660"
+  }
+
+
+resource "opennebula_template" "template_disk_test" {
+  name = "terratplimageDisk"
+  permissions = "642"
+  group = "oneadmin"
+
+  cpu = "1"
+  vcpu = "1"
+  memory = "768"
+
+  disk {
+	image = "imageName"
+	size     = 64
+	target   = "vda"
   }
 }
 `
