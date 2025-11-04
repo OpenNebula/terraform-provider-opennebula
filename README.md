@@ -46,8 +46,8 @@ More details [here](./website/docs/index.html.markdown).
 
 ## OpenNebula versions support
 
-* `~> 6.10` (current)
-* `~> 6.4` (LTS)
+* `~> 7.0`  (current)
+* `~> 6.10` (LTS)
 
 See OpenNebula's [Release Policy](https://github.com/OpenNebula/one/wiki/Release-Policy) for more details.
 
