@@ -26,6 +26,7 @@ resource "opennebula_virtual_machine" "example" {
   memory      = 1024
   group       = "terraform"
   permissions = "660"
+  autostart   = "no"
 
   context = {
     NETWORK      = "YES"
@@ -96,6 +97,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the virtual machine.
 * `description`: (Optional) The description of the template.
 * `permissions` - (Optional) Permissions applied on virtual machine. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
+* `autostart` - (Optional) Whether the VM should automatically start when the host boots. Please note that the host must also be configured to allow autostart for this setting to take effect.
 * `template_id` - (Optional) If set, VM are instantiated from the template ID. See [Instantiate from a template](#instantiate-from-a-template) for details. Changing this argument triggers a new resource.
 * `pending` - (Optional) Pending state during VM creation. Defaults to `false`.
 * `cpu` - (Optional) Amount of CPU shares assigned to the VM. **Mandatory if** `template_id` **is not set**.
