@@ -948,8 +948,6 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 		tpl.AddPair("AUTOSTART", autostart.(string))
 	}
 
-	}
-
 	//Generate RAW definition
 	raw := d.Get("raw").([]interface{})
 	for i := 0; i < len(raw); i++ {

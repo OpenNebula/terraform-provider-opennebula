@@ -2,11 +2,18 @@ package opennebula
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
+	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func toInt(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
+}
 
 func TestAccVirtualMachineAutostart(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -60,7 +67,10 @@ func testAccCheckVirtualMachineAutostartValue(n string, expected string) resourc
 			return err
 		}
 
-		got := vm.UserTemplate.GetStr("AUTOSTART")
+		got, err := vm.UserTemplate.GetStr("AUTOSTART")
+		if err != nil {
+			return fmt.Errorf("failed to get AUTOSTART from USER_TEMPLATE: %s", err)
+		}
 		if got != expected {
 			return fmt.Errorf("wrong autostart value in USER_TEMPLATE, got %s instead of %s", got, expected)
 		}
