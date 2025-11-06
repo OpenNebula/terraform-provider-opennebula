@@ -643,8 +643,8 @@ func autostartSchema() *schema.Schema {
 		Optional:    true,
 		Description: "Whether the VM should automatically start when the host boots. Accepts 'yes' or 'no'.",
 		ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-			validValues := []string{"YES", "NO"}
-			value := strings.ToUpper(v.(string))
+			validValues := []string{"yes", "no"}
+			value := strings.ToLower(v.(string))
 			if value != "" && !contains(value, validValues) {
 				errors = append(errors, fmt.Errorf("%q must be one of: %s", k, strings.Join(validValues, ", ")))
 			}
