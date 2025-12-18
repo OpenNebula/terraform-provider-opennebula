@@ -1297,10 +1297,13 @@ func resourceOpennebulaVirtualNetworkExists(d *schema.ResourceData, meta interfa
 
 	_, err = controller.VirtualNetwork(int(imageID)).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

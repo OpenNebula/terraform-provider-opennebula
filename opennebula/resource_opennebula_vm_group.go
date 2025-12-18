@@ -365,10 +365,13 @@ func resourceOpennebulaVMGroupExists(d *schema.ResourceData, meta interface{}) (
 
 	_, err = controller.VMGroup(int(serviceTemplateID)).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVMGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

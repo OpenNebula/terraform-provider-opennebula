@@ -90,10 +90,13 @@ func resourceOpennebulaVirtualRouterInstanceTemplateExists(d *schema.ResourceDat
 
 	_, err = controller.Template(int(tplID)).Info(false, false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualRouterInstanceTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
