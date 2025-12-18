@@ -323,10 +323,13 @@ func resourceOpennebulaVirtualRouterExists(d *schema.ResourceData, meta interfac
 
 	_, err = controller.VirtualRouter(int(vRouterID)).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

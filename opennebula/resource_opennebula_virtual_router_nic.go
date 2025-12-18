@@ -265,10 +265,13 @@ func resourceOpennebulaVirtualRouterNICExists(d *schema.ResourceData, meta inter
 
 	_, err := controller.VirtualRouter(vrouterID).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualRouterNICDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
