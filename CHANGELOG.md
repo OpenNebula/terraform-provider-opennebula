@@ -1,3 +1,13 @@
+# Unreleased
+
+FEATURES:
+
+* resources/opennebula_virtual_machine: Add `context_wo` write-only attribute for secure handling of ephemeral/sensitive context data (#626)
+
+ENHANCEMENTS:
+
+* Upgrade terraform-plugin-sdk/v2 to v2.38.2 for WriteOnly attribute support
+
 # 1.5.0 (June 26th, 2025)
 
 FEATURES:
