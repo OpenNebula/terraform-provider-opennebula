@@ -2,6 +2,8 @@ package opennebula
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"sort"
@@ -9,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -693,6 +696,11 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 	d.Set("template_disk", []interface{}{})
 	d.Set("template_nic_alias", []interface{}{})
 
+	contextWo := getContextWo(d)
+	if err := d.Set("context_wo_hash", computeContextWoHash(contextWo)); err != nil {
+		log.Printf("[WARN] Failed to set context_wo_hash: %s", err)
+	}
+
 	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
@@ -858,6 +866,9 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 				return diags
 			}
 		}
+
+		// Don't read context from API: it returns merged context+context_wo which
+		// would leak write-only values into state and break idempotency.
 
 		return nil
 	})
@@ -2092,17 +2103,25 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		}
 	}
 
-	if d.HasChange("context") {
+	// context_wo changes are tracked via context_wo_hash (set by CustomizeDiff).
+	contextChanged := d.HasChange("context")
+	contextWoChanged := d.HasChange("context_wo_hash")
+
+	if contextChanged || contextWoChanged {
 
 		updateConf = true
 
-		log.Printf("[DEBUG] Update context")
+		context := d.Get("context").(map[string]interface{})
+		contextWo := getContextWo(d)
+
+		log.Printf("[DEBUG] Update context (contextChanged=%v, contextWoChanged=%v, context=%d vars, context_wo=%d vars)",
+			contextChanged, contextWoChanged, len(context), len(contextWo))
 
 		old, new := d.GetChange("context")
 		appliedContext := old.(map[string]interface{})
 		newContext := new.(map[string]interface{})
 
-		if len(newContext) == 0 {
+		if len(newContext) == 0 && len(contextWo) == 0 {
 			// No context configuration to apply
 			tpl.Del(vmk.ContextVec)
 		} else {
@@ -2124,8 +2143,29 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 					contextVec.AddPair(keyUp, value)
 				}
 
+				// Add write-only elements (always applied, no prior state)
+				for key, value := range contextWo {
+					keyUp := strings.ToUpper(key)
+					contextVec.AddPair(keyUp, value)
+				}
+
 			} else {
-				updateVMTemplateVec(tpl, "CONTEXT", appliedContext, newContext)
+				// Merge both context maps for update
+				mergedApplied := make(map[string]interface{})
+				mergedNew := make(map[string]interface{})
+
+				for k, v := range appliedContext {
+					mergedApplied[strings.ToUpper(k)] = v
+				}
+
+				for k, v := range newContext {
+					mergedNew[strings.ToUpper(k)] = v
+				}
+				for k, v := range contextWo {
+					mergedNew[strings.ToUpper(k)] = v
+				}
+
+				updateVMTemplateVec(tpl, "CONTEXT", mergedApplied, mergedNew)
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
@@ -2136,6 +2176,8 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				}
 			}
 		}
+
+		// context_wo_hash is already updated by CustomizeDiff via SetNew
 	}
 
 	if d.HasChange("raw") {
@@ -3048,7 +3090,57 @@ func attachNicAliasList(ctx context.Context, vmc *goca.VMController, nicAliasLis
 	return nil
 }
 
-// updateVMVec update a vector of an existing VM template
+// ctyStringMapToGoMap converts a cty.Value string map to a Go map.
+func ctyStringMapToGoMap(val cty.Value) map[string]interface{} {
+	result := make(map[string]interface{})
+	if val.IsNull() || !val.IsKnown() {
+		return result
+	}
+	val.ForEachElement(func(key cty.Value, val cty.Value) (stop bool) {
+		if key.Type() == cty.String && val.Type() == cty.String {
+			result[key.AsString()] = val.AsString()
+		}
+		return false
+	})
+	return result
+}
+
+// getContextWo retrieves write-only context variables from the raw Terraform config.
+// WriteOnly attributes are never in state, so they must be read via GetRawConfigAt.
+func getContextWo(d *schema.ResourceData) map[string]interface{} {
+	val, diags := d.GetRawConfigAt(cty.GetAttrPath("context_wo"))
+	if diags.HasError() {
+		return make(map[string]interface{})
+	}
+	return ctyStringMapToGoMap(val)
+}
+
+// computeContextWoHash computes a deterministic SHA256 hash of context_wo values.
+// Returns empty string if context_wo is empty.
+func computeContextWoHash(contextWo map[string]interface{}) string {
+	if len(contextWo) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(contextWo))
+	for k := range contextWo {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var sb strings.Builder
+	for _, k := range keys {
+		sb.WriteString(k)
+		sb.WriteString("=")
+		sb.WriteString(contextWo[k].(string))
+		sb.WriteString(";")
+	}
+
+	hash := sha256.Sum256([]byte(sb.String()))
+	return hex.EncodeToString(hash[:])
+}
+
+// updateVMTemplateVec update a vector of an existing VM template
 func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg map[string]interface{}) error {
 
 	// Retrieve vector
@@ -3078,7 +3170,7 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 		return fmt.Errorf("Multiple %s vectors", vecName)
 	}
 
-	// Add new elements
+	// Add new elements (or update elements not tracked in appliedCfg, like context_wo)
 	for key, value := range newCfg {
 		keyUp := strings.ToUpper(key)
 
@@ -3087,6 +3179,9 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 			continue
 		}
 
+		// Delete first to ensure we're not creating duplicates
+		// This is important for context_wo values which aren't in appliedCfg
+		targetVec.Del(keyUp)
 		targetVec.AddPair(keyUp, value)
 	}
 
@@ -3231,10 +3326,10 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 		tpl.Add(vmk.Name, d.Get("name").(string))
 	}
 
-	//Generate CONTEXT definition
+	// Generate CONTEXT by merging regular context with write-only context_wo.
 	context := d.Get("context").(map[string]interface{})
-	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
+	contextWo := getContextWo(d)
+	log.Printf("Number of CONTEXT vars: %d, CONTEXT_WO vars: %d", len(context), len(contextWo))
 
 	var tplContext *dyn.Vector
 	if templateContent != nil {
@@ -3253,11 +3348,24 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 			tplContext.AddPair(keyUp, value)
 		}
 
+		// Add write-only context variables
+		for key, value := range contextWo {
+			keyUp := strings.ToUpper(key)
+			tplContext.Del(keyUp)
+			tplContext.AddPair(keyUp, value)
+		}
+
 		tpl.Elements = append(tpl.Elements, tplContext)
 	} else {
 
 		// Add new context elements to the template
 		for key, value := range context {
+			keyUp := strings.ToUpper(key)
+			tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
+		}
+
+		// Add write-only context elements to the template
+		for key, value := range contextWo {
 			keyUp := strings.ToUpper(key)
 			tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
 		}
@@ -3360,6 +3468,24 @@ func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v i
 	}
 
 	SetVMTagsDiff(ctx, diff, v)
+
+	// Detect context_wo changes via hash comparison.
+	// WriteOnly attributes don't trigger updates, so we update context_wo_hash
+	// via SetNew to create a diff that triggers UPDATE.
+	// Detect context_wo changes via hash comparison.
+	// WriteOnly attributes don't trigger updates on their own, so we update
+	// context_wo_hash via SetNew to create a diff that triggers UPDATE.
+	if diff.Id() != "" {
+		contextWo := ctyStringMapToGoMap(diff.GetRawPlan().GetAttr("context_wo"))
+		currentHash := computeContextWoHash(contextWo)
+		previousHash := diff.Get("context_wo_hash").(string)
+
+		if currentHash != previousHash && currentHash != "" {
+			if err := diff.SetNew("context_wo_hash", currentHash); err != nil {
+				return fmt.Errorf("failed to update context_wo_hash: %w", err)
+			}
+		}
+	}
 
 	return nil
 }

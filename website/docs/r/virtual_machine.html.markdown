@@ -102,6 +102,7 @@ The following arguments are supported:
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if** `template_id` **is not set**.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
+* `context_wo` - (Optional) Write-only context variables for sensitive data that should not be persisted in Terraform state. Similar to `context`, but these values are never stored in state, making them suitable for ephemeral resources like secrets from Vault or other secrets managers. Values from `context_wo` are merged with `context` when creating or updating the VM. If the same key exists in both, `context_wo` takes precedence. Changes are automatically detected via internal hash comparison. See [Using write-only context for secrets](#using-write-only-context-for-secrets) below for examples.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
@@ -350,6 +351,86 @@ The following attribute are exported:
 * `computed_target` - Target name device on the virtual machine. Depends of the image `dev_prefix`.
 * `computed_driver` - OpenNebula image driver.
 * `computed_volatile_format` - Format of the Image: `raw` or `qcow2`.
+
+## Using write-only context for secrets
+
+The `context_wo` attribute allows you to pass sensitive data to VMs without persisting it in Terraform state. This is designed to work with [ephemeral resources](https://developer.hashicorp.com/terraform/language/resources/ephemeral) so that secrets never appear in state at any level.
+
+Values from `context_wo` are merged with regular `context` variables and passed to the VM's CONTEXT. Unlike `context`, these values are never stored in the Terraform state file.
+
+### Example with Vault ephemeral resource
+
+```hcl
+ephemeral "vault_generic_secret" "db" {
+  path = "secret/database"
+}
+
+resource "opennebula_virtual_machine" "app_server" {
+  name   = "app-server"
+  cpu    = 2
+  memory = 2048
+
+  context = {
+    NETWORK  = "YES"
+    HOSTNAME = "$NAME"
+    APP_ENV  = "production"
+  }
+
+  # Sensitive values from ephemeral resource — never stored in state
+  context_wo = {
+    DB_PASSWORD = ephemeral.vault_generic_secret.db.data["password"]
+    API_KEY     = ephemeral.vault_generic_secret.db.data["api_key"]
+  }
+
+  disk {
+    image_id = var.os_image_id
+  }
+
+  nic {
+    network_id = var.network_id
+  }
+}
+```
+
+### Example with ephemeral random password
+
+```hcl
+ephemeral "random_password" "vm_password" {
+  length  = 16
+  special = true
+}
+
+resource "opennebula_virtual_machine" "secure_vm" {
+  name   = "secure-vm"
+  cpu    = 1
+  memory = 1024
+
+  context = {
+    NETWORK  = "YES"
+    USERNAME = "admin"
+  }
+
+  context_wo = {
+    PASSWORD = ephemeral.random_password.vm_password.result
+  }
+
+  disk {
+    image_id = var.os_image_id
+  }
+
+  nic {
+    network_id = var.network_id
+  }
+}
+```
+
+### Important notes
+
+* Values in `context_wo` are write-only and cannot be read or imported
+* If the same key exists in both `context` and `context_wo`, the value from `context_wo` takes precedence
+* All context keys are automatically uppercased to match OpenNebula's CONTEXT behavior
+* Changes to `context_wo` are automatically detected via an internal hash (`context_wo_hash`)
+* When `context_wo` values change, the VM's CONTEXT will be updated on the next `terraform apply`
 
 ## Instantiate from a template
 

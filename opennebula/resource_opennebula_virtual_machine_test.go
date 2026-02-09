@@ -1305,3 +1305,332 @@ resource "opennebula_virtual_machine" "test" {
 	sched_requirements = "CLUSTER_ID!=\"123\""
 }
 `
+
+func TestAccVirtualMachineWithContextWo(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				// Step 1: Create VM with context + context_wo
+				Config: testAccVirtualMachineTemplateConfigContextWo,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetDSdummy(),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine-contextwo"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "memory", "128"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "cpu", "0.1"),
+					// Regular context should be in state
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.%", "2"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.NETWORK", "YES"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.HOSTNAME", "test-vm"),
+					// WriteOnly context_wo should NOT be in state
+					resource.TestCheckNoResourceAttr("opennebula_virtual_machine.test", "context_wo"),
+					// Verify the VM has both context and context_wo values applied
+					testAccCheckVMContextVariables("opennebula_virtual_machine.test", map[string]string{
+						"NETWORK":  "YES",
+						"HOSTNAME": "test-vm",
+						"API_KEY":  "secret-api-key",
+					}),
+					// Verify PASSWORD exists (even though it's encoded by OpenNebula)
+					testAccCheckVMContextVariableExists("opennebula_virtual_machine.test", "PASSWORD"),
+				),
+			},
+			{
+				// Step 2: Idempotency check - no changes, plan should be empty
+				Config:   testAccVirtualMachineTemplateConfigContextWo,
+				PlanOnly: true,
+			},
+			{
+				// Step 3: Update context (change HOSTNAME), context_wo unchanged
+				Config: testAccVirtualMachineTemplateConfigContextWoUpdateContext,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.HOSTNAME", "test-vm-updated"),
+					// Verify the VM has updated context value
+					testAccCheckVMContextVariables("opennebula_virtual_machine.test", map[string]string{
+						"NETWORK":  "YES",
+						"HOSTNAME": "test-vm-updated",
+						"API_KEY":  "secret-api-key",
+					}),
+				),
+			},
+			{
+				// Step 4: Idempotency check after context update
+				Config:   testAccVirtualMachineTemplateConfigContextWoUpdateContext,
+				PlanOnly: true,
+			},
+			{
+				// Step 5: Update context_wo (change API_KEY), context unchanged
+				Config: testAccVirtualMachineTemplateConfigContextWoUpdateContextWo,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.HOSTNAME", "test-vm-updated"),
+					// Verify the VM has updated context_wo value
+					testAccCheckVMContextVariables("opennebula_virtual_machine.test", map[string]string{
+						"NETWORK":  "YES",
+						"HOSTNAME": "test-vm-updated",
+						"API_KEY":  "updated-api-key",
+					}),
+				),
+			},
+			{
+				// Step 6: Idempotency check after context_wo update
+				Config:   testAccVirtualMachineTemplateConfigContextWoUpdateContextWo,
+				PlanOnly: true,
+			},
+			{
+				// Step 7: Update both context and context_wo
+				Config: testAccVirtualMachineTemplateConfigContextWoUpdateBoth,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "context.HOSTNAME", "test-vm-final"),
+					// Verify the VM has both updated values
+					testAccCheckVMContextVariables("opennebula_virtual_machine.test", map[string]string{
+						"NETWORK":  "YES",
+						"HOSTNAME": "test-vm-final",
+						"API_KEY":  "final-api-key",
+					}),
+				),
+			},
+			{
+				// Step 8: Final idempotency check
+				Config:   testAccVirtualMachineTemplateConfigContextWoUpdateBoth,
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
+// testAccCheckVMContextVariables verifies that a VM has the expected context variables.
+// This is used to test WriteOnly context_wo values which are not stored in state.
+func testAccCheckVMContextVariables(resourceName string, expected map[string]string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
+
+		vmID, err := strconv.ParseUint(rs.Primary.ID, 10, 0)
+		if err != nil {
+			return fmt.Errorf("Failed to parse VM ID: %s", err)
+		}
+
+		vmInfo, err := controller.VM(int(vmID)).Info(false)
+		if err != nil {
+			return fmt.Errorf("Failed to get VM info: %s", err)
+		}
+
+		// Get the CONTEXT section from the VM template
+		contextVec, err := vmInfo.Template.GetVector("CONTEXT")
+		if err != nil {
+			return fmt.Errorf("Failed to get CONTEXT vector from VM: %s", err)
+		}
+
+		// Check each expected context variable
+		for key, expectedValue := range expected {
+			actualValue, err := contextVec.GetStr(key)
+			if err != nil {
+				return fmt.Errorf("Context variable %s not found in VM CONTEXT: %s", key, err)
+			}
+			if actualValue != expectedValue {
+				return fmt.Errorf("Context variable %s: expected '%s', got '%s'", key, expectedValue, actualValue)
+			}
+		}
+
+		return nil
+	}
+}
+
+// testAccCheckVMContextVariableExists verifies that a VM has a specific context variable (without checking value).
+// Useful for variables that OpenNebula encodes/encrypts (like PASSWORD).
+func testAccCheckVMContextVariableExists(resourceName string, key string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		config := testAccProvider.Meta().(*Configuration)
+		controller := config.Controller
+
+		vmID, err := strconv.ParseUint(rs.Primary.ID, 10, 0)
+		if err != nil {
+			return fmt.Errorf("Failed to parse VM ID: %s", err)
+		}
+
+		vmInfo, err := controller.VM(int(vmID)).Info(false)
+		if err != nil {
+			return fmt.Errorf("Failed to get VM info: %s", err)
+		}
+
+		// Get the CONTEXT section from the VM template
+		contextVec, err := vmInfo.Template.GetVector("CONTEXT")
+		if err != nil {
+			return fmt.Errorf("Failed to get CONTEXT vector from VM: %s", err)
+		}
+
+		// Check if the key exists
+		_, err = contextVec.GetStr(key)
+		if err != nil {
+			return fmt.Errorf("Context variable %s not found in VM CONTEXT: %s", key, err)
+		}
+
+		return nil
+	}
+}
+
+var testAccVirtualMachineTemplateConfigContextWo = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-contextwo"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
+  description = "VM created for testing context_wo"
+
+  context = {
+	NETWORK  = "YES"
+	HOSTNAME = "test-vm"
+  }
+
+  context_wo = {
+	API_KEY  = "secret-api-key"
+	PASSWORD = "secret-password"
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "test"
+  }
+
+  timeout = 5
+}
+`
+
+// Configuration with updated context (HOSTNAME changed)
+var testAccVirtualMachineTemplateConfigContextWoUpdateContext = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-contextwo"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
+  description = "VM created for testing context_wo"
+
+  context = {
+	NETWORK  = "YES"
+	HOSTNAME = "test-vm-updated"  # Changed from "test-vm"
+  }
+
+  context_wo = {
+	API_KEY  = "secret-api-key"  # Unchanged
+	PASSWORD = "secret-password"  # Unchanged
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "test"
+  }
+
+  timeout = 5
+}
+`
+
+// Configuration with updated context_wo (API_KEY changed)
+var testAccVirtualMachineTemplateConfigContextWoUpdateContextWo = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-contextwo"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
+  description = "VM created for testing context_wo"
+
+  context = {
+	NETWORK  = "YES"
+	HOSTNAME = "test-vm-updated"  # Unchanged from previous step
+  }
+
+  context_wo = {
+	API_KEY  = "updated-api-key"  # Changed from "secret-api-key"
+	PASSWORD = "secret-password"   # Unchanged
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "test"
+  }
+
+  timeout = 5
+}
+`
+
+// Configuration with both context and context_wo updated
+var testAccVirtualMachineTemplateConfigContextWoUpdateBoth = `
+resource "opennebula_virtual_machine" "test" {
+  name        = "test-virtual_machine-contextwo"
+  group       = "oneadmin"
+  permissions = "642"
+  memory = 128
+  cpu = 0.1
+  description = "VM created for testing context_wo"
+
+  context = {
+	NETWORK  = "YES"
+	HOSTNAME = "test-vm-final"  # Changed from "test-vm-updated"
+  }
+
+  context_wo = {
+	API_KEY  = "final-api-key"  # Changed from "updated-api-key"
+	PASSWORD = "secret-password"  # Unchanged
+  }
+
+  graphics {
+    type   = "VNC"
+    listen = "0.0.0.0"
+    keymap = "en-us"
+  }
+
+  os {
+    arch = "x86_64"
+    boot = ""
+  }
+
+  tags = {
+    env = "test"
+  }
+
+  timeout = 5
+}
+`
