@@ -111,6 +111,12 @@ func resourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 				Optional:    true,
 				Description: "IPAM driver",
 			},
+			"shared": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "This AR includes shared IPs",
+			},
 			"custom": {
 				Type:        schema.TypeMap,
 				Optional:    true,
@@ -190,6 +196,7 @@ func generateAR(d *schema.ResourceData) *vn.AddressRange {
 	if ipam != "" {
 		ar.Add("IPAM_MAD", ipam)
 	}
+	ar.Add("SHARED", boolToYesNo(d.Get("shared").(bool)))
 
 	switch artype {
 	case "IP4":
@@ -282,6 +289,7 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 	d.Set("mac", ar.MAC)
 	d.Set("ula_prefix", ar.ULAPrefix)
 	d.Set("global_prefix", ar.GlobalPrefix)
+	d.Set("shared", yesNoToBool(ar.Shared))
 
 	cfgLeasesApplied := make([]string, 0, len(ar.Leases))
 	holdIPs := d.Get("hold_ips").(*schema.Set).List()
@@ -403,6 +411,7 @@ func resourceOpennebulaVirtualNetworkAddressRangeUpdate(ctx context.Context, d *
 	if !updated && (d.HasChange("mac") || d.HasChange("size") ||
 		d.HasChange("global_prefix") || d.HasChange("ula_prefix") ||
 		d.HasChange("prefix_length") || d.HasChange("ipam") ||
+		d.HasChange("shared") ||
 		d.HasChange("custom")) {
 
 		arTpl := generateAR(d)
@@ -518,6 +527,18 @@ func ipHold(vnc *goca.VirtualNetworkController, ip string) error {
 	}
 
 	return nil
+}
+
+func boolToYesNo(b bool) string {
+	if b {
+		return "YES"
+	}
+
+	return "NO"
+}
+
+func yesNoToBool(v interface{}) bool {
+	return strings.EqualFold(fmt.Sprint(v), "YES")
 }
 
 func ipRelease(vnc *goca.VirtualNetworkController, ip string) error {

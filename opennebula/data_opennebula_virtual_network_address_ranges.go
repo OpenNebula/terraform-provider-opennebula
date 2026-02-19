@@ -109,6 +109,11 @@ func dataSourceOpennebulaVirtualNetworkAddressRanges() *schema.Resource {
 								Type: schema.TypeString,
 							},
 						},
+						"shared": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "This AR includes shared IPs",
+						},
 						"custom": {
 							Type:     schema.TypeMap,
 							Computed: true,

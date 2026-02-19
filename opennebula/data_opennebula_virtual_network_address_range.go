@@ -105,6 +105,11 @@ func dataSourceOpennebulaVirtualNetworkAddressRange() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"shared": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "This AR includes shared IPs",
+			},
 			"custom": {
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -200,6 +205,7 @@ func flattenAddressRange(ar vn.AR) map[string]interface{} {
 		heldIPs[i] = lease.IP
 	}
 	addressRange["held_ips"] = heldIPs
+	addressRange["shared"] = yesNoToBool(ar.Shared)
 
 	// Flatten custom attributes.
 	custom := make(map[string]interface{})
