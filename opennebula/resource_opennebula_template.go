@@ -579,10 +579,13 @@ func resourceOpennebulaTemplateExists(d *schema.ResourceData, meta interface{}) 
 
 	_, err = controller.Template(int(serviceTemplateID)).Info(false, false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
