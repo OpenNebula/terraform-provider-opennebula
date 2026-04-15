@@ -18,6 +18,11 @@ BUG FIXES:
 * resources/opennebula_template, opennebula_virtual_router_instance_template: ignore OpenNebula quote escaping when comparing `context` values such as `USER_DATA`
 * resources/opennebula_template, opennebula_virtual_router_instance_template: do not add another escape layer to `context` values such as `USER_DATA` when updating another attribute
 * resources/opennebula_template, opennebula_virtual_machine, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: ignore leading and trailing whitespace in `raw.data`
+* resources/opennebula_virtual_machine, opennebula_template: fix `firmware_secure = true` serialising as `"true"` instead of `"YES"`, which caused OpenNebula to silently ignore the value and disable SecureBoot (#631)
+
+NOTES:
+
+* resources created with a previous provider version store `FIRMWARE_SECURE="true"` in OpenNebula. After upgrading, run `terraform apply` once so the provider rewrites the value as `"YES"`. Until then, `terraform plan` will keep showing `firmware_secure` as changed.
 
 # 1.5.0 (June 26th, 2025)
 
