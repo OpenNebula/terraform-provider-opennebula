@@ -114,6 +114,7 @@ The following arguments are supported:
 * `security_groups` - (Optional) List of security group IDs to use on the virtual network.
 * `floating_ip` - (Optional) Allocate floating IP for the NIC. Defaults to `false`.
 * `floating_only` - (Optional) Do not allocate IP for the NIC. Defaults to `false`.
+* `routes` - (Optional) Comma separated static routes to be added to the NIC in format `CIDR_NET via GATEWAY` (i.e. `10.0.0.0/24 via 172.16.0.254,10.0.10.0/24 via 172.16.0.252`)
 
 ## Attribute Reference
 

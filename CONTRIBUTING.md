@@ -166,6 +166,29 @@ In the case of debugging the tests, we can add a configuration in the `.vscode/l
 
 Now, you can set a breakpoint in any test case and debug it executing the `Debug Terraform Provider Tests` launch configuration.
 
+## Running from CLI
+
+Building from the command line may lead to an error about the option `buildvcs`. To disable it by default execute the following:
+
+```bash
+go env -w GOFLAGS=-buildvcs=false
+```
+
+Afterwards, regular `make` commands can be issued. To execute only a certain test on a different OpenNebula server, the following variables must be defined.
+
+```
+export OPENNEBULA_ENDPOINT=http://...:2633/RPC2;
+export OPENNEBULA_USERNAME=...;
+export OPENNEBULA_PASSWORD=...;
+export OPENNEBULA_FLOW_ENDPOINT=http://...:5030;
+```
+
+To execute only a certain test the variable `TESTARGS` can be set up. For instance, to run only the `TestAccVirtualRouter` execute the following command:
+
+```
+TESTARGS="-run TestAccVirtualRouter" make testacc
+```
+
 ## Issues and Pull Requests
 
 You must use existing templates for Issues and Pull Requests.

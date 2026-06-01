@@ -99,6 +99,12 @@ func resourceOpennebulaVirtualRouterNIC() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"routes": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -133,6 +139,9 @@ func resourceOpennebulaVirtualRouterNICCreate(ctx context.Context, d *schema.Res
 	}
 	if v, ok := d.GetOk("physical_device"); ok {
 		nicTpl.Add("PHYDEV", v.(string))
+	}
+	if v, ok := d.GetOk("routes"); ok {
+		nicTpl.Add("ROUTES", v.(string))
 	}
 	if v, ok := d.GetOk("security_groups"); ok {
 		secGroups := ArrayToString(v.([]interface{}), ",")
