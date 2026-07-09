@@ -34,7 +34,7 @@ func dataOpennebulaTemplates() *schema.Resource {
 					Optional:    true,
 					Description: "Attribute used to sort the templates list, only works on integer attributes.",
 					ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-						value := strings.ToUpper(v.(string))
+						value := strings.ToLower(v.(string))
 
 						if !contains(value, sortOnTemplatesValues) {
 							errors = append(errors, fmt.Errorf("type %q must be one of: %s", k, strings.Join(sortOnTemplatesValues, ",")))
