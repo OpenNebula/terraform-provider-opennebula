@@ -1443,6 +1443,15 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
+	if d.HasChange("physical_device") {
+		tpl.Del(string(vnk.PhyDev))
+		vnphydev := d.Get("physical_device").(string)
+		if len(vnphydev) > 0 {
+			tpl.Add(vnk.PhyDev, vnphydev)
+		}
+		update = true
+	}
+
 	if d.HasChange("search_domain") {
 		tpl.Del(string(vnk.SearchDomain))
 		searchDomain := d.Get("search_domain").(string)
