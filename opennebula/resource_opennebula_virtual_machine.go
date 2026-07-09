@@ -1667,10 +1667,13 @@ func resourceOpennebulaVirtualMachineExists(d *schema.ResourceData, meta interfa
 
 	_, err = controller.VM(int(serviceTemplateID)).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualMachineUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
