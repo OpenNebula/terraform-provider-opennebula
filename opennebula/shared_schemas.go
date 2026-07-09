@@ -783,7 +783,11 @@ func addOS(tpl *vm.Template, os []interface{}) {
 			tpl.AddOS(vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
 			tpl.AddOS(vmk.UUID, osconfig["uuid"].(string))
 			tpl.AddOS(vmk.Firmware, osconfig["firmware"].(string))
-			tpl.AddOS(vmk.FirmwareSecure, osconfig["firmware_secure"].(bool))
+			if osconfig["firmware_secure"].(bool) {
+					tpl.AddOS(vmk.FirmwareSecure, "YES")
+				} else {
+					tpl.AddOS(vmk.FirmwareSecure, "NO")
+				}
 		}
 	}
 
@@ -1245,7 +1249,7 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	// Set OS to resource
 	if arch != "" {
 		firmwareSecureBool := false
-		if firmwareSecureErr == nil && firmwareSecure == "true" {
+		if firmwareSecureErr == nil && strings.EqualFold(firmwareSecure, "yes") {
 			firmwareSecureBool = true
 		}
 

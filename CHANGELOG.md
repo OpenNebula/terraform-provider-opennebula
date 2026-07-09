@@ -1,3 +1,9 @@
+# 1.5.1 (Unreleased)
+
+BUG FIXES:
+
+* resources/opennebula_virtual_machine, opennebula_template: fix `firmware_secure = true` serialising as `"true"` instead of `"YES"`, which caused OpenNebula to silently ignore the value and disable SecureBoot (#631)
+
 # 1.5.0 (June 26th, 2025)
 
 FEATURES:
