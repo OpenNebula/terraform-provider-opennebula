@@ -180,6 +180,7 @@ func commonInstanceSchema() map[string]*schema.Schema {
 		"lock":                  lockSchema(),
 		"sched_requirements":    schedReqSchema(),
 		"sched_ds_requirements": schedDSReqSchema(),
+		"autostart":             autostartSchema(),
 		"description":           descriptionSchema(),
 		"template_section":      templateSectionSchema(),
 	}
@@ -636,6 +637,22 @@ func descriptionSchema() *schema.Schema {
 	}
 }
 
+func autostartSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Whether the VM should automatically start when the host boots. Accepts 'yes' or 'no'.",
+		ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+			validValues := []string{"yes", "no"}
+			value := strings.ToLower(v.(string))
+			if value != "" && !contains(value, validValues) {
+				errors = append(errors, fmt.Errorf("%q must be one of: %s", k, strings.Join(validValues, ", ")))
+			}
+			return
+		},
+	}
+}
+
 func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 	disk := shared.NewDisk()
 
@@ -926,6 +943,11 @@ func generateVMTemplate(d *schema.ResourceData, tpl *vm.Template) error {
 
 	}
 
+	autostart, ok := d.GetOk("autostart")
+	if ok {
+		tpl.AddPair("AUTOSTART", autostart.(string))
+	}
+
 	//Generate RAW definition
 	raw := d.Get("raw").([]interface{})
 	for i := 0; i < len(raw); i++ {
@@ -967,6 +989,17 @@ func updateTemplate(d *schema.ResourceData, tpl *vm.Template) bool {
 			tpl.Placement(vmk.SchedDSRequirements, schedDSRequirements)
 		} else {
 			tpl.Del(string(vmk.SchedDSRequirements))
+		}
+		update = true
+	}
+
+	if d.HasChange("autostart") {
+		autostart := d.Get("autostart").(string)
+
+		if autostart == "yes" || autostart == "no" {
+			tpl.AddPair("AUTOSTART", autostart)
+		} else {
+			tpl.Del("AUTOSTART")
 		}
 		update = true
 	}
@@ -1361,6 +1394,16 @@ func flattenVMUserTemplate(d *schema.ResourceData, meta interface{}, inheritedTa
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Failed to find DESCRIPTION attribute",
+		})
+	}
+
+	autostart, _ := vmTemplate.GetStr("AUTOSTART")
+	_, inherited = inheritedTags["AUTOSTART"]
+	if !inherited {
+		err = d.Set("autostart", autostart)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Failed to find AUTOSTART attribute",
 		})
 	}
 
