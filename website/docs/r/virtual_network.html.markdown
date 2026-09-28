@@ -100,6 +100,8 @@ The following arguments are supported:
 * `lock` - (Optional) Lock the virtual network with a specific lock level. Supported values: `USE`, `MANAGE`, `ADMIN`, `ALL` or `UNLOCK`.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
 
+~> **Note:** A reservation cannot be modified in place. Changing any of `reservation_vnet`, `reservation_size`, `reservation_ar_id`, `reservation_first_ip` or `reservation_first_ip6` destroys the reservation and creates a new one. When `reservation_ar_id`, `reservation_first_ip` or `reservation_first_ip6` is not set, OpenNebula chooses the value and it is read back into the state.
+
 ### Address Range parameters
 
 `ar` supports the following arguments:

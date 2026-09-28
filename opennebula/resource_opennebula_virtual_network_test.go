@@ -260,6 +260,104 @@ func TestAccVirtualNetwork(t *testing.T) {
 	})
 }
 
+func TestAccVirtualNetworkReservationReplace(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualNetworkDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(testAccVirtualNetworkReservationReplaceConfig, ""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_ar_id", "0"),
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_first_ip", "172.16.200.1"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(testAccVirtualNetworkReservationReplaceConfig, `reservation_first_ip = "172.16.200.5"`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_first_ip", "172.16.200.5"),
+				),
+			},
+		},
+	})
+}
+
+func TestVirtualNetworkReservationDiff(t *testing.T) {
+	existing := &terraform.InstanceState{
+		ID: "42",
+		Attributes: map[string]string{
+			"name":                  "vip",
+			"reservation_vnet":      "394",
+			"reservation_ar_id":     "0",
+			"reservation_size":      "1",
+			"reservation_first_ip":  "10.0.0.50",
+			"reservation_first_ip6": "",
+		},
+	}
+	base := map[string]interface{}{
+		"name":             "vip",
+		"reservation_vnet": 394,
+		"reservation_size": 1,
+	}
+	with := func(k string, v interface{}) map[string]interface{} {
+		c := map[string]interface{}{}
+		for bk, bv := range base {
+			c[bk] = bv
+		}
+		c[k] = v
+		return c
+	}
+
+	cases := []struct {
+		name        string
+		state       *terraform.InstanceState
+		config      map[string]interface{}
+		requiresNew string
+	}{
+		{"ar_id and first_ip left unset", existing, base, ""},
+		{"first_ip changed", existing, with("reservation_first_ip", "10.0.0.51"), "reservation_first_ip"},
+		{"first_ip6 changed", existing, with("reservation_first_ip6", "fd00::1"), "reservation_first_ip6"},
+		{"size changed", existing, with("reservation_size", 2), "reservation_size"},
+		{"ar_id changed", existing, with("reservation_ar_id", 1), "reservation_ar_id"},
+		{"vnet changed", existing, with("reservation_vnet", 395), "reservation_vnet"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			diff, err := resourceOpennebulaVirtualNetwork().SimpleDiff(context.Background(),
+				tc.state, terraform.NewResourceConfigRaw(tc.config), &Configuration{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for k, attr := range diff.Attributes {
+				if !strings.HasPrefix(k, "reservation_") {
+					continue
+				}
+				if k != tc.requiresNew {
+					t.Errorf("unexpected diff on %s: %q => %q", k, attr.Old, attr.New)
+				} else if !attr.RequiresNew {
+					t.Errorf("%s changed in place, want replacement", k)
+				}
+			}
+			if tc.requiresNew != "" && diff.Attributes[tc.requiresNew] == nil {
+				t.Errorf("no diff on %s", tc.requiresNew)
+			}
+		})
+	}
+
+	t.Run("create keeps ar_id -1", func(t *testing.T) {
+		diff, err := resourceOpennebulaVirtualNetwork().SimpleDiff(context.Background(),
+			nil, terraform.NewResourceConfigRaw(base), &Configuration{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if attr := diff.Attributes["reservation_ar_id"]; attr == nil || attr.New != "-1" {
+			t.Errorf("reservation_ar_id on create = %+v, want -1", attr)
+		}
+	})
+}
+
 func testAccCheckVirtualNetworkDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Configuration)
 	controller := config.Controller
@@ -703,6 +801,31 @@ var testAccVirtualNetworkReservationConfig = `
 		reservation_first_ip = "172.16.100.3"
 	    security_groups = [0]
 	    permissions = 660
+	}
+`
+
+// Leaves reservation_ar_id and reservation_first_ip unset in the first step,
+// and sets reservation_first_ip through %s in the second.
+var testAccVirtualNetworkReservationReplaceConfig = `
+	resource "opennebula_virtual_network" "parent" {
+	  name   = "reservation_replace_parent"
+	  type   = "dummy"
+	  bridge = "onebr"
+	  mtu    = 1500
+	}
+
+	resource "opennebula_virtual_network_address_range" "parent" {
+		virtual_network_id = opennebula_virtual_network.parent.id
+		ar_type            = "IP4"
+		size               = 10
+		ip4                = "172.16.200.1"
+	}
+
+	resource "opennebula_virtual_network" "reservation" {
+		name             = "reservation_replace"
+		reservation_vnet = opennebula_virtual_network_address_range.parent.virtual_network_id
+		reservation_size = 2
+		%s
 	}
 `
 
