@@ -52,10 +52,10 @@ func commonTemplateSchemas() map[string]*schema.Schema {
 				Description: "Name of the template",
 			},
 			"features": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
-				MinItems:    1,
-				Description: "List of Features",
+				MaxItems:    1,
+				Description: "Feature flags for the VM. A single block; changed attributes are updated in place.",
 				Elem: &schema.Resource{
 					Schema: FeaturesFields(),
 				},
@@ -74,6 +74,13 @@ func commonTemplateSchemas() map[string]*schema.Schema {
 		},
 	)
 }
+
+// OpenNebula stores this FEATURES attribute as LOCALTIME.
+// goca's vmk.LocalTime constant is LOCAL_TIME, which never matches.
+const featureLocalTime vmk.Feature = "LOCALTIME"
+
+// goca has no constant for this FEATURES attribute.
+const featureVirtioBlkQueues vmk.Feature = "VIRTIO_BLK_QUEUES"
 
 func FeaturesFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
@@ -161,6 +168,11 @@ func FeaturesFields() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "Numer of vCPU queues for the virtio-scsi controller.",
+		},
+		"virtio_blk_queues": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Number of queues for the virtio-blk driver.",
 		},
 		"iothreads": {
 			Type:        schema.TypeString,
@@ -469,6 +481,16 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 		return diags
 	}
 
+	err = flattenContext(d, &tpl.Template)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to flatten context",
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+		})
+		return diags
+	}
+
 	flattenDiags := flattenVMUserTemplate(d, meta, nil, &tpl.Template.Template)
 	for _, diag := range flattenDiags {
 		diag.Detail = fmt.Sprintf("template (ID: %s): %s", d.Id(), err)
@@ -482,20 +504,160 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	return nil
 }
 
+func configuredFeatures(d *schema.ResourceData) []map[string]interface{} {
+	raw, ok := d.Get("features").([]interface{})
+	if !ok {
+		return nil
+	}
+
+	features := make([]map[string]interface{}, 0, len(raw))
+	for _, item := range raw {
+		if item == nil {
+			continue
+		}
+		features = append(features, item.(map[string]interface{}))
+	}
+
+	return features
+}
+
+// addFeatures writes FEATURES attributes onto an existing template.
+// Empty values remove that attribute. Other FEATURES keys are left in place.
+func addFeatures(tpl *vm.Template, features []map[string]interface{}) {
+	if len(features) == 0 {
+		tpl.Del(vmk.FeaturesVec)
+		return
+	}
+
+	for _, featuresMap := range features {
+		log.Printf("Number of FEATURES vars: %d", len(featuresMap))
+		log.Printf("FEATURES Map: %s", featuresMap)
+		for key, value := range featuresMap {
+			keyUp := strings.ToUpper(key)
+			if keyUp == string(featureLocalTime) {
+				deleteFeature(tpl, string(vmk.LocalTime))
+			}
+			deleteFeature(tpl, keyUp)
+			if value == nil || value == "" {
+				continue
+			}
+			if err := tpl.AddFeature(vmk.Feature(keyUp), fmt.Sprint(value)); err != nil {
+				log.Printf("[ERROR] Failed to add feature %s: %s", keyUp, err)
+			}
+		}
+	}
+}
+
+func addContext(tpl *vm.Template, context map[string]interface{}) {
+	tpl.Del(vmk.ContextVec)
+	if len(context) == 0 {
+		return
+	}
+
+	log.Printf("Number of CONTEXT vars: %d", len(context))
+	log.Printf("CONTEXT Map: %s", context)
+	for key, value := range context {
+		keyUp := strings.ToUpper(key)
+		if err := tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value)); err != nil {
+			log.Printf("[ERROR] Failed to add context %s: %s", keyUp, err)
+		}
+	}
+}
+
+func contextValueMatches(configured, remote string) bool {
+	if normalizeRawData(configured) == normalizeRawData(remote) {
+		return true
+	}
+	return normalizeRawData(configured) == normalizeRawData(unescapeTemplateValue(remote))
+}
+
+// decodedTemplateValue returns the text OpenNebula stored, without a single
+// extra escape layer of \ and ".
+func decodedTemplateValue(remote string) string {
+	unescaped := unescapeTemplateValue(remote)
+	if escapeTemplateValue(unescaped) == remote {
+		return unescaped
+	}
+	return remote
+}
+
+// decodeContextValues removes the escape layer OpenNebula returns on CONTEXT
+// attributes. Updates reserialize the whole template, and that serialization
+// escapes \ and " again. Leaving the returned layer in place writes a second
+// set of backslashes onto values such as START_SCRIPT.
+func decodeContextValues(tpl *vm.Template) {
+	for _, vec := range tpl.GetVectors(string(vmk.ContextVec)) {
+		for i := range vec.Pairs {
+			vec.Pairs[i].Value = decodedTemplateValue(vec.Pairs[i].Value)
+		}
+	}
+}
+
+func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
+	vec, err := tpl.GetVector(vmk.ContextVec)
+	if err != nil || vec == nil {
+		return nil
+	}
+
+	existing := map[string]interface{}{}
+	if raw, ok := d.GetOk("context"); ok {
+		existing = raw.(map[string]interface{})
+	}
+
+	stateKeyByUpper := make(map[string]string, len(existing))
+	for key := range existing {
+		stateKeyByUpper[strings.ToUpper(key)] = key
+	}
+
+	contextMap := make(map[string]interface{}, len(vec.Pairs))
+	for _, pair := range vec.Pairs {
+		key := pair.Key()
+		if orig, ok := stateKeyByUpper[strings.ToUpper(key)]; ok {
+			key = orig
+			// Keep the configured text when OpenNebula only trimmed it or
+			// stored an extra escape of quotes and backslashes.
+			if current, ok := existing[key].(string); ok && contextValueMatches(current, pair.Value) {
+				contextMap[key] = current
+				continue
+			}
+		}
+		contextMap[key] = decodedTemplateValue(pair.Value)
+	}
+
+	return d.Set("context", contextMap)
+}
+
+func deleteFeature(tpl *vm.Template, key string) {
+	vectors := tpl.GetVectors(vmk.FeaturesVec)
+	if len(vectors) == 1 {
+		vectors[0].Del(key)
+	}
+}
+
+func featureValue(tpl *vm.Template, key vmk.Feature) string {
+	value, _ := tpl.GetFeature(key)
+	return value
+}
+
 func flattenFeatures(d *schema.ResourceData, tpl *vm.Template) error {
 	// Features
 	featuresMap := make([]map[string]interface{}, 0, 1)
-	pae, _ := tpl.GetFeature(vmk.PAE)
-	acpi, _ := tpl.GetFeature(vmk.ACPI)
-	apic, _ := tpl.GetFeature(vmk.APIC)
-	localtime, _ := tpl.GetFeature(vmk.LocalTime)
-	hyperv, _ := tpl.GetFeature("HYPERV")
-	guest_agent, _ := tpl.GetFeature(vmk.GuestAgent)
-	virtio_scsi_queues, _ := tpl.GetFeature(vmk.VirtIOScsiQueues)
-	iothreads, _ := tpl.GetFeature("IOTHREADS")
+	pae := featureValue(tpl, vmk.PAE)
+	acpi := featureValue(tpl, vmk.ACPI)
+	apic := featureValue(tpl, vmk.APIC)
+	localtime := featureValue(tpl, featureLocalTime)
+	if localtime == "" {
+		// Older templates may have been stored with goca's LOCAL_TIME spelling.
+		localtime = featureValue(tpl, vmk.LocalTime)
+	}
+	hyperv := featureValue(tpl, vmk.HyperV)
+	guest_agent := featureValue(tpl, vmk.GuestAgent)
+	virtio_scsi_queues := featureValue(tpl, vmk.VirtIOScsiQueues)
+	virtio_blk_queues := featureValue(tpl, featureVirtioBlkQueues)
+	iothreads := featureValue(tpl, vmk.IOThreads)
 
 	// Set features to resource
-	if pae != "" || acpi != "" || apic != "" || localtime != "" || hyperv != "" || guest_agent != "" || virtio_scsi_queues != "" || iothreads != "" {
+	if pae != "" || acpi != "" || apic != "" || localtime != "" || hyperv != "" || guest_agent != "" || virtio_scsi_queues != "" || virtio_blk_queues != "" || iothreads != "" {
 		featuresMap = append(featuresMap, map[string]interface{}{
 			"pae":                pae,
 			"acpi":               acpi,
@@ -504,6 +666,7 @@ func flattenFeatures(d *schema.ResourceData, tpl *vm.Template) error {
 			"hyperv":             hyperv,
 			"guest_agent":        guest_agent,
 			"virtio_scsi_queues": virtio_scsi_queues,
+			"virtio_blk_queues":  virtio_blk_queues,
 			"iothreads":          iothreads,
 		})
 
@@ -683,24 +846,17 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 
 	update := false
 	newTpl := tpl.Template
+	// Decode before applying config. addContext then replaces CONTEXT with the
+	// raw configured text when that block itself changed.
+	decodeContextValues(&newTpl)
 
 	if d.HasChange("features") {
-		newTpl.Del("FEATURES")
+		addFeatures(&newTpl, configuredFeatures(d))
+		update = true
+	}
 
-		features := d.Get("features").(*schema.Set).List()
-
-		for _, featuresInterface := range features {
-			featuresMap := featuresInterface.(map[string]interface{})
-			log.Printf("Number of FEATURES vars: %d", len(featuresMap))
-			log.Printf("FEATURES Map: %s", featuresMap)
-			for key, value := range featuresMap {
-				if value != "" {
-					keyUp := strings.ToUpper(key)
-					newTpl.AddFeature(vmk.Feature(keyUp), fmt.Sprint(value))
-				}
-			}
-		}
-
+	if d.HasChange("context") {
+		addContext(&newTpl, d.Get("context").(map[string]interface{}))
 		update = true
 	}
 
@@ -931,31 +1087,9 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 
 	tpl.Add(vmk.Name, name)
 
-	//Generate FEATURES definition
-	features := d.Get("features").(*schema.Set).List()
+	addFeatures(tpl, configuredFeatures(d))
 
-	for _, featuresInterface := range features {
-		featuresMap := featuresInterface.(map[string]interface{})
-		log.Printf("Number of FEATURES vars: %d", len(featuresMap))
-		log.Printf("FEATURES Map: %s", featuresMap)
-		for key, value := range featuresMap {
-			if value != "" {
-				keyUp := strings.ToUpper(key)
-				tpl.AddFeature(vmk.Feature(keyUp), fmt.Sprint(value))
-			}
-		}
-	}
-
-	//Generate CONTEXT definition
-	context := d.Get("context").(map[string]interface{})
-	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
-
-	// Add new context elements to the template
-	for key, value := range context {
-		keyUp := strings.ToUpper(key)
-		tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
-	}
+	addContext(tpl, d.Get("context").(map[string]interface{}))
 
 	uInputs := d.Get("user_inputs").(map[string]interface{})
 	if len(uInputs) > 0 {

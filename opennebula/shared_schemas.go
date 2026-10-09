@@ -117,9 +117,10 @@ func commonInstanceSchema() map[string]*schema.Schema {
 						Description: "Name of the hypervisor: kvm, lxd, vmware",
 					},
 					"data": {
-						Type:        schema.TypeString,
-						Required:    true,
-						Description: "Low-level data to pass to the hypervisor",
+						Type:             schema.TypeString,
+						Required:         true,
+						DiffSuppressFunc: diffSuppressRawData,
+						Description:      "Low-level data to pass to the hypervisor",
 					},
 				},
 			},
@@ -990,6 +991,43 @@ func updateTemplate(d *schema.ResourceData, tpl *vm.Template) bool {
 	}
 
 	return update
+}
+
+// OpenNebula trims leading and trailing whitespace from template attribute values.
+func normalizeRawData(value string) string {
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	return strings.TrimSpace(value)
+}
+
+// escapeTemplateValue is how a parsed OpenNebula attribute comes back when the
+// original text contained quotes or backslashes: each \ and " gains a backslash.
+func escapeTemplateValue(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `"`, `\"`)
+	return value
+}
+
+// unescapeTemplateValue reverses escapeTemplateValue. A backslash that does not
+// escape \ or " is left unchanged.
+func unescapeTemplateValue(value string) string {
+	var b strings.Builder
+	b.Grow(len(value))
+	for i := 0; i < len(value); i++ {
+		if value[i] == '\\' && i+1 < len(value) {
+			next := value[i+1]
+			if next == '\\' || next == '"' {
+				b.WriteByte(next)
+				i++
+				continue
+			}
+		}
+		b.WriteByte(value[i])
+	}
+	return b.String()
+}
+
+func diffSuppressRawData(k, old, new string, d *schema.ResourceData) bool {
+	return normalizeRawData(old) == normalizeRawData(new)
 }
 
 func updateRaw(d *schema.ResourceData, tpl *dyn.Template) {
