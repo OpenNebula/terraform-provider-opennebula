@@ -224,6 +224,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"reservation_vnet": {
 				Type:          schema.TypeInt,
 				Optional:      true,
+				ForceNew:      true,
 				Description:   "Create a reservation from this VNET ID",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask", "network_address", "search_domain"},
 				Default:       -1,
@@ -231,25 +232,36 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"reservation_size": {
 				Type:          schema.TypeInt,
 				Optional:      true,
+				ForceNew:      true,
 				Description:   "Reserve this many IPs from reservation_vnet",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask", "network_address", "search_domain"},
 			},
 			"reservation_first_ip": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
 				Description:   "First IP of the reservation",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask"},
 			},
 			"reservation_first_ip6": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
 				Description:   "First IP6 of the reservation",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask"},
 			},
 			"reservation_ar_id": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				Default:       -1,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  -1,
+				ForceNew: true,
+				// -1 lets OpenNebula pick the range and Read stores
+				// the real one, so only a create needs the -1.
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return new == "-1" && d.Id() != ""
+				},
 				Description:   "Address Range ID to be used for the reservation",
 				ConflictsWith: []string{"bridge", "physical_device", "ar", "hold_ips", "type", "vlan_id", "automatic_vlan_id", "mtu", "dns", "gateway", "network_mask"},
 			},
