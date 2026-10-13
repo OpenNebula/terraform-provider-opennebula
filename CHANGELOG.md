@@ -1,9 +1,3 @@
-# 1.5.1 (Unreleased)
-
-BUG FIXES:
-
-* resources/opennebula_virtual_network: changing a `reservation_*` attribute now replaces the reservation instead of planning an update that never applies. A configuration changed while this was broken now plans a replacement (#643)
-
 # 1.5.0 (June 26th, 2025)
 
 FEATURES:
