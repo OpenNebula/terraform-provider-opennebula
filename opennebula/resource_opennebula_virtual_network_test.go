@@ -274,8 +274,12 @@ func TestAccVirtualNetworkReservationReplace(t *testing.T) {
 				),
 			},
 			{
-				Config: fmt.Sprintf(testAccVirtualNetworkReservationReplaceConfig, `reservation_first_ip = "172.16.200.5"`),
+				Config: fmt.Sprintf(testAccVirtualNetworkReservationReplaceConfig, `
+					reservation_ar_id = opennebula_virtual_network_address_range.parent.id
+					reservation_first_ip = "172.16.200.5"
+				`),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_ar_id", "0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.reservation", "reservation_first_ip", "172.16.200.5"),
 				),
 			},
@@ -805,7 +809,8 @@ var testAccVirtualNetworkReservationConfig = `
 `
 
 // Leaves reservation_ar_id and reservation_first_ip unset in the first step,
-// and sets reservation_first_ip through %s in the second.
+// and sets both through %s in the second. OpenNebula requires an explicit AR_ID
+// when creating an IP-based reservation, including when replacing an existing one.
 var testAccVirtualNetworkReservationReplaceConfig = `
 	resource "opennebula_virtual_network" "parent" {
 	  name   = "reservation_replace_parent"
