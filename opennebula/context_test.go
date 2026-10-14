@@ -40,6 +40,20 @@ func TestAddContextReplacesContextVector(t *testing.T) {
 	}
 }
 
+func TestFlattenContextClearsMissingContext(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, map[string]*schema.Schema{
+		"context": contextSchema(),
+	}, map[string]interface{}{
+		"context": map[string]interface{}{"NETWORK": "YES"},
+	})
+	if err := flattenContext(d, vm.NewTemplate()); err != nil {
+		t.Fatal(err)
+	}
+	if got := d.Get("context").(map[string]interface{}); len(got) != 0 {
+		t.Fatalf("context = %#v, want empty", got)
+	}
+}
+
 func TestFlattenContextReadsRemoteValue(t *testing.T) {
 	tpl := vm.NewTemplate()
 	if err := tpl.AddCtx(vmk.Context("EJECT_CDROM"), "YES"); err != nil {

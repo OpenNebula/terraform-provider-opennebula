@@ -594,9 +594,13 @@ func decodeContextValues(tpl *vm.Template) {
 }
 
 func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
+	if len(tpl.GetVectors(vmk.ContextVec)) == 0 {
+		return d.Set("context", map[string]interface{}{})
+	}
+
 	vec, err := tpl.GetVector(vmk.ContextVec)
-	if err != nil || vec == nil {
-		return nil
+	if err != nil {
+		return err
 	}
 
 	existing := map[string]interface{}{}
