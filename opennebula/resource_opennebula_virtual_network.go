@@ -1410,6 +1410,21 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 	tpl := vnInfos.Template
 	update := false
 
+	if d.HasChange("mtu") || d.HasChange("guest_mtu") {
+		mtu := d.Get("mtu").(int)
+		guestMTU := d.Get("guest_mtu").(int)
+
+		if guestMTU > mtu {
+			return diag.Errorf("Invalid: Guest MTU (%v) is greater than MTU (%v)", guestMTU, mtu)
+		}
+
+		tpl.Del("MTU")
+		tpl.AddPair("MTU", mtu)
+		tpl.Del(string(vnk.GuestMTU))
+		tpl.AddPair(string(vnk.GuestMTU), guestMTU)
+		update = true
+	}
+
 	if d.HasChange("description") {
 		tpl.Del("DESCRIPTION")
 		description := d.Get("description").(string)
