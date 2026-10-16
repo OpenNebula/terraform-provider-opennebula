@@ -925,6 +925,12 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
+	if d.HasChange("os") {
+		newTpl.Del("OS")
+		addOS(&newTpl, d.Get("os").([]interface{}))
+		update = true
+	}
+
 	if d.HasChange("disk") {
 		newTpl.Del("DISK")
 
@@ -937,6 +943,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			})
 			return diags
 		}
+		update = true
 	}
 
 	if d.HasChange("nic") {
@@ -1047,9 +1054,9 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 
 func resourceOpennebulaTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	err := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
-	if err != nil {
-		return nil
+	diags := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	return resourceOpennebulaTemplateRead(ctx, d, meta)
