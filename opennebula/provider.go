@@ -13,6 +13,13 @@ import (
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 )
 
+func newProviderTransport(insecure bool) *http.Transport {
+	return &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+	}
+}
+
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -164,9 +171,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	}
 
 	insecure := d.Get("insecure")
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure.(bool)},
-	}
+	tr := newProviderTransport(insecure.(bool))
 
 	oneClient := goca.NewClient(goca.NewConfig(username.(string),
 		password.(string),

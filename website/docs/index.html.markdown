@@ -82,6 +82,27 @@ terraform init
 terraform plan
 ```
 
+## Proxy support
+
+Connections to both the OpenNebula XML-RPC API and OneFlow respect the standard proxy environment variables:
+
+* `HTTP_PROXY` / `http_proxy` - Proxy URL for HTTP endpoints.
+* `HTTPS_PROXY` / `https_proxy` - Proxy URL for HTTPS endpoints. An HTTP proxy uses CONNECT to tunnel HTTPS connections.
+* `NO_PROXY` / `no_proxy` - Comma-separated hosts, domains, IP addresses, or CIDR ranges that bypass the proxy. Use `*` to bypass it for all hosts.
+
+Uppercase variables take precedence over lowercase variables. Without a matching proxy variable, connections are direct. Localhost and loopback addresses always bypass the proxy. TLS verification remains enabled unless `insecure` is set.
+
+Set these variables before starting Terraform or OpenTofu:
+
+```bash
+export HTTP_PROXY="http://proxy.example.com:3128"
+export HTTPS_PROXY="http://proxy.example.com:3128"
+export NO_PROXY="localhost,127.0.0.1,.internal.example.com"
+tofu plan
+```
+
+No additional provider attributes are required. Proxy URLs may include authentication credentials; treat these as secrets and do not commit them or share them in logs. An HTTP endpoint sends API traffic without TLS, including OpenNebula authentication data, through the proxy. Prefer HTTPS endpoints when using a proxy.
+
 ## Using tags
 
 ### Resource tags
