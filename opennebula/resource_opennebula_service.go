@@ -677,10 +677,13 @@ func resourceOpennebulaServiceExists(d *schema.ResourceData, meta interface{}) (
 
 	_, err = getServiceInfo(controller, int(serviceID))
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaServiceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
