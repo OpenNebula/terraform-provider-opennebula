@@ -27,11 +27,16 @@ var (
 		LCMs:   []vm.LCMState{vm.LcmInit, vm.Prolog, vm.Boot},
 	}
 
+	// Failure LCM states, an error unless the caller expects them
+	vmFailureStates = VMStates{
+		LCMs: []vm.LCMState{vm.BootFailure, vm.PrologFailure, vm.EpilogFailure},
+	}
+
 	// Deletion: terminate the VM
 	vmDeleteReadyStates = VMStates{
 		States: []vm.State{vm.Hold, vm.Poweroff, vm.Stopped, vm.Undeployed, vm.Suspended, vm.Done, vm.Pending},
 		LCMs:   []vm.LCMState{vm.Running},
-	}
+	}.Append(vmFailureStates)
 
 	vmDeleteTransientStates = VMStates{
 		LCMs: []vm.LCMState{vm.Shutdown, vm.Epilog},
@@ -160,9 +165,10 @@ func waitForVMStates(ctx context.Context, vmc *goca.VMController, stateChangeCon
 		if vmState == vm.Active {
 
 			// In case we are in some failure state, we try to retrieve more error informations from the vm user template
-			if vmLCMState == vm.BootFailure ||
-				vmLCMState == vm.PrologFailure ||
-				vmLCMState == vm.EpilogFailure {
+			lcmStr := vmLCMState.String()
+			if contains(lcmStr, vmFailureStates.ToStrings()) &&
+				!contains(lcmStr, stateChangeConf.Pending) &&
+				!contains(lcmStr, stateChangeConf.Target) {
 				vmerr, _ := vmInfos.UserTemplate.Get(vmk.Error)
 				return vmInfos, vmLCMState.String(), fmt.Errorf("VM (ID:%d) entered fail state, error: %s", vmInfos.ID, vmerr)
 			}

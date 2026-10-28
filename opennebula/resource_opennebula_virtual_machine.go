@@ -3133,7 +3133,7 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 		finalStrs,
 	)
 
-	_, err = waitForVMStates(ctx, vmc, stateConf)
+	readyInfos, err := waitForVMStates(ctx, vmc, stateConf)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -3163,6 +3163,15 @@ func resourceOpennebulaVirtualMachineDelete(ctx context.Context, d *schema.Resou
 	transientStrs := NewVMLCMState(vm.Running).
 		Append(vmDeleteTransientStates).
 		ToStrings()
+
+	// Terminate from a failure state cleans up asynchronously, so the VM can
+	// keep reporting that state until it reaches DONE.
+	if vmInfos, ok := readyInfos.(*vm.VM); ok {
+		vmState, vmLcmState, _ := vmInfos.State()
+		if vmState == vm.Active && contains(vmLcmState.String(), vmFailureStates.ToStrings()) {
+			transientStrs = append(transientStrs, NewVMLCMState(vmLcmState, vm.CleanupDelete).ToStrings()...)
+		}
+	}
 
 	stateConf = NewVMStateConf(timeout,
 		transientStrs,
