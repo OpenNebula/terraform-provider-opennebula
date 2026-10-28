@@ -287,6 +287,38 @@ func TestAccVirtualNetworkReservationReplace(t *testing.T) {
 	})
 }
 
+func TestAccVirtualNetworkSecurityGroupsUpdate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualNetworkDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(testAccVirtualNetworkSecurityGroupsConfig, "[0]"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.sg", "security_groups.#", "1"),
+					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.sg", "security_groups.*", "0"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(testAccVirtualNetworkSecurityGroupsConfig, "[0, opennebula_security_group.sg.id]"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.sg", "security_groups.#", "2"),
+					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.sg", "security_groups.*", "0"),
+					resource.TestCheckTypeSetElemAttrPair("opennebula_virtual_network.sg", "security_groups.*", "opennebula_security_group.sg", "id"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(testAccVirtualNetworkSecurityGroupsConfig, "[0]"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_network.sg", "security_groups.#", "1"),
+					resource.TestCheckTypeSetElemAttr("opennebula_virtual_network.sg", "security_groups.*", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestVirtualNetworkReservationDiff(t *testing.T) {
 	existing := &terraform.InstanceState{
 		ID: "42",
@@ -842,6 +874,29 @@ var testAccVirtualNetworkReservationNoNetworkConfig = `
 	    reservation_size = 1
 	    security_groups = [0]
 	    permissions = 660
+	}
+`
+
+var testAccVirtualNetworkSecurityGroupsConfig = `
+	resource "opennebula_security_group" "sg" {
+	  name = "vnet_sg_update"
+	  rule {
+	    protocol  = "ALL"
+	    rule_type = "OUTBOUND"
+	  }
+	}
+
+	resource "opennebula_virtual_network" "sg" {
+	  name   = "vnet_sg_update"
+	  type   = "dummy"
+	  bridge = "onebr"
+	  mtu    = 1500
+	  ar {
+	    ar_type = "IP4"
+	    size    = 5
+	    ip4     = "172.16.210.1"
+	  }
+	  security_groups = %s
 	}
 `
 
