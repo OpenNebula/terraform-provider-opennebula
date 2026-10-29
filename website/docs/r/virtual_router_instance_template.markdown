@@ -38,14 +38,14 @@ resource "opennebula_virtual_router_instance_template" "example" {
   }
 
   tags = {
-    environment = "example"
+    hypervisor = "kvm"
   }
 
-    template_section {
-   name = "example"
-   elements = {
+  template_section {
+    name = "example"
+    elements = {
       key1 = "value1"
-   }
+    }
   }
 }
 ```
@@ -113,6 +113,7 @@ resource "opennebula_virtual_router_instance_template" "example" {
 * `hyperv` - (Optional) Add hyperv extensions to the VM. The options can be configured in the driver configuration, HYPERV_OPTIONS.
 * `guest_agent` - (Optional) Enables the QEMU Guest Agent communication. This only creates the socket inside the VM, the Guest Agent itself must be installed and started in the VM. (Can be `YES` or `NO`)
 * `virtio_scsi_queues` - (Optional) Numer of vCPU queues for the virtio-scsi controller.
+* `virtio_blk_queues` - (Optional) Number of queues for the virtio-blk driver.
 * `iothreads` - (Optional) umber of iothreads for virtio disks. By default threads will be assign to disk by round robin algorithm. Disk thread id can be forced by disk IOTHREAD attribute.
 
 ### Disk parameters

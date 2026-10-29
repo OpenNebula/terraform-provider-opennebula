@@ -4,6 +4,7 @@ package opennebula
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"testing"
@@ -17,6 +18,11 @@ import (
 )
 
 func TestAccServiceTemplate(t *testing.T) {
+	// Setup talks to OpenNebula before resource.Test can skip the test.
+	if os.Getenv(resource.EnvTfAcc) == "" {
+		t.Skipf("Acceptance tests skipped unless env '%s' set", resource.EnvTfAcc)
+	}
+
 	vm_template_id, _ := setUpServiceTemplateTests()
 	tmpl_body := "{\\\"TEMPLATE\\\":{\\\"BODY\\\":{\\\"name\\\":\\\"aa\\\",\\\"deployment\\\":\\\"straight\\\",\\\"roles\\\":[{\\\"name\\\":\\\"master\\\",\\\"cardinality\\\":3,\\\"template_id\\\":"
 	tmpl_body = tmpl_body + strconv.Itoa(vm_template_id) + ",\\\"min_vms\\\":2,\\\"type\\\":\\\"vm\\\"}]}}}"

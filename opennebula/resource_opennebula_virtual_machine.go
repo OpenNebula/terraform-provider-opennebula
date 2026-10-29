@@ -2125,7 +2125,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				}
 
 			} else {
-				updateVMTemplateVec(tpl, "CONTEXT", appliedContext, newContext)
+				err = updateVMTemplateVec(tpl, "CONTEXT", appliedContext, newContext)
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
@@ -3048,6 +3048,19 @@ func attachNicAliasList(ctx context.Context, vmc *goca.VMController, nicAliasLis
 	return nil
 }
 
+func lookupMapFold(m map[string]interface{}, key string) (interface{}, bool) {
+	if value, ok := m[key]; ok {
+		return value, true
+	}
+	upper := strings.ToUpper(key)
+	for candidate, value := range m {
+		if strings.ToUpper(candidate) == upper {
+			return value, true
+		}
+	}
+	return nil, false
+}
+
 // updateVMVec update a vector of an existing VM template
 func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg map[string]interface{}) error {
 
@@ -3064,7 +3077,7 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 		for key := range appliedCfg {
 			keyUp := strings.ToUpper(key)
 
-			value, ok := newCfg[keyUp]
+			value, ok := lookupMapFold(newCfg, key)
 			if ok {
 				// update existing element
 				targetVec.Del(keyUp)
@@ -3082,8 +3095,7 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 	for key, value := range newCfg {
 		keyUp := strings.ToUpper(key)
 
-		_, ok := appliedCfg[keyUp]
-		if ok {
+		if _, ok := lookupMapFold(appliedCfg, key); ok {
 			continue
 		}
 
