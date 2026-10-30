@@ -117,7 +117,7 @@ func flattenTemplateTags(d *schema.ResourceData, meta interface{}, template *dyn
 	// Get only tags described in the configuration
 	if tagsInterface, ok := d.GetOk("tags"); ok {
 
-		for k, _ := range tagsInterface.(map[string]interface{}) {
+		for k, configured := range tagsInterface.(map[string]interface{}) {
 			key := strings.ToUpper(k)
 			tagValue, err := template.GetStr(key)
 			if err != nil {
@@ -125,6 +125,9 @@ func flattenTemplateTags(d *schema.ResourceData, meta interface{}, template *dyn
 					Severity: diag.Warning,
 					Summary:  "Failed to get tag from the template",
 				})
+			}
+			if text, ok := configured.(string); ok && keepConfiguredSecret(k, text, tagValue, isTemplateEncryptedAttribute(k)) {
+				tagValue = text
 			}
 			tags[k] = tagValue
 			tagsAll[k] = tagValue

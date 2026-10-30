@@ -2043,7 +2043,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				newOS := newOSSlice[0].(map[string]interface{})
 				appliedOS := appliedOSSlice[0].(map[string]interface{})
 
-				err := updateVMTemplateVec(tpl, "OS", appliedOS, newOS)
+				err := updateVMTemplateVec(tpl, "OS", osTemplateConfig(appliedOS), osTemplateConfig(newOS))
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,

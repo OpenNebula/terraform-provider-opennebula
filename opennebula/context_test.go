@@ -155,6 +155,190 @@ func contextPairString(tpl *vm.Template, key string) string {
 	return ""
 }
 
+func TestFlattenContextKeepsConfiguredPassword(t *testing.T) {
+	const configured = "Secret123"
+	// Ciphertext shape returned by OpenNebula for CONTEXT/PASSWORD.
+	const remote = "mU18gesj9B80f/iOrZrg8A=="
+
+	tpl := vm.NewTemplate()
+	if err := tpl.AddCtx(vmk.Context("PASSWORD"), remote); err != nil {
+		t.Fatal(err)
+	}
+	if err := tpl.AddCtx(vmk.Context("NETWORK"), "YES"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tpl.AddCtx(vmk.Context("USERNAME"), "Administrator"); err != nil {
+		t.Fatal(err)
+	}
+
+	d := schema.TestResourceDataRaw(t, map[string]*schema.Schema{
+		"context": contextSchema(),
+	}, map[string]interface{}{
+		"context": map[string]interface{}{
+			"PASSWORD": "Secret123",
+			"NETWORK":  "YES",
+			"USERNAME": "Administrator",
+		},
+	})
+
+	if err := flattenContext(d, tpl); err != nil {
+		t.Fatal(err)
+	}
+
+	got := d.Get("context").(map[string]interface{})
+	if got["PASSWORD"] != configured {
+		t.Fatalf("PASSWORD = %q, want configured value", got["PASSWORD"])
+	}
+	if got["NETWORK"] != "YES" || got["USERNAME"] != "Administrator" {
+		t.Fatalf("context = %#v", got)
+	}
+}
+
+func TestFlattenContextReadsUnencryptedChanges(t *testing.T) {
+	tpl := vm.NewTemplate()
+	if err := tpl.AddCtx(vmk.Context("PASSWORD"), "mU18gesj9B80f/iOrZrg8A=="); err != nil {
+		t.Fatal(err)
+	}
+	if err := tpl.AddCtx(vmk.Context("NETWORK"), "NO"); err != nil {
+		t.Fatal(err)
+	}
+
+	d := schema.TestResourceDataRaw(t, map[string]*schema.Schema{
+		"context": contextSchema(),
+	}, map[string]interface{}{
+		"context": map[string]interface{}{
+			"PASSWORD": "Secret123",
+			"NETWORK":  "YES",
+		},
+	})
+
+	if err := flattenContext(d, tpl); err != nil {
+		t.Fatal(err)
+	}
+
+	got := d.Get("context").(map[string]interface{})
+	if got["NETWORK"] != "NO" {
+		t.Fatalf("NETWORK = %#v, want remote NO", got["NETWORK"])
+	}
+	if got["PASSWORD"] != "Secret123" {
+		t.Fatalf("PASSWORD = %q, want configured value", got["PASSWORD"])
+	}
+}
+
+func TestFlattenContextAdoptsUnencryptedContextValues(t *testing.T) {
+	remote := map[string]string{
+		"PASSWORD_BASE64":         "Y2hhbmdlZA==",
+		"CRYPTED_PASSWORD_BASE64": "Y2hhbmdlZA==",
+		"USERNAME":                "Administrator",
+		"SSH_PUBLIC_KEY":          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexample",
+		"START_SCRIPT_BASE64":     "Y2hhbmdlZA==",
+	}
+	configured := map[string]interface{}{
+		"PASSWORD_BASE64":         "c2VjcmV0",
+		"CRYPTED_PASSWORD_BASE64": "c2VjcmV0",
+		"USERNAME":                "root",
+		"SSH_PUBLIC_KEY":          "$USER[SSH_PUBLIC_KEY]",
+		"START_SCRIPT_BASE64":     "c2VjcmV0",
+	}
+
+	tpl := vm.NewTemplate()
+	for key, value := range remote {
+		if err := tpl.AddCtx(vmk.Context(key), value); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	d := schema.TestResourceDataRaw(t, map[string]*schema.Schema{
+		"context": contextSchema(),
+	}, map[string]interface{}{
+		"context": configured,
+	})
+	if err := flattenContext(d, tpl); err != nil {
+		t.Fatal(err)
+	}
+
+	got := d.Get("context").(map[string]interface{})
+	for key, value := range remote {
+		if got[key] != value {
+			t.Fatalf("%s = %#v, want remote %q", key, got[key], value)
+		}
+	}
+}
+
+func TestTemplateReplaceSendsConfiguredPassword(t *testing.T) {
+	const configured = "Secret123"
+	const remote = "mU18gesj9B80f/iOrZrg8A=="
+
+	prior := baseTemplateConfig()
+	prior["context"] = map[string]interface{}{
+		"NETWORK":  "YES",
+		"PASSWORD": configured,
+	}
+	next := withChange(prior, "description", "updated")
+
+	tpl := createdTemplate(t, prior)
+	// Simulate the ciphertext OpenNebula returns in place of the configured password.
+	vec, err := tpl.GetVector(string(vmk.ContextVec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	replaced := false
+	for i := range vec.Pairs {
+		if vec.Pairs[i].Key() == "PASSWORD" {
+			vec.Pairs[i].Value = remote
+			replaced = true
+		}
+	}
+	if !replaced {
+		t.Fatal("created template has no PASSWORD")
+	}
+
+	d := templateUpdateData(t, prior, next)
+	updated, diags := applyTemplateContentChanges(d, tpl)
+	if len(diags) > 0 {
+		t.Fatal(diags)
+	}
+	if !updated {
+		t.Fatal("description change was not marked for replace")
+	}
+	got, err := tpl.GetStrFromVec(string(vmk.ContextVec), "PASSWORD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != configured {
+		t.Fatalf("PASSWORD sent to OpenNebula = %q, want configured value", got)
+	}
+}
+
+func TestFlattenTagsKeepsOnePassword(t *testing.T) {
+	tpl := vm.NewTemplate()
+	tpl.AddPair("ONE_PASSWORD", "mU18gesj9B80f/iOrZrg8A==")
+	tpl.AddPair("LOGO", "windows8.png")
+
+	d := schema.TestResourceDataRaw(t, map[string]*schema.Schema{
+		"tags":         tagsSchema(),
+		"default_tags": defaultTagsSchemaComputed(),
+		"tags_all":     tagsSchemaComputed(),
+	}, map[string]interface{}{
+		"tags": map[string]interface{}{
+			"one_password": "plain-secret",
+			"logo":         "ubuntu.png",
+		},
+	})
+
+	if diags := flattenTemplateTags(d, &Configuration{}, &tpl.Template); len(diags) > 0 {
+		t.Fatal(diags)
+	}
+
+	tags := d.Get("tags").(map[string]interface{})
+	if tags["one_password"] != "plain-secret" {
+		t.Fatalf("one_password = %#v, want configured value", tags["one_password"])
+	}
+	if tags["logo"] != "windows8.png" {
+		t.Fatalf("logo = %#v, want remote windows8.png", tags["logo"])
+	}
+}
+
 func TestFlattenContextIgnoresTrimmedWhitespace(t *testing.T) {
 	configured := "Enable-NetFirewallRule -DisplayGroup \"Remote Desktop\"\n"
 	tpl := vm.NewTemplate()

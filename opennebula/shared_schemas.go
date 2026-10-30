@@ -769,25 +769,52 @@ func addNicAndAliasCommonValues(nicOrAlias *shared.NIC, config map[string]interf
 func addOS(tpl *vm.Template, os []interface{}) {
 
 	for i := 0; i < len(os); i++ {
-		if os[i] != nil {
-			osconfig := os[i].(map[string]interface{})
-			tpl.AddOS(vmk.Arch, osconfig["arch"].(string))
-			tpl.AddOS(vmk.Machine, osconfig["machine"].(string))
-			tpl.AddOS(vmk.Kernel, osconfig["kernel"].(string))
-			tpl.AddOS(vmk.KernelDS, osconfig["kernel_ds"].(string))
-			tpl.AddOS(vmk.Initrd, osconfig["initrd"].(string))
-			tpl.AddOS(vmk.InitrdDS, osconfig["initrd_ds"].(string))
-			tpl.AddOS(vmk.Root, osconfig["root"].(string))
-			tpl.AddOS(vmk.KernelCmd, osconfig["kernel_cmd"].(string))
-			tpl.AddOS(vmk.Bootloader, osconfig["bootloader"].(string))
-			tpl.AddOS(vmk.Boot, osconfig["boot"].(string))
-			tpl.AddOS(vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
-			tpl.AddOS(vmk.UUID, osconfig["uuid"].(string))
-			tpl.AddOS(vmk.Firmware, osconfig["firmware"].(string))
-			tpl.AddOS(vmk.FirmwareSecure, osconfig["firmware_secure"].(bool))
+		if os[i] == nil {
+			continue
 		}
+		osconfig := os[i].(map[string]interface{})
+		// Empty strings are omitted so clearing firmware (BIOS) removes FIRMWARE
+		// instead of storing an empty value that OpenNebula keeps.
+		addOSString(tpl, vmk.Arch, osconfig["arch"].(string))
+		addOSString(tpl, vmk.Machine, osconfig["machine"].(string))
+		addOSString(tpl, vmk.Kernel, osconfig["kernel"].(string))
+		addOSString(tpl, vmk.KernelDS, osconfig["kernel_ds"].(string))
+		addOSString(tpl, vmk.Initrd, osconfig["initrd"].(string))
+		addOSString(tpl, vmk.InitrdDS, osconfig["initrd_ds"].(string))
+		addOSString(tpl, vmk.Root, osconfig["root"].(string))
+		addOSString(tpl, vmk.KernelCmd, osconfig["kernel_cmd"].(string))
+		addOSString(tpl, vmk.Bootloader, osconfig["bootloader"].(string))
+		addOSString(tpl, vmk.Boot, osconfig["boot"].(string))
+		addOSString(tpl, vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
+		addOSString(tpl, vmk.UUID, osconfig["uuid"].(string))
+		addOSString(tpl, vmk.Firmware, osconfig["firmware"].(string))
+		// OpenNebula accepts only YES or NO. A Go bool becomes "true"/"false".
+		tpl.AddOS(vmk.FirmwareSecure, boolToYesNo(osconfig["firmware_secure"].(bool)))
 	}
 
+}
+
+// osTemplateConfig copies an OS config and stores firmware_secure as YES or NO.
+// VM updates pass the map through fmt.Sprint, which would otherwise write a bool.
+func osTemplateConfig(osconfig map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(osconfig))
+	for key, value := range osconfig {
+		if key == "firmware_secure" {
+			if enabled, ok := value.(bool); ok {
+				out[key] = boolToYesNo(enabled)
+				continue
+			}
+		}
+		out[key] = value
+	}
+	return out
+}
+
+func addOSString(tpl *vm.Template, key vmk.OS, value string) {
+	if value == "" {
+		return
+	}
+	tpl.AddOS(key, value)
 }
 
 func addGraphic(tpl *vm.Template, graphics []interface{}) {
@@ -1282,10 +1309,7 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 
 	// Set OS to resource
 	if arch != "" {
-		firmwareSecureBool := false
-		if firmwareSecureErr == nil && firmwareSecure == "true" {
-			firmwareSecureBool = true
-		}
+		firmwareSecureBool := firmwareSecureErr == nil && yesNoToBool(firmwareSecure)
 
 		osMap = append(osMap, map[string]interface{}{
 			"arch":            arch,
