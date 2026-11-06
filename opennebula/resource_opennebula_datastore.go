@@ -505,51 +505,71 @@ func resourceOpennebulaDatastoreRead(ctx context.Context, d *schema.ResourceData
 	restrictedDirs, err := datastoreInfos.Template.Get(dsKey.RestrictedDirs)
 	if err == nil {
 		d.Set("restricted_directories", restrictedDirs)
+	} else {
+		d.Set("restricted_directories", "")
 	}
 
 	safeDirs, err := datastoreInfos.Template.Get(dsKey.SafeDirs)
 	if err == nil {
 		d.Set("safe_directories", safeDirs)
+	} else {
+		d.Set("safe_directories", "")
 	}
 
 	storageUsageLimit, err := datastoreInfos.Template.Get(dsKey.LimitMB)
 	if err == nil {
 		d.Set("storage_usage_limit", storageUsageLimit)
+	} else {
+		d.Set("storage_usage_limit", 0)
 	}
 
 	transferBandwithLimit, err := datastoreInfos.Template.Get(dsKey.LimitTransferBW)
 	if err == nil {
 		d.Set("transfer_bandwith_limit", transferBandwithLimit)
+	} else {
+		d.Set("transfer_bandwith_limit", 0) // Passed down as 0 to curl (unlimited)
 	}
 
 	noDecompress, err := datastoreInfos.Template.Get(dsKey.NoDecompress)
 	if err == nil {
 		d.Set("no_decompress", noDecompress)
+	} else {
+		d.Set("no_decompress", false)
 	}
 
 	checkAvailableCapacity, err := datastoreInfos.Template.Get(dsKey.DatastoreCapacityCheck)
 	if err == nil {
 		d.Set("check_available_capacity", checkAvailableCapacity)
+	} else {
+		d.Set("check_available_capacity", nil)
 	}
 
 	bridgeList, err := datastoreInfos.Template.Get(dsKey.BridgeList)
 	if err == nil {
 		d.Set("bridge_list", strings.Split(bridgeList, " "))
+	} else {
+		d.Set("bridge_list", []string{})
 	}
 
 	stagingDir, err := datastoreInfos.Template.Get(dsKey.StagingDir)
 	if err == nil {
 		d.Set("staging_dir", stagingDir)
+	} else {
+		d.Set("staging_dir", "")
 	}
 
 	driver, err := datastoreInfos.Template.Get(dsKey.Driver)
 	if err == nil {
 		d.Set("driver", driver)
+	} else {
+		d.Set("driver", "")
 	}
 
 	compatibleSystemDatastore, err := datastoreInfos.Template.Get(dsKey.CompatibleSysDs)
 	if err == nil {
 		d.Set("compatible_system_datastore", strings.Split(compatibleSystemDatastore, ","))
+	} else {
+		d.Set("compatible_system_datastore", []string{})
 	}
 
 	customAttrsList := d.Get("custom").(*schema.Set).List()
@@ -777,9 +797,15 @@ func resourceOpennebulaDatastoreUpdate(ctx context.Context, d *schema.ResourceDa
 		update = true
 	}
 	if d.HasChange("bridge_list") {
-		brigeList := d.Get("bridge_list")
+		bridgeList := d.Get("bridge_list").(*schema.Set).List()
 		newTpl.Del(string(dsKey.BridgeList))
-		newTpl.Add(dsKey.BridgeList, brigeList)
+		if len(bridgeList) > 0 {
+			bridgeStrs := make([]string, 0, len(bridgeList))
+			for _, bridge := range bridgeList {
+				bridgeStrs = append(bridgeStrs, bridge.(string))
+			}
+			newTpl.Add(dsKey.BridgeList, strings.Join(bridgeStrs, " "))
+		}
 		update = true
 	}
 	if d.HasChange("staging_dir") {
