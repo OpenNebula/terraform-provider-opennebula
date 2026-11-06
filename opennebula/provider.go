@@ -28,6 +28,13 @@ func Provider() *schema.Provider {
 				Description: "The URL to your public or private OpenNebula Flow server",
 				DefaultFunc: schema.EnvDefaultFunc("OPENNEBULA_FLOW_ENDPOINT", nil),
 			},
+			"oneks_endpoint": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The OneKS API base URL, including /api/v1",
+				DefaultFunc:  schema.EnvDefaultFunc("OPENNEBULA_ONEKS_ENDPOINT", nil),
+				ValidateFunc: validateOneKSEndpoint,
+			},
 			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -69,6 +76,7 @@ func Provider() *schema.Provider {
 			"opennebula_cluster":                        dataOpennebulaCluster(),
 			"opennebula_group":                          dataOpennebulaGroup(),
 			"opennebula_hook":                           dataOpennebulaHook(),
+			"opennebula_oneks":                          dataOpennebulaOneKS(),
 			"opennebula_image":                          dataOpennebulaImage(),
 			"opennebula_security_group":                 dataOpennebulaSecurityGroup(),
 			"opennebula_template":                       dataOpennebulaTemplate(),
@@ -92,6 +100,7 @@ func Provider() *schema.Provider {
 			"opennebula_group_quotas":                     resourceOpennebulaGroupQuotas(),
 			"opennebula_group_admins":                     resourceOpennebulaGroupAdmins(),
 			"opennebula_hook":                             resourceOpennebulaHook(),
+			"opennebula_oneks":                            resourceOpennebulaOneKS(),
 			"opennebula_image":                            resourceOpennebulaImage(),
 			"opennebula_security_group":                   resourceOpennebulaSecurityGroup(),
 			"opennebula_template":                         resourceOpennebulaTemplate(),
@@ -122,6 +131,7 @@ func Provider() *schema.Provider {
 type Configuration struct {
 	OneVersion     *ver.Version
 	Controller     *goca.Controller
+	OneKS          *oneKSClient
 	mutex          MutexKV
 	defaultTags    map[string]interface{}
 	oldDefaultTags map[string]interface{}
@@ -197,6 +207,13 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	cfg := &Configuration{
 		OneVersion: version,
 		mutex:      *NewMutexKV(),
+	}
+	if endpoint, ok := d.GetOk("oneks_endpoint"); ok {
+		client, err := newOneKSClient(endpoint.(string), username.(string), password.(string), &http.Client{Transport: tr, Timeout: oneKSRequestTimeout})
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		cfg.OneKS = client
 	}
 
 	defaultTagsOldIf, defaultTagsNewIf := d.GetChange("default_tags")

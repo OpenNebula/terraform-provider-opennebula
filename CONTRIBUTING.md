@@ -24,6 +24,7 @@ provider_installation {
 ```
 
 This configuration will not apply any change for `terraform init` or your `.terraform.lock.hcl`. From the Terraform documentation:
+
 ```text
 With development overrides in effect, the terraform init command will still attempt to select a suitable published
 version of your provider to install and record in the dependency lock file for future use, but other commands like
@@ -33,6 +34,7 @@ terraform apply will disregard the lock file's entry and will use the given dire
 This configuration will check for the `terraform-provider-opennebula` binary at the given directory. You can generate it using `make build`
 
 Example:
+
 ```hcl
 terraform {
   required_providers {
@@ -53,6 +55,7 @@ data opennebula_datastore "my_datastore" {
 ```
 
 Applying changes for the above simple terraform module shows the override in action:
+
 ```txt
 $> terraform apply
 ╷
@@ -82,6 +85,7 @@ You can find more information about the provider debugging process in the [Terra
 #### Prerequisites
 
 Install delve:
+
 ```
 go install github.com/go-delve/delve/cmd/dlv@latest
 ```
@@ -91,6 +95,7 @@ In case you are using VisualStudio Code, ensure that you have the [go extension]
 #### Debugging the provider in VisualStudio Code
 
 For debugging the provider in vscode, you should create a new `launch.json` configuration file (if not exists) in your repository `.vscode` folder, containing, at least, the following configuration:
+
 ```
 //.vscode/launch.json
 {
@@ -114,10 +119,11 @@ For debugging the provider in vscode, you should create a new `launch.json` conf
 ```
 
 Then, you can go to the `Run and Debug` section and execute the `Debug Terraform Provider` configuration. The debug console should open and show a message like the following one:
+
 ```
 Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
 
-	TF_REATTACH_PROVIDERS='{"OpenNebula/opennebula":{"Protocol":"grpc","ProtocolVersion":5,"Pid":619134,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin4171993516"}}}'
+ TF_REATTACH_PROVIDERS='{"OpenNebula/opennebula":{"Protocol":"grpc","ProtocolVersion":5,"Pid":619134,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin4171993516"}}}'
 ```
 
 Copy the `TF_REATTACH_PROVIDERS` environment variable and its content and now you can set some breakpoints in your code. Finally, call the terraform CLI prepending the `TF_REATTACH_PROVIDERS` in order to let the terraform CLI attach to the debugged terraform provider process, e.g.
@@ -135,6 +141,7 @@ The process execution should stop on the breakpoint you set in vscode, allowing 
 The process for debugging the provider tests in vscode is similar to the previous one, but in the case of the tests, the provider testing framework will compile and load in memory the local provider code, so in this case we won't need to override the terraform provider reference through the `dev_override` feature.
 
 In the case of debugging the tests, we can add a configuration in the `.vscode/launch.json` file specifying the tests to run (with the `-test.run` arg) and setting the necessary environment variables for executing the acceptance tests and attacking our local Opennebula instance), e.g:
+
 ```
 //.vscode/launch.json
 {
@@ -165,6 +172,26 @@ In the case of debugging the tests, we can add a configuration in the `.vscode/l
 >Remember to replace the `-test.run` arg with the desired acceptance test to execute and debug!
 
 Now, you can set a breakpoint in any test case and debug it executing the `Debug Terraform Provider Tests` launch configuration.
+
+### OneKS acceptance test
+
+`TestAccOneKS` uses the shared provider setup and provisions a real cluster in an
+existing OpenNebula deployment. Configure the usual provider credentials,
+`OPENNEBULA_ENDPOINT`, and `OPENNEBULA_FLOW_ENDPOINT`, then set:
+
+```sh
+export OPENNEBULA_ONEKS_ENDPOINT=http://localhost:10780/api/v1
+export OPENNEBULA_ONEKS_KUBERNETES_VERSION=v1.35.0
+export OPENNEBULA_ONEKS_CLUSTER_ID=100
+export OPENNEBULA_ONEKS_PUBLIC_NETWORK_ID=1
+export OPENNEBULA_ONEKS_PRIVATE_NETWORK_ID=2
+TF_ACC=1 go test ./opennebula -run '^TestAccOneKS$' -v -timeout 90m
+```
+
+Choose IDs and a version available in your installation. The test uses the
+`general` family's `standalone` flavour, checks updates, data sources and import,
+and destroys its cluster afterward. It skips when `OPENNEBULA_ONEKS_ENDPOINT` is
+unset, so environments without OneKS can run the other acceptance tests.
 
 ## Issues and Pull Requests
 

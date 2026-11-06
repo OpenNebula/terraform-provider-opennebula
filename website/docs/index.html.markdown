@@ -42,6 +42,7 @@ The configuration of the OpenNebula Provider can be set by the `provider` block 
 
 * `endpoint` - (Required) The URL of OpenNebula XML-RPC Endpoint API (for example, `http://example.com:2633/RPC2`).
 * `flow_endpoint` - (Optional) The OneFlow HTTP Endpoint API (for example, `http://example.com:2474`).
+* `oneks_endpoint` - (Optional) The OneKS API base URL, including `/api/v1` (for example, `http://example.com:10780/api/v1`). Required when using the OneKS resource or data source. Uses the same credentials and TLS settings as the provider.
 * `username` - (Required) The OpenNebula username.
 * `password` - (Required) The Opennebula password matching the username.
 * `insecure` - (Optional) Allow insecure connexion (skip TLS verification).
@@ -55,6 +56,7 @@ The provider can also read the following environment variables if no value is se
 
 * `OPENNEBULA_ENDPOINT`
 * `OPENNEBULA_FLOW_ENDPOINT`
+* `OPENNEBULA_ONEKS_ENDPOINT`
 * `OPENNEBULA_USERNAME`
 * `OPENNEBULA_PASSWORD`
 * `OPENNEBULA_INSECURE`
