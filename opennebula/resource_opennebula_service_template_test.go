@@ -60,7 +60,7 @@ func TestAccServiceTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_service_template.test", "gid", "1"),
 					resource.TestCheckResourceAttr("opennebula_service_template.test", "uname", "serveradmin"),
 					resource.TestCheckResourceAttr("opennebula_service_template.test", "gname", "users"),
-					testAccCheckServiceTemplatePermissions(&shared.Permissions{1, 1, 1, 1, 1, 1, 1, 1, 1}),
+					testAccCheckServiceTemplatePermissions(&shared.Permissions{OwnerU: 1, OwnerM: 1, OwnerA: 1, GroupU: 1, GroupM: 1, GroupA: 1, OtherU: 1, OtherM: 1, OtherA: 1}),
 				),
 			},
 		},
