@@ -71,7 +71,7 @@ resource "opennebula_virtual_network" "example" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual network.
-* `description` - (Optional) Description of the virtual network.
+* `description` - (Optional, Computed) Description of the virtual network. If omitted, the current OpenNebula value is retained, including a description managed through `tags["DESCRIPTION"]`. To clear a description managed by this argument, explicitly set it to `""`. Avoid managing the same description through both this argument and `tags`.
 * `permissions` - (Optional) Permissions applied on virtual network. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `reservation_vnet` - (Optional) ID of the parent virtual network to reserve from. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_first_ip`, `reservation_first_ip6` and `reservation_size`.
 * `reservation_size` - (Optional) Size (in address) reserved. Conflicts with all parameters except `name`, `description`, `permissions`, `security_groups`, `group`, `reservation_ar_id`, `reservation_first_ip`, `reservation_first_ip6` and `reservation_vnet`.
@@ -81,7 +81,7 @@ The following arguments are supported:
 * `security_groups` - (Optional) List of security group IDs to apply on the virtual network.
 * `bridge` - (Optional) Name of the bridge interface to which the virtual network should be associated. Conflicts with `reservation_vnet` and `reservation_size`.
 * `physical_device` - (Optional) Name of the physical device interface to which the virtual network should be associated. Conflicts with `reservation_vnet` and `reservation_size`.
-* `type` - (Optional) Virtual network type. One of these: `dummy`, `bridge`'`fw`, `ebtables`, `802.1Q`, `vxlan` or `ovswitch`. Defaults to `bridge`. Conflicts with `reservation_vnet` and `reservation_size`.
+* `type` - (Optional) Virtual network type. One of these: `dummy`, `bridge`, `fw`, `ebtables`, `802.1Q`, `vxlan` or `ovswitch`. Defaults to `bridge`. Changes update `VN_MAD` in place without replacing the virtual network. Conflicts with `reservation_vnet` and `reservation_size`.
 * `cluster_ids` - (Optional) List of cluster IDs where the virtual network can be use. Conflicts with `reservation_vnet` and `reservation_size`. Minimum 1 item.
 * `vlan_id` - (Optional) ID of VLAN. Only if `type` is `802.1Q`, `vxlan` or `ovswitch`. Conflicts with `reservation_vnet`, `reservation_size` and `automatic_vlan_id`.
 * `automatic_vlan_id` - (Optional) Flag to let OpenNebula scheduler to attribute the VLAN ID. Conflicts with `reservation_vnet`, `reservation_size` and `vlan_id`.

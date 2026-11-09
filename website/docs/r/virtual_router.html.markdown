@@ -56,6 +56,10 @@ The following arguments are supported:
 * `name` - (Optional) The vector name.
 * `elements` - (Optional) Collection of custom tags.
 
+When reading a `NIC` section from a router with multiple NICs, include `NIC_ID` or a unique `NETWORK_ID` in `elements` to identify the intended NIC. Ambiguous matches are reported as errors rather than silently removing the section from state.
+
+~> **Note:** OpenNebula treats router NICs separately from ordinary template attributes. The generic router template update API preserves existing NICs and does not apply NIC changes on server versions with this behavior. A `template_section` named `NIC` therefore cannot reliably attach or modify a NIC on an existing router. Use `opennebula_virtual_router_nic` for NIC attachment; that resource does not currently expose `VROUTER_MANAGEMENT`.
+
 ## Attribute Reference
 
 The following attribute are exported:

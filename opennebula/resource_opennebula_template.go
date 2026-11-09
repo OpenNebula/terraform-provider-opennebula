@@ -949,11 +949,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	if d.HasChange("nic") {
 		newTpl.Del(shared.NICVec)
 		addNICs(d, &newTpl)
+		update = true
 	}
 
 	if d.HasChange("nic_alias") {
 		newTpl.Del(shared.NICAliasVec)
-		addNICs(d, &newTpl)
+		addNICAliases(d, &newTpl)
+		update = true
 	}
 
 	if d.HasChange("tags") {

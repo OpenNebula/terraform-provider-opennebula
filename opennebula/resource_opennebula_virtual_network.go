@@ -54,6 +54,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Description of the vnet",
 			},
 			"permissions": {
@@ -1409,6 +1410,12 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 
 	tpl := vnInfos.Template
 	update := false
+
+	if d.HasChange("type") {
+		tpl.Del(string(vnk.VNMad))
+		tpl.Add(vnk.VNMad, d.Get("type").(string))
+		update = true
+	}
 
 	if d.HasChange("mtu") || d.HasChange("guest_mtu") {
 		mtu := d.Get("mtu").(int)
