@@ -147,18 +147,13 @@ func resourceOpennebulaACLRead(ctx context.Context, d *schema.ResourceData, meta
 		if acl.ID == numericID {
 			// We don't call Set because that would overwrite our string values
 			// With raw numbers.
-			// We only check if an ACL with the given ID exists, and return an error if not.
+			// Only the existence of the rule is checked here.
 			return nil
 		}
 	}
 
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Error,
-		Summary:  fmt.Sprintf("Failed to find ACL rule %s", d.Id()),
-		Detail:   fmt.Sprintf("ACL (ID: %s): %s", d.Id(), err),
-	})
-
-	return diags
+	d.SetId("")
+	return nil
 }
 
 func resourceOpennebulaACLDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
