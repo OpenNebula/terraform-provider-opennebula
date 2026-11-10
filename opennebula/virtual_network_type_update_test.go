@@ -22,10 +22,25 @@ func (f vnetTypeUpdateTransport) RoundTrip(req *http.Request) (*http.Response, e
 }
 
 func TestVirtualNetworkTypeOnlyUpdate(t *testing.T) {
+	testVirtualNetworkAttributeUpdate(t, "type", "VN_MAD", "bridge", "dummy")
+}
+
+func TestVirtualNetworkVLANOnlyUpdate(t *testing.T) {
+	testVirtualNetworkAttributeUpdate(t, "vlan_id", "VLAN_ID", "335", "223")
+}
+
+func testVirtualNetworkAttributeUpdate(t *testing.T, field, templateKey, oldValue, newValue string) {
+	t.Helper()
 	for _, reject := range []bool{false, true} {
 		t.Run(fmt.Sprintf("reject=%t", reject), func(t *testing.T) {
 			updates := 0
-			backendType := "bridge"
+			backendType := "vxlan"
+			backendVLAN := "335"
+			if field == "type" {
+				backendType = oldValue
+			} else {
+				backendVLAN = oldValue
+			}
 			transport := vnetTypeUpdateTransport(func(req *http.Request) (*http.Response, error) {
 				var call struct {
 					Method string `xml:"methodName"`
@@ -43,7 +58,7 @@ func TestVirtualNetworkTypeOnlyUpdate(t *testing.T) {
 				success := "1"
 				switch call.Method {
 				case "one.vn.info":
-					info := `<VNET><ID>9</ID><NAME>test-vnet</NAME><UID>0</UID><GID>0</GID><UNAME>oneadmin</UNAME><GNAME>oneadmin</GNAME><BRIDGE>brtest</BRIDGE><VN_MAD>` + backendType + `</VN_MAD><PERMISSIONS><OWNER_U>1</OWNER_U><OWNER_M>1</OWNER_M><GROUP_U>1</GROUP_U><GROUP_M>1</GROUP_M></PERMISSIONS><CLUSTERS><ID>0</ID></CLUSTERS><TEMPLATE><VN_MAD>` + backendType + `</VN_MAD><MTU>1500</MTU><GUEST_MTU>1500</GUEST_MTU><DESCRIPTION>Preserve me</DESCRIPTION><CUSTOM_TAG>keep</CUSTOM_TAG></TEMPLATE><AR_POOL/></VNET>`
+					info := `<VNET><ID>9</ID><NAME>test-vnet</NAME><UID>0</UID><GID>0</GID><UNAME>oneadmin</UNAME><GNAME>oneadmin</GNAME><BRIDGE>brtest</BRIDGE><VN_MAD>` + backendType + `</VN_MAD><VLAN_ID>` + backendVLAN + `</VLAN_ID><PERMISSIONS><OWNER_U>1</OWNER_U><OWNER_M>1</OWNER_M><GROUP_U>1</GROUP_U><GROUP_M>1</GROUP_M></PERMISSIONS><CLUSTERS><ID>0</ID></CLUSTERS><TEMPLATE><VN_MAD>` + backendType + `</VN_MAD><VLAN_ID>` + backendVLAN + `</VLAN_ID><MTU>1500</MTU><GUEST_MTU>1500</GUEST_MTU><DESCRIPTION>Preserve me</DESCRIPTION><CUSTOM_TAG>keep</CUSTOM_TAG></TEMPLATE><AR_POOL/></VNET>`
 					var escaped bytes.Buffer
 					if err := xml.EscapeText(&escaped, []byte(info)); err != nil {
 						return nil, err
@@ -55,19 +70,23 @@ func TestVirtualNetworkTypeOnlyUpdate(t *testing.T) {
 						return nil, fmt.Errorf("expected replacement update for VNet 9")
 					}
 					sent := call.Params[2].Value.String
-					for _, expected := range []string{`VN_MAD="dummy"`, `DESCRIPTION="Preserve me"`, `CUSTOM_TAG="keep"`, `MTU="1500"`} {
+					for _, expected := range []string{fmt.Sprintf(`%s="%s"`, templateKey, newValue), `DESCRIPTION="Preserve me"`, `CUSTOM_TAG="keep"`, `MTU="1500"`} {
 						if !strings.Contains(sent, expected) {
 							t.Errorf("update missing %s: %s", expected, sent)
 						}
 					}
-					if strings.Count(sent, "VN_MAD=") != 1 {
-						t.Errorf("expected exactly one VN_MAD: %s", sent)
+					if strings.Count(sent, templateKey+"=") != 1 {
+						t.Errorf("expected exactly one %s: %s", templateKey, sent)
 					}
 					if reject {
 						success = "0"
-						value = "<string>Type update rejected</string>"
+						value = "<string>Attribute update rejected</string>"
 					} else {
-						backendType = "dummy"
+						if field == "type" {
+							backendType = newValue
+						} else {
+							backendVLAN = newValue
+						}
 						value = "<int>9</int>"
 					}
 				default:
@@ -78,16 +97,17 @@ func TestVirtualNetworkTypeOnlyUpdate(t *testing.T) {
 			})
 			cfg := &Configuration{Controller: goca.NewController(goca.NewClient(goca.NewConfig("test", "test", "http://one.example/RPC2"), &http.Client{Transport: transport}))}
 			r := resourceOpennebulaVirtualNetwork()
-			old := schema.TestResourceDataRaw(t, r.Schema, map[string]interface{}{"name": "test-vnet", "type": "bridge"})
+			old := schema.TestResourceDataRaw(t, r.Schema, map[string]interface{}{"name": "test-vnet", "type": backendType, "vlan_id": backendVLAN})
 			old.SetId("9")
-			raw := map[string]interface{}{"name": "test-vnet", "type": "dummy"}
+			raw := map[string]interface{}{"name": "test-vnet", "type": backendType, "vlan_id": backendVLAN}
+			raw[field] = newValue
 			diff, err := r.Diff(context.Background(), old.State(), terraform.NewResourceConfigRaw(raw), cfg)
 			if err != nil {
 				t.Fatal(err)
 			}
-			// Only the driver changes; other computed attributes are absent from this fixture.
+			// Isolate the attribute change from computed fields absent in this fixture.
 			for key := range diff.Attributes {
-				if key != "type" {
+				if key != field {
 					delete(diff.Attributes, key)
 				}
 			}
@@ -99,8 +119,8 @@ func TestVirtualNetworkTypeOnlyUpdate(t *testing.T) {
 				t.Fatalf("got %d update calls, want 1", updates)
 			}
 			if !reject {
-				if state.ID != "9" || state.Attributes["type"] != "dummy" {
-					t.Fatalf("unexpected state after update: ID=%q, type=%q", state.ID, state.Attributes["type"])
+				if state.ID != "9" || state.Attributes[field] != newValue {
+					t.Fatalf("unexpected state after update: ID=%q, %s=%q", state.ID, field, state.Attributes[field])
 				}
 			}
 		})

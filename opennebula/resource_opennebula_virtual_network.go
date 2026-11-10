@@ -1417,6 +1417,15 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
+	if d.HasChange("vlan_id") {
+		tpl.Del(string(vnk.VlanID))
+		vlanID := d.Get("vlan_id").(string)
+		if vlanID != "" {
+			tpl.Add(vnk.VlanID, vlanID)
+		}
+		update = true
+	}
+
 	if d.HasChange("mtu") || d.HasChange("guest_mtu") {
 		mtu := d.Get("mtu").(int)
 		guestMTU := d.Get("guest_mtu").(int)
