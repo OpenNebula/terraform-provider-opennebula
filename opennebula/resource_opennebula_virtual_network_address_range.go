@@ -458,10 +458,13 @@ func resourceOpennebulaVirtualNetworkAddressRangeExists(d *schema.ResourceData, 
 
 	_, err := controller.VirtualNetwork(vrouterID).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualNetworkAddressRangeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
