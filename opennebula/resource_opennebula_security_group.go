@@ -94,10 +94,10 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"protocol": {
 							Type:        schema.TypeString,
-							Description: "Protocol for the rule, must be one of: ALL, TCP, UDP, ICMP or IPSEC",
+							Description: "Protocol for the rule, must be one of: ALL, TCP, UDP, ICMP, ICMPV6 or IPSEC",
 							Required:    true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								validprotos := []string{"ALL", "TCP", "UDP", "ICMP", "IPSEC"}
+								validprotos := []string{"ALL", "TCP", "UDP", "ICMP", "ICMPV6", "IPSEC"}
 								value := v.(string)
 
 								if !contains(value, validprotos) {
@@ -143,6 +143,12 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 						"icmp_type": {
 							Type:        schema.TypeString,
 							Description: "Type of ICMP traffic to apply to when 'protocol' is ICMP",
+							Optional:    true,
+							Computed:    true,
+						},
+						"icmpv6_type": {
+							Type:        schema.TypeString,
+							Description: "Type of ICMPv6 traffic to apply to when 'protocol' is ICMPV6",
 							Optional:    true,
 							Computed:    true,
 						},
@@ -634,6 +640,8 @@ func generateSecurityGroupRules(d *schema.ResourceData, tpl *securitygroup.Templ
 				rule.Add(sgk.Range, v.(string))
 			case "icmp_type":
 				rule.Add(sgk.IcmpType, v.(string))
+			case "icmpv6_type":
+				rule.Add(sgk.Rule("ICMPV6_TYPE"), v.(string))
 			case "network_id":
 				rule.Add(sgk.NetworkID, v.(string))
 			}

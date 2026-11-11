@@ -67,13 +67,14 @@ The following arguments are supported:
 
 `rule` supports the following arguments:
 
-* `protocol` - (Required) Protocol for the rule. Supported values: `ALL`, `TCP`, `UDP`, `ICMP` or `IPSEC`.
+* `protocol` - (Required) Protocol for the rule. Supported values: `ALL`, `TCP`, `UDP`, `ICMP`, `ICMPV6` or `IPSEC`.
 * `rule_type` - (Required) Direction of the traffic flow to allow, must be `INBOUND` or `OUTBOUND`.
 * `network_id` - (Optional) VNET ID to be used as the source/destination IP addresses.
 * `ip` - (Optional) IP (or starting IP if used with 'size') to apply the rule to.
 * `size` - (Optional) Number of IPs to apply the rule from, starting with `ip`.
 * `range` - (Optional) Comma separated list of ports and port ranges.
 * `icmp_type` - (Optional) Type of ICMP traffic to apply to when 'protocol' is `ICMP`.
+* `icmpv6_type` - (Optional) Type of ICMPv6 traffic to apply to when 'protocol' is `ICMPV6`.
 
 See <https://docs.opennebula.org/5.12/operation/network_management/security_groups.html> for more details on allowed values.
 
