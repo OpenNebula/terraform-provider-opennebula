@@ -424,6 +424,7 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 
 		tpl.Del((string(sgk.RuleVec)))
 		generateSecurityGroupRules(d, tpl)
+		update = true
 		rulesUpdate = true
 	}
 
