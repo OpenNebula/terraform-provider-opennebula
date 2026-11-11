@@ -33,6 +33,10 @@ resource "opennebula_virtual_machine" "example" {
     START_SCRIPT = "yum upgrade"
   }
 
+  cpumodel {
+    model = "host-passthrough"
+  }
+
   graphics {
     type   = "VNC"
     listen = "0.0.0.0"
@@ -102,6 +106,7 @@ The following arguments are supported:
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if** `template_id` **is not set**.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
+* `cpumodel` - (Optional) See [CPU model parameters](#cpu-model-parameters) below for details.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.
@@ -119,6 +124,12 @@ The following arguments are supported:
 * `on_disk_change` - (Optional) Select the behavior for changing disk images. Supported values: `RECREATE` or `SWAP` (default). `RECREATE` forces recreation of the vm and `SWAP` adopts the standard behavior of hot-swapping the disks. NOTE: This property does not affect the behavior of adding new disks.
 * `hard_shutdown` - (Optional) If the VM doesn't have ACPI support, it immediately poweroff/terminate/reboot/undeploy the VM. Defaults to false.
 * `template_section` - (Optional) Allow to add a custom vector. See [Template section parameters](#template-section-parameters)
+
+### CPU model parameters
+
+`cpumodel` supports the following argument:
+
+* `model` - (Required) CPU model to use on the virtual machine, for example `host-passthrough`.
 
 ### Graphics parameters
 
