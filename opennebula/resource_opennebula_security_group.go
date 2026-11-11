@@ -87,9 +87,8 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 			},
 			"rule": {
 				Type:        schema.TypeList,
-				Required:    true,
-				MinItems:    1,
-				Description: "List of rules to be in the Security Group",
+				Optional:    true,
+				Description: "List of rules to be in the Security Group. Without rules, the Security Group denies all traffic",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"protocol": {
