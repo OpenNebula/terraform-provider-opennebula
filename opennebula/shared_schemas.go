@@ -493,6 +493,7 @@ func osSchema() *schema.Schema {
 				"machine": {
 					Type:     schema.TypeString,
 					Optional: true,
+					Computed: true,
 				},
 				"kernel": {
 					Type:          schema.TypeString,
