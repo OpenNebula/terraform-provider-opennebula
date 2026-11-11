@@ -34,7 +34,7 @@ func dataOpennebulaTemplates() *schema.Resource {
 					Optional:    true,
 					Description: "Attribute used to sort the templates list, only works on integer attributes.",
 					ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-						value := strings.ToUpper(v.(string))
+						value := strings.ToLower(v.(string))
 
 						if !contains(value, sortOnTemplatesValues) {
 							errors = append(errors, fmt.Errorf("type %q must be one of: %s", k, strings.Join(sortOnTemplatesValues, ",")))
@@ -150,7 +150,10 @@ func templatesFilter(d *schema.ResourceData, meta interface{}) ([]*templateSc.Te
 
 	nameRegStr := d.Get("name_regex").(string)
 	if len(nameRegStr) > 0 {
-		nameReg := regexp.MustCompile(nameRegStr)
+		nameReg, err := regexp.Compile(nameRegStr)
+		if err != nil {
+			return nil, err
+		}
 		for _, tpl := range matched {
 			if !nameReg.MatchString(tpl.Name) {
 				continue
