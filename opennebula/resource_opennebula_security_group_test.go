@@ -53,6 +53,28 @@ func TestAccSecurityGroup(t *testing.T) {
 	})
 }
 
+func TestAccSecurityGroupVRRP(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSecurityGroupConfigVRRP,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.0.protocol", "VRRP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.0.rule_type", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.0.ip", "192.0.2.2"),
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.1.protocol", "VRRP"),
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.1.rule_type", "OUTBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.vrrp", "rule.1.ip", "224.0.0.18"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Configuration)
 	controller := config.Controller
@@ -152,6 +174,25 @@ resource "opennebula_security_group" "mysecgroup" {
       env = "dev"
       customer = "test"
       version = "2"
+    }
+}
+`
+
+var testAccSecurityGroupConfigVRRP = `
+resource "opennebula_security_group" "vrrp" {
+    name = "testsg-vrrp"
+    description = "Terraform security group with VRRP"
+    rule {
+        protocol = "VRRP"
+        rule_type = "INBOUND"
+        ip = "192.0.2.2"
+        size = "1"
+    }
+    rule {
+        protocol = "VRRP"
+        rule_type = "OUTBOUND"
+        ip = "224.0.0.18"
+        size = "1"
     }
 }
 `
