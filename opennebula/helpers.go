@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	stderrors "errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -81,17 +82,10 @@ func isEmptyValue(v reflect.Value) bool {
 	return false
 }
 
-// NoExists indicate if an entity exists in checking the error code returned from an Info call
+// NoExists identifies an explicit OpenNebula not-found response, including wrapped errors.
 func NoExists(err error) bool {
-
-	respErr, ok := err.(*errors.ResponseError)
-
-	// expected case, the entity does not exists so we doesn't return an error
-	if ok && respErr.Code == errors.OneNoExistsError {
-		return true
-	}
-
-	return false
+	var respErr *errors.ResponseError
+	return stderrors.As(err, &respErr) && respErr != nil && respErr.Code == errors.OneNoExistsError
 }
 
 // returns the diff of two lists of schemas, making diff on attrNames only

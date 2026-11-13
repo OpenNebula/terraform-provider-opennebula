@@ -254,6 +254,10 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 
 	vnInfos, err := controller.VirtualNetwork(vNetworkID).Info(false)
 	if err != nil {
+		if NoExists(err) {
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "get virtual network informations",
@@ -274,12 +278,8 @@ func resourceOpennebulaVirtualNetworkAddressRangeRead(ctx context.Context, d *sc
 	}
 
 	if ar == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "virtual network address range not found",
-			Detail:   fmt.Sprintf("Virtual network (ID:%d): AR (ID:%s) not found", vNetworkID, d.Id()),
-		})
-		return diags
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("ar_type", ar.Type)
@@ -458,10 +458,14 @@ func resourceOpennebulaVirtualNetworkAddressRangeExists(d *schema.ResourceData, 
 
 	_, err := controller.VirtualNetwork(vrouterID).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualNetworkAddressRangeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -86,6 +86,10 @@ func resourceOpennebulaUserQuotasRead(ctx context.Context, d *schema.ResourceDat
 
 	userInfos, err := controller.User(int(userID)).Info(false)
 	if err != nil {
+		if NoExists(err) {
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",

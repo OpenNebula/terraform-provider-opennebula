@@ -184,6 +184,10 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 
 	vr, err := controller.VirtualRouter(vrouterID).Info(false)
 	if err != nil {
+		if NoExists(err) {
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",
@@ -205,12 +209,8 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	}
 
 	if nic == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to find the NIC in the virtual router NIC list",
-			Detail:   fmt.Sprintf("virtual router NIC (ID: %s): %s", d.Id(), err),
-		})
-		return diags
+		d.SetId("")
+		return nil
 	}
 
 	networkID, _ := nic.GetI(shared.NetworkID)
@@ -265,10 +265,14 @@ func resourceOpennebulaVirtualRouterNICExists(d *schema.ResourceData, meta inter
 
 	_, err := controller.VirtualRouter(vrouterID).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaVirtualRouterNICDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
