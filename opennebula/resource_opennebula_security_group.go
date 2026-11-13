@@ -94,10 +94,10 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"protocol": {
 							Type:        schema.TypeString,
-							Description: "Protocol for the rule, must be one of: ALL, TCP, UDP, ICMP or IPSEC",
+							Description: "Protocol for the rule, must be one of: ALL, TCP, UDP, ICMP, VRRP or IPSEC",
 							Required:    true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								validprotos := []string{"ALL", "TCP", "UDP", "ICMP", "IPSEC"}
+								validprotos := []string{"ALL", "TCP", "UDP", "ICMP", "VRRP", "IPSEC"}
 								value := v.(string)
 
 								if !contains(value, validprotos) {

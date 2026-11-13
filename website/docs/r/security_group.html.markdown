@@ -67,7 +67,7 @@ The following arguments are supported:
 
 `rule` supports the following arguments:
 
-* `protocol` - (Required) Protocol for the rule. Supported values: `ALL`, `TCP`, `UDP`, `ICMP` or `IPSEC`.
+* `protocol` - (Required) Protocol for the rule. Supported values: `ALL`, `TCP`, `UDP`, `ICMP`, `VRRP` or `IPSEC`.
 * `rule_type` - (Required) Direction of the traffic flow to allow, must be `INBOUND` or `OUTBOUND`.
 * `network_id` - (Optional) VNET ID to be used as the source/destination IP addresses.
 * `ip` - (Optional) IP (or starting IP if used with 'size') to apply the rule to.
