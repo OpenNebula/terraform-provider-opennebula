@@ -53,6 +53,36 @@ func TestAccSecurityGroup(t *testing.T) {
 	})
 }
 
+func TestAccSecurityGroupWithoutRules(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSecurityGroupConfigNoRules,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_security_group.norules", "name", "testsg-norules"),
+					resource.TestCheckResourceAttr("opennebula_security_group.norules", "rule.#", "0"),
+				),
+			},
+			{
+				Config: testAccSecurityGroupConfigNoRulesWithRule,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_security_group.norules", "rule.#", "1"),
+					resource.TestCheckResourceAttr("opennebula_security_group.norules", "rule.0.protocol", "ICMP"),
+				),
+			},
+			{
+				Config: testAccSecurityGroupConfigNoRules,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_security_group.norules", "rule.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Configuration)
 	controller := config.Controller
@@ -152,6 +182,24 @@ resource "opennebula_security_group" "mysecgroup" {
       env = "dev"
       customer = "test"
       version = "2"
+    }
+}
+`
+
+var testAccSecurityGroupConfigNoRules = `
+resource "opennebula_security_group" "norules" {
+    name = "testsg-norules"
+    description = "Terraform security group without rules"
+}
+`
+
+var testAccSecurityGroupConfigNoRulesWithRule = `
+resource "opennebula_security_group" "norules" {
+    name = "testsg-norules"
+    description = "Terraform security group without rules"
+    rule {
+        protocol = "ICMP"
+        rule_type = "INBOUND"
     }
 }
 `

@@ -2,11 +2,13 @@
 
 ENHANCEMENTS:
 
+* resources/opennebula_security_group: make `rule` optional, to allow a security group without rules
 * resources/opennebula_template, opennebula_virtual_router_instance_template: add `features.virtio_blk_queues` (`VIRTIO_BLK_QUEUES`)
 * docs/opennebula_template, opennebula_virtual_router_instance_template: replace the `tags` and `template_section` example with a concrete examples
 
 BUG FIXES:
 
+* resources/opennebula_security_group: apply changes of `rule` that come without other changes
 * resources/opennebula_template, opennebula_virtual_router_instance_template: read `features.localtime` from OpenNebula `LOCALTIME` and update `features` attributes in place
 * resources/opennebula_template, opennebula_virtual_router_instance_template: persist `context` updates to OpenNebula and refresh `context` on read
 * resources/opennebula_template, opennebula_virtual_router_instance_template: ignore OpenNebula quote escaping when comparing `context` values such as `USER_DATA`
