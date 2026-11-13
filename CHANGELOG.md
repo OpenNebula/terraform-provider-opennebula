@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 
+* resources/opennebula_security_group: support the `ICMPV6` protocol and `icmpv6_type` in `rule`
 * resources/opennebula_template, opennebula_virtual_router_instance_template: add `features.virtio_blk_queues` (`VIRTIO_BLK_QUEUES`)
 * docs/opennebula_template, opennebula_virtual_router_instance_template: replace the `tags` and `template_section` example with a concrete examples
 

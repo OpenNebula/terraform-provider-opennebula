@@ -53,6 +53,27 @@ func TestAccSecurityGroup(t *testing.T) {
 	})
 }
 
+func TestAccSecurityGroupICMPv6(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSecurityGroupConfigICMPv6,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_security_group.icmpv6", "rule.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_security_group.icmpv6", "rule.0.protocol", "ICMPV6"),
+					resource.TestCheckResourceAttr("opennebula_security_group.icmpv6", "rule.0.rule_type", "INBOUND"),
+					resource.TestCheckResourceAttr("opennebula_security_group.icmpv6", "rule.0.icmpv6_type", "128"),
+					resource.TestCheckResourceAttr("opennebula_security_group.icmpv6", "rule.1.protocol", "ICMPV6"),
+					resource.TestCheckResourceAttr("opennebula_security_group.icmpv6", "rule.1.rule_type", "OUTBOUND"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckSecurityGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Configuration)
 	controller := config.Controller
@@ -152,6 +173,22 @@ resource "opennebula_security_group" "mysecgroup" {
       env = "dev"
       customer = "test"
       version = "2"
+    }
+}
+`
+
+var testAccSecurityGroupConfigICMPv6 = `
+resource "opennebula_security_group" "icmpv6" {
+    name = "testsg-icmpv6"
+    description = "Terraform security group with ICMPv6"
+    rule {
+        protocol = "ICMPV6"
+        rule_type = "INBOUND"
+        icmpv6_type = "128"
+    }
+    rule {
+        protocol = "ICMPV6"
+        rule_type = "OUTBOUND"
     }
 }
 `
