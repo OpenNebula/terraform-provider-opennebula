@@ -571,6 +571,26 @@ func contextValueMatches(configured, remote string) bool {
 	return normalizeRawData(configured) == normalizeRawData(unescapeTemplateValue(remote))
 }
 
+// OpenNebula encrypts these before saving a template (oned.conf VM_ENCRYPTED_ATTR).
+// template info returns ciphertext, so a refresh must keep the configured value.
+func isContextEncryptedAttribute(key string) bool {
+	return strings.EqualFold(key, "PASSWORD")
+}
+
+func isTemplateEncryptedAttribute(key string) bool {
+	return strings.EqualFold(key, "ONE_PASSWORD")
+}
+
+func keepConfiguredSecret(key, configured, remote string, encrypted bool) bool {
+	if configured == "" {
+		return false
+	}
+	if contextValueMatches(configured, remote) {
+		return true
+	}
+	return encrypted
+}
+
 // decodedTemplateValue returns the text OpenNebula stored, without a single
 // extra escape layer of \ and ".
 func decodedTemplateValue(remote string) string {
@@ -579,6 +599,56 @@ func decodedTemplateValue(remote string) string {
 		return unescaped
 	}
 	return remote
+}
+
+// restoreConfiguredSecrets puts the configured plaintext back onto attributes
+// OpenNebula stores as ciphertext. A later replace then encrypts the password
+// once, instead of encrypting the ciphertext already read from the API.
+func restoreConfiguredSecrets(tpl *vm.Template, d *schema.ResourceData) {
+	if raw, ok := d.GetOk("context"); ok {
+		configured := raw.(map[string]interface{})
+		for _, vec := range tpl.GetVectors(string(vmk.ContextVec)) {
+			for i := range vec.Pairs {
+				key := vec.Pairs[i].Key()
+				if !isContextEncryptedAttribute(key) {
+					continue
+				}
+				value, found := configuredContextValue(configured, key)
+				if !found || value == "" {
+					continue
+				}
+				vec.Pairs[i].Value = value
+			}
+		}
+	}
+
+	if raw, ok := d.GetOk("tags"); ok {
+		for key, value := range raw.(map[string]interface{}) {
+			if !isTemplateEncryptedAttribute(key) {
+				continue
+			}
+			text, ok := value.(string)
+			if !ok || text == "" {
+				continue
+			}
+			pair, err := tpl.GetPair(strings.ToUpper(key))
+			if err != nil {
+				continue
+			}
+			pair.Value = text
+		}
+	}
+}
+
+func configuredContextValue(configured map[string]interface{}, key string) (string, bool) {
+	for name, value := range configured {
+		if !strings.EqualFold(name, key) {
+			continue
+		}
+		text, ok := value.(string)
+		return text, ok
+	}
+	return "", false
 }
 
 // decodeContextValues removes the escape layer OpenNebula returns on CONTEXT
@@ -618,9 +688,9 @@ func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
 		key := pair.Key()
 		if orig, ok := stateKeyByUpper[strings.ToUpper(key)]; ok {
 			key = orig
-			// Keep the configured text when OpenNebula only trimmed it or
-			// stored an extra escape of quotes and backslashes.
-			if current, ok := existing[key].(string); ok && contextValueMatches(current, pair.Value) {
+			current, hasCurrent := existing[key].(string)
+			keep := hasCurrent && keepConfiguredSecret(key, current, pair.Value, isContextEncryptedAttribute(key))
+			if keep {
 				contextMap[key] = current
 				continue
 			}
@@ -848,19 +918,71 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		log.Printf("[INFO] Successfully updated group for Template %s\n", tpl.Name)
 	}
 
-	update := false
 	newTpl := tpl.Template
+	update, contentDiags := applyTemplateContentChanges(d, &newTpl)
+	if len(contentDiags) > 0 {
+		return contentDiags
+	}
+
+	if update {
+		err = tc.Update(newTpl.String(), parameters.Replace)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update content",
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+	}
+
+	if d.HasChange("lock") && lockOk && lock.(string) != "UNLOCK" {
+
+		var level shared.LockLevel
+
+		err = StringToLockLevel(lock.(string), &level)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to convert lock level",
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+
+		err = tc.Lock(level)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to lock",
+				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+			})
+			return diags
+		}
+	}
+
+	return nil
+}
+
+// applyTemplateContentChanges copies config changes onto the template that will
+// be sent with a replace update. The returned bool is true only when that
+// replace must be sent; mutating the template without it leaves OpenNebula unchanged.
+func applyTemplateContentChanges(d *schema.ResourceData, newTpl *vm.Template) (bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	update := false
+
 	// Decode before applying config. addContext then replaces CONTEXT with the
 	// raw configured text when that block itself changed.
-	decodeContextValues(&newTpl)
+	decodeContextValues(newTpl)
+	restoreConfiguredSecrets(newTpl, d)
 
 	if d.HasChange("features") {
-		addFeatures(&newTpl, configuredFeatures(d))
+		addFeatures(newTpl, configuredFeatures(d))
 		update = true
 	}
 
 	if d.HasChange("context") {
-		addContext(&newTpl, d.Get("context").(map[string]interface{}))
+		addContext(newTpl, d.Get("context").(map[string]interface{}))
 		update = true
 	}
 
@@ -869,7 +991,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
-	if updateTemplate(d, &newTpl) {
+	if updateTemplate(d, newTpl) {
 		update = true
 	}
 
@@ -881,31 +1003,37 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			cpumodelconfig := cpumodel[i].(map[string]interface{})
 			newTpl.CPUModel(cpumodelconfig["model"].(string))
 		}
-
+		update = true
 	}
 
 	if d.HasChange("cpu") {
 		cpu := d.Get("cpu").(float64)
 		if cpu > 0 {
-			update = true
 			newTpl.CPU(cpu)
+		} else {
+			newTpl.Del(string(vmk.CPU))
 		}
+		update = true
 	}
 
 	if d.HasChange("vcpu") {
 		vcpu := d.Get("vcpu").(int)
 		if vcpu > 0 {
-			update = true
 			newTpl.VCPU(vcpu)
+		} else {
+			newTpl.Del(string(vmk.VCPU))
 		}
+		update = true
 	}
 
 	if d.HasChange("memory") {
 		memory := d.Get("memory").(int)
 		if memory > 0 {
-			update = true
 			newTpl.Memory(memory)
+		} else {
+			newTpl.Del(string(vmk.Memory))
 		}
+		update = true
 	}
 
 	if d.HasChange("user_inputs") {
@@ -928,25 +1056,40 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	if d.HasChange("disk") {
 		newTpl.Del("DISK")
 
-		err := addDisks(d, &newTpl)
+		err := addDisks(d, newTpl)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update disks",
 				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
 			})
-			return diags
+			return update, diags
 		}
+		update = true
+	}
+
+	if d.HasChange("graphics") {
+		newTpl.Del(vmk.IOGraphicsVec)
+		addGraphic(newTpl, d.Get("graphics").([]interface{}))
+		update = true
+	}
+
+	if d.HasChange("os") {
+		newTpl.Del(vmk.OSVec)
+		addOS(newTpl, d.Get("os").([]interface{}))
+		update = true
 	}
 
 	if d.HasChange("nic") {
 		newTpl.Del(shared.NICVec)
-		addNICs(d, &newTpl)
+		addNICs(d, newTpl)
+		update = true
 	}
 
 	if d.HasChange("nic_alias") {
 		newTpl.Del(shared.NICAliasVec)
-		addNICs(d, &newTpl)
+		addNICAliases(d, newTpl)
+		update = true
 	}
 
 	if d.HasChange("tags") {
@@ -1005,51 +1148,14 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
-	if update {
-		err = tc.Update(newTpl.String(), parameters.Replace)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update content",
-				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-	}
-
-	if d.HasChange("lock") && lockOk && lock.(string) != "UNLOCK" {
-
-		var level shared.LockLevel
-
-		err = StringToLockLevel(lock.(string), &level)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to convert lock level",
-				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-
-		err = tc.Lock(level)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to lock",
-				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
-	}
-
-	return nil
+	return update, diags
 }
 
 func resourceOpennebulaTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	err := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return resourceOpennebulaTemplateRead(ctx, d, meta)
