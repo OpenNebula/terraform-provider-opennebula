@@ -419,10 +419,14 @@ func resourceOpennebulaVirtualRouterUpdate(ctx context.Context, d *schema.Resour
 	}
 
 	update := false
-	newTpl := vr.NewTemplate()
+	newTpl := vrInfos.Template
 	if d.HasChange("description") {
+		newTpl.Del("DESCRIPTION")
+		description := d.Get("description").(string)
+		if description != "" {
+			newTpl.Add("DESCRIPTION", description)
+		}
 		update = true
-		newTpl.Add("DESCRIPTION", d.Get("description").(string))
 	}
 
 	if d.HasChange("template_section") {

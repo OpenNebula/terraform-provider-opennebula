@@ -295,7 +295,12 @@ func generateSecurityGroupMapFromStructs(rulesVectors []securitygroup.Rule) []ma
 	for _, ruleVec := range rulesVectors {
 		rule := make(map[string]interface{}, len(ruleVec.Pairs))
 		for _, pair := range ruleVec.Pairs {
-			rule[strings.ToLower(pair.Key())] = pair.Value
+			key := strings.ToLower(pair.Key())
+			value := pair.Value
+			if key == "protocol" || key == "rule_type" {
+				value = strings.ToUpper(value)
+			}
+			rule[key] = value
 		}
 		rules = append(rules, rule)
 	}
@@ -421,10 +426,18 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 	update := false
 	rulesUpdate := false
 
-	if d.HasChange("rule") && d.Get("rule") != "" {
+	if d.HasChange("description") {
+		tpl.Del(string(sgk.Description))
+		if description := d.Get("description").(string); description != "" {
+			tpl.Add(sgk.Description, description)
+		}
+		update = true
+	}
 
-		tpl.Del((string(sgk.RuleVec)))
+	if d.HasChange("rule") {
+		tpl.Del(string(sgk.RuleVec))
 		generateSecurityGroupRules(d, tpl)
+		update = true
 		rulesUpdate = true
 	}
 

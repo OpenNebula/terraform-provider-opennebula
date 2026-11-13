@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
@@ -56,9 +57,11 @@ func flattenTemplateSection(d *schema.ResourceData, meta interface{}, tpl *dynam
 			vecName := vector["name"].(string)
 			vecElements := vector["elements"].(map[string]interface{})
 
-			// Suppose vector key unicity
-			vectorTpl, err := tpl.GetVector(strings.ToUpper(vecName))
+			vectorTpl, err := findTemplateSectionVector(tpl, vecName, vecElements)
 			if err != nil {
+				return err
+			}
+			if vectorTpl == nil {
 				continue
 			}
 
@@ -87,6 +90,41 @@ func flattenTemplateSection(d *schema.ResourceData, meta interface{}, tpl *dynam
 	}
 
 	return nil
+}
+
+func findTemplateSectionVector(tpl *dyn.Template, name string, elements map[string]interface{}) (*dyn.Vector, error) {
+	name = strings.ToUpper(name)
+	vectors := tpl.GetVectors(name)
+	if len(vectors) == 0 {
+		return nil, nil
+	}
+	if len(vectors) == 1 {
+		return vectors[0], nil
+	}
+
+	// Router NICs are repeated vectors; use their identity rather than their order.
+	if name == "NIC" {
+		for _, identity := range []string{"NIC_ID", "NETWORK_ID"} {
+			for key, value := range elements {
+				if strings.ToUpper(key) != identity {
+					continue
+				}
+				var match *dyn.Vector
+				for _, vector := range vectors {
+					actual, err := vector.GetStr(identity)
+					if err != nil || actual != fmt.Sprint(value) {
+						continue
+					}
+					if match != nil {
+						return nil, fmt.Errorf("ambiguous NIC template section: multiple NICs have %s=%v", identity, value)
+					}
+					match = vector
+				}
+				return match, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("ambiguous template section %s: found %d vectors; repeated NICs require NIC_ID or a unique NETWORK_ID", name, len(vectors))
 }
 
 func updateTemplateSection(d *schema.ResourceData, newTpl *dyn.Template) {

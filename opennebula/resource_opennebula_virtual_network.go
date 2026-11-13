@@ -54,6 +54,7 @@ func resourceOpennebulaVirtualNetwork() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Description of the vnet",
 			},
 			"permissions": {
@@ -1410,6 +1411,36 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 	tpl := vnInfos.Template
 	update := false
 
+	if d.HasChange("type") {
+		tpl.Del(string(vnk.VNMad))
+		tpl.Add(vnk.VNMad, d.Get("type").(string))
+		update = true
+	}
+
+	if d.HasChange("vlan_id") {
+		tpl.Del(string(vnk.VlanID))
+		vlanID := d.Get("vlan_id").(string)
+		if vlanID != "" {
+			tpl.Add(vnk.VlanID, vlanID)
+		}
+		update = true
+	}
+
+	if d.HasChange("mtu") || d.HasChange("guest_mtu") {
+		mtu := d.Get("mtu").(int)
+		guestMTU := d.Get("guest_mtu").(int)
+
+		if guestMTU > mtu {
+			return diag.Errorf("Invalid: Guest MTU (%v) is greater than MTU (%v)", guestMTU, mtu)
+		}
+
+		tpl.Del("MTU")
+		tpl.AddPair("MTU", mtu)
+		tpl.Del(string(vnk.GuestMTU))
+		tpl.AddPair(string(vnk.GuestMTU), guestMTU)
+		update = true
+	}
+
 	if d.HasChange("description") {
 		tpl.Del("DESCRIPTION")
 		description := d.Get("description").(string)
@@ -1466,7 +1497,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 
 	if d.HasChange("security_groups") {
 		tpl.Del(string(vnk.SecGroups))
-		securityGroupsList := d.Get("security_groups").([]interface{})
+		securityGroupsList := d.Get("security_groups").(*schema.Set).List()
 		if len(securityGroupsList) > 0 {
 			securityGroupsStr := ArrayToString(securityGroupsList, ",")
 			tpl.Add(vnk.SecGroups, securityGroupsStr)
