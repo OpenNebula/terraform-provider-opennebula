@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -58,6 +59,7 @@ func (nu NICUpdates) getNICsToDetachIds() ([]int, error) {
 
 var (
 	vmDiskOnChangeValues = []string{"RECREATE", "SWAP"}
+	vmDiskAttachFields   = [...]string{"image_id", "image", "target", "driver", "dev_prefix", "cache", "discard", "io", "volatile_type", "volatile_format"}
 
 	defaultVMTimeoutMin = 20
 	defaultVMTimeout    = time.Duration(defaultVMTimeoutMin) * time.Minute
@@ -311,6 +313,11 @@ func nicAliasVMSchema() *schema.Schema {
 
 func diskComputedVMFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"tf_uuid": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Terraform disk attachment identifier stored as TF_UUID in OpenNebula",
+		},
 		"disk_id": {
 			Type:     schema.TypeInt,
 			Computed: true,
@@ -900,6 +907,7 @@ func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) 
 }
 
 func flattenDiskComputed(disk shared.Disk) map[string]interface{} {
+	tfUUID, _ := disk.Get("TF_UUID")
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
@@ -911,6 +919,7 @@ func flattenDiskComputed(disk shared.Disk) map[string]interface{} {
 	diskID, _ := disk.GetI(shared.DiskID)
 
 	return map[string]interface{}{
+		"tf_uuid":                  tfUUID,
 		"disk_id":                  diskID,
 		"computed_size":            size,
 		"computed_target":          target,
@@ -949,6 +958,13 @@ func flattenVMTemplateDisk(d *schema.ResourceData, vmTemplate *vm.Template) erro
 }
 
 func matchDisk(diskConfig map[string]interface{}, disk shared.Disk) bool {
+	remoteID, _ := disk.Get("TF_UUID")
+	if id, _ := diskConfig["tf_uuid"].(string); id != "" {
+		return id == remoteID
+	}
+	if remoteID != "" {
+		return false // An untagged legacy entry must not claim another managed disk.
+	}
 
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
@@ -972,6 +988,10 @@ func matchDisk(diskConfig map[string]interface{}, disk shared.Disk) bool {
 }
 
 func matchDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) bool {
+	if id, _ := diskConfig["tf_uuid"].(string); id != "" {
+		remoteID, _ := disk.Get("TF_UUID")
+		return id == remoteID
+	}
 
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
@@ -1000,10 +1020,17 @@ func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	disks := vmTemplate.GetDisks()
 	diskConfigs := d.Get("disk").([]interface{})
 
-	diskList := make([]interface{}, 0, len(disks))
+	diskList := make([]interface{}, len(diskConfigs))
+	seenUUIDs := make(map[string]bool, len(disks))
 
 diskLoop:
 	for _, disk := range disks {
+		if id, _ := disk.Get("TF_UUID"); id != "" {
+			if seenUUIDs[id] {
+				return fmt.Errorf("duplicate disk TF_UUID %s", id)
+			}
+			seenUUIDs[id] = true
+		}
 
 		// exclude disk from template_disk
 		tplDiskConfigs := d.Get("template_disk").([]interface{})
@@ -1020,6 +1047,9 @@ diskLoop:
 
 		match := false
 		for j := 0; j < len(diskConfigs); j++ {
+			if diskList[j] != nil {
+				continue
+			}
 			diskConfig := diskConfigs[j].(map[string]interface{})
 
 			// try to reidentify the disk based on it's configuration values
@@ -1042,7 +1072,7 @@ diskLoop:
 				diskMap["volatile_type"] = volatileType
 			}
 
-			diskList = append(diskList, diskMap)
+			diskList[j] = diskMap
 
 			break
 
@@ -1055,7 +1085,13 @@ diskLoop:
 
 	}
 
-	err := d.Set("disk", diskList)
+	matchedDisks := diskList[:0]
+	for _, disk := range diskList {
+		if disk != nil {
+			matchedDisks = append(matchedDisks, disk)
+		}
+	}
+	err := d.Set("disk", matchedDisks)
 	if err != nil {
 		return err
 	}
@@ -2360,6 +2396,69 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
+func makeVMDiskVector(config map[string]interface{}) (*shared.Disk, error) {
+	id, _ := config["tf_uuid"].(string)
+	if id == "" {
+		var err error
+		id, err = uuid.GenerateUUID()
+		if err != nil {
+			return nil, fmt.Errorf("generate disk UUID: %w", err)
+		}
+		config["tf_uuid"] = id
+	}
+	disk := makeDiskVector(config)
+	disk.Add("TF_UUID", id)
+	return disk, nil
+}
+
+type vmDiskKey [len(vmDiskAttachFields) + 1]interface{}
+
+func diskAttachmentKey(config map[string]interface{}) vmDiskKey {
+	var key vmDiskKey
+	key[0], _ = config["tf_uuid"].(string)
+	for i, field := range vmDiskAttachFields {
+		key[i+1] = config[field]
+	}
+	return key
+}
+
+type vmDiskResizeRequest struct {
+	config   map[string]interface{}
+	attached map[string]interface{}
+}
+
+func diffVMDiskConfig(new, old []interface{}) (detach, attach []map[string]interface{}, resize []vmDiskResizeRequest) {
+	oldByKey := make(map[vmDiskKey][]int, len(old))
+	for i, disk := range old {
+		key := diskAttachmentKey(disk.(map[string]interface{}))
+		oldByKey[key] = append(oldByKey[key], i)
+	}
+
+	matched := make([]bool, len(old))
+	for _, disk := range new {
+		config := disk.(map[string]interface{})
+		key := diskAttachmentKey(config)
+		candidates := oldByKey[key]
+		if len(candidates) == 0 {
+			attach = append(attach, config)
+			continue
+		}
+		i := candidates[0]
+		oldByKey[key] = candidates[1:]
+		matched[i] = true
+		attached := old[i].(map[string]interface{})
+		if config["size"] != attached["size"] {
+			resize = append(resize, vmDiskResizeRequest{config: config, attached: attached})
+		}
+	}
+	for i, disk := range old {
+		if !matched[i] {
+			detach = append(detach, disk.(map[string]interface{}))
+		}
+	}
+	return detach, attach, resize
+}
+
 func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 
 	//Get VM
@@ -2379,62 +2478,9 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 		timeout = d.Timeout(schema.TimeoutUpdate)
 	}
 
-	// get unique elements of each list of configs
-	// NOTE: diffListConfig relies on Set, so we may loose list ordering of disks here
-	// it's why we reorder the attach list below
-	toDetach, toAttach := diffListConfig(newDisksCfg, attachedDisksCfg,
-		&schema.Resource{
-			Schema: diskFields(),
-		},
-		"image_id",
-		"image",
-		"target",
-		"driver",
-		"dev_prefix",
-		"cache",
-		"discard",
-		"io",
-		"volatile_type",
-		"volatile_format")
+	toDetach, toAttach, toResize := diffVMDiskConfig(newDisksCfg, attachedDisksCfg)
 
-	// reorder toAttach disk list according to new disks list order
-	newDisktoAttach := make([]interface{}, len(toAttach))
-	i := 0
-	for _, newDiskIf := range newDisksCfg {
-		newDisk := newDiskIf.(map[string]interface{})
-
-		for _, diskToAttachIf := range toAttach {
-			disk := diskToAttachIf.(map[string]interface{})
-
-			// if disk have the same attributes
-			if (disk["target"] == newDisk["target"]) &&
-				disk["size"] == newDisk["size"] &&
-				disk["driver"] == newDisk["driver"] &&
-				disk["dev_prefix"] == newDisk["dev_prefix"] &&
-				disk["cache"] == newDisk["cache"] &&
-				disk["discard"] == newDisk["discard"] &&
-				disk["io"] == newDisk["io"] {
-
-				newDisktoAttach[i] = disk
-				i++
-				break
-			}
-		}
-	}
-	toAttach = newDisktoAttach
-
-	// get disks to resize
-	_, toResize := diffListConfig(newDisksCfg, attachedDisksCfg,
-		&schema.Resource{
-			Schema: diskFields(),
-		},
-		"image_id",
-		"image",
-		"size")
-
-	// Detach the disks
-	for _, diskIf := range toDetach {
-		diskConfig := diskIf.(map[string]interface{})
+	for _, diskConfig := range toDetach {
 
 		// ignore disk without image_id, image and type
 		if (diskConfig["image_id"].(int) == -1 &&
@@ -2454,9 +2500,7 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	// Attach the disks
-	for _, diskIf := range toAttach {
-		diskConfig := diskIf.(map[string]interface{})
+	for _, diskConfig := range toAttach {
 
 		// ignore disk without image_id, image and type
 		if (diskConfig["image_id"].(int) == -1 &&
@@ -2467,51 +2511,35 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 			continue
 		}
 
-		diskTpl := makeDiskVector(diskConfig)
+		diskTpl, err := makeVMDiskVector(diskConfig)
+		if err != nil {
+			return err
+		}
 
-		_, err := vmDiskAttach(ctx, vmc, timeout, diskTpl)
+		_, err = vmDiskAttach(ctx, vmc, timeout, diskTpl)
 		if err != nil {
 			return fmt.Errorf("vm disk attach: %s", err)
 		}
+		if err := d.Set("disk", newDisksCfg); err != nil {
+			return err
+		}
 	}
 
-	// Resize disks
-	for _, diskIf := range toResize {
-		diskConfig := diskIf.(map[string]interface{})
-
-		// ignore disk without image_id, image and type
-		if (diskConfig["image_id"].(int) == -1 &&
-			diskConfig["image"].(string) == "") &&
-			len(diskConfig["volatile_type"].(string)) == 0 {
-
-			log.Printf("[INFO] ignore disk without image_id, image and type")
+	for _, request := range toResize {
+		if request.config["image_id"] == -1 && request.config["image"] == "" && request.config["volatile_type"] == "" {
 			continue
 		}
-
-		// retrieve the the disk_id
-		for _, d := range attachedDisksCfg {
-
-			cfg := d.(map[string]interface{})
-			if (diskConfig["image_id"].(int) != cfg["image_id"].(int) &&
-				diskConfig["image"].(string) != cfg["image"].(string)) ||
-				(len(diskConfig["target"].(string)) > 0 && diskConfig["target"] != cfg["computed_target"]) ||
-				(len(diskConfig["driver"].(string)) > 0 && diskConfig["driver"] != cfg["computed_driver"]) ||
-				(len(diskConfig["dev_prefix"].(string)) > 0 && diskConfig["dev_prefix"] != cfg["computed_dev_prefix"]) ||
-				(len(diskConfig["cache"].(string)) > 0 && diskConfig["cache"] != cfg["computed_cache"]) ||
-				(len(diskConfig["discard"].(string)) > 0 && diskConfig["discard"] != cfg["computed_discard"]) ||
-				(len(diskConfig["io"].(string)) > 0 && diskConfig["io"] != cfg["computed_io"]) ||
-				diskConfig["size"].(int) <= cfg["computed_size"].(int) {
-
-				continue
-			}
-
-			diskID := cfg["disk_id"].(int)
-
-			err := vmDiskResize(ctx, vmc, timeout, diskID, diskConfig["size"].(int))
-			if err != nil {
-				return fmt.Errorf("vm disk resize: %s", err)
-			}
-
+		size := request.config["size"].(int)
+		currentSize := request.attached["computed_size"].(int)
+		if size <= 0 || size == currentSize {
+			continue
+		}
+		diskID := request.attached["disk_id"].(int)
+		if size < currentSize {
+			return fmt.Errorf("disk %d cannot shrink from %d to %d MiB", diskID, currentSize, size)
+		}
+		if err := vmDiskResize(ctx, vmc, timeout, diskID, size); err != nil {
+			return fmt.Errorf("vm disk resize: %w", err)
 		}
 	}
 

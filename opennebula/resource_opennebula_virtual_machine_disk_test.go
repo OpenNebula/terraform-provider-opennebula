@@ -1,10 +1,16 @@
 package opennebula
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+const testAccDiskVMName = "test-vm-disk-update"
 
 func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -13,17 +19,17 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 		CheckDestroy: testAccCheckVirtualMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccVirtualMachineTemplateConfigBasic,
+				Config: strings.ReplaceAll(testAccVirtualMachineTemplateConfigBasic, "test-virtual_machine", testAccDiskVMName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSetDSdummy(),
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 				),
 			},
 			{
 				Config: testAccVirtualMachineVolatileDisk,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -32,7 +38,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachinePersistentDisk,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -43,18 +49,19 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachinePersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdb"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "16"),
+					testAccPowerOffDiskVM,
 				),
 			},
 			{
 				Config: testAccVirtualMachineSwitchNonPersistentDisk,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -65,7 +72,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachineNonPersistentDiskTargetUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -76,7 +83,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachineNonPersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -87,7 +94,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachineNonPersistentDiskAttachedTwice,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "3"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -100,7 +107,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachineNonPersistentDiskSizeUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_target", "vda"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
@@ -111,7 +118,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 			{
 				Config: testAccVirtualMachineDiskDetached,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", "test-virtual_machine"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "name", testAccDiskVMName),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "0"),
 				),
 			},
@@ -119,9 +126,55 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 	})
 }
 
+func TestAccVirtualMachineDuplicateDisks(t *testing.T) {
+	const config = `
+resource "opennebula_virtual_machine" "test" {
+  name          = "test-vm-duplicate-disks"
+  cpu           = 0.1
+  memory        = 128
+  hard_shutdown = true
+`
+	const disk = `
+  disk {
+    volatile_type = "swap"
+    size          = 16
+  }
+`
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{Config: config + "}"},
+			{
+				Config: config + strings.Repeat(disk, 2) + "}",
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "disk.0.tf_uuid"),
+					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "disk.1.tf_uuid"),
+				),
+			},
+		},
+	})
+}
+
+// Once live attachment and resize have been checked, use offline disk
+// operations so detach does not depend on a booted guest handling hot unplug.
+func testAccPowerOffDiskVM(s *terraform.State) error {
+	id, err := strconv.Atoi(s.RootModule().Resources["opennebula_virtual_machine.test"].Primary.ID)
+	if err != nil {
+		return err
+	}
+	controller := testAccProvider.Meta().(*Configuration).Controller
+	if err := controller.VM(id).PoweroffHard(); err != nil {
+		return err
+	}
+	return waitForVMState(id, vm.Poweroff, defaultVMTimeout)
+}
+
 var testDiskImageResources = `
 resource "opennebula_image" "image1" {
-	name             = "image1"
+	name             = "test-vm-disk-image1"
 	type             = "DATABLOCK"
 	size             = "16"
 	datastore_id     = 1
@@ -130,7 +183,7 @@ resource "opennebula_image" "image1" {
   }
   
   resource "opennebula_image" "image2" {
-	name             = "image2"
+	name             = "test-vm-disk-image2"
 	type             = "DATABLOCK"
 	size             = "8"
 	datastore_id     = 1
@@ -142,7 +195,7 @@ resource "opennebula_image" "image1" {
 var testAccVirtualMachineVolatileDisk = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
-	name        = "test-virtual_machine"
+	name        = "test-vm-disk-update"
 	group       = "oneadmin"
 	permissions = "642"
 	memory = 128
@@ -182,7 +235,7 @@ resource "opennebula_virtual_machine" "test" {
 var testAccVirtualMachinePersistentDisk = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
-	name        = "test-virtual_machine"
+	name        = "test-vm-disk-update"
 	group       = "oneadmin"
 	permissions = "642"
 	memory = 128
@@ -226,7 +279,7 @@ resource "opennebula_virtual_machine" "test" {
 var testAccVirtualMachinePersistentDiskSizeUpdate = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
-	name        = "test-virtual_machine"
+	name        = "test-vm-disk-update"
 	group       = "oneadmin"
 	permissions = "642"
 	memory = 128
@@ -271,7 +324,7 @@ resource "opennebula_virtual_machine" "test" {
 var testAccVirtualMachineSwitchNonPersistentDisk = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
-	  name        = "test-virtual_machine"
+	  name        = "test-vm-disk-update"
 	  group       = "oneadmin"
 	  permissions = "642"
 	  memory = 128
@@ -315,7 +368,7 @@ var testAccVirtualMachineSwitchNonPersistentDisk = testDiskImageResources + `
 var testAccVirtualMachineNonPersistentDiskTargetUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
-	  name        = "test-virtual_machine"
+	  name        = "test-vm-disk-update"
 	  group       = "oneadmin"
 	  permissions = "642"
 	  memory = 128
@@ -359,7 +412,7 @@ var testAccVirtualMachineNonPersistentDiskTargetUpdate = testDiskImageResources 
 var testAccVirtualMachineNonPersistentDiskSizeUpdate = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
-	  name        = "test-virtual_machine"
+	  name        = "test-vm-disk-update"
 	  group       = "oneadmin"
 	  permissions = "642"
 	  memory = 128
@@ -404,7 +457,7 @@ var testAccVirtualMachineNonPersistentDiskSizeUpdate = testDiskImageResources + 
 var testAccVirtualMachineNonPersistentDiskAttachedTwice = testDiskImageResources + `
 
   resource "opennebula_virtual_machine" "test" {
-	  name        = "test-virtual_machine"
+	  name        = "test-vm-disk-update"
 	  group       = "oneadmin"
 	  permissions = "642"
 	  memory = 128
@@ -454,7 +507,7 @@ var testAccVirtualMachineNonPersistentDiskAttachedTwice = testDiskImageResources
 var testAccVirtualMachineDiskDetached = testDiskImageResources + `
 
 resource "opennebula_virtual_machine" "test" {
-	name        = "test-virtual_machine"
+	name        = "test-vm-disk-update"
 	group       = "oneadmin"
 	permissions = "642"
 	memory = 128

@@ -1466,7 +1466,7 @@ func resourceOpennebulaVirtualNetworkUpdate(ctx context.Context, d *schema.Resou
 
 	if d.HasChange("security_groups") {
 		tpl.Del(string(vnk.SecGroups))
-		securityGroupsList := d.Get("security_groups").([]interface{})
+		securityGroupsList := d.Get("security_groups").(*schema.Set).List()
 		if len(securityGroupsList) > 0 {
 			securityGroupsStr := ArrayToString(securityGroupsList, ",")
 			tpl.Add(vnk.SecGroups, securityGroupsStr)

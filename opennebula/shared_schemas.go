@@ -842,6 +842,7 @@ func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 
 	//Generate DISK definition
 	disks := d.Get("disk").([]interface{})
+	managed := false
 	log.Printf("Number of disks: %d", len(disks))
 
 	for i := 0; i < len(disks); i++ {
@@ -867,10 +868,24 @@ func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 			continue
 		}
 
-		disk := makeDiskVector(diskconfig)
+		var disk *shared.Disk
+		// Only VM schemas have tf_uuid; reusable templates must not carry it.
+		if _, ok := diskconfig["tf_uuid"]; ok {
+			var err error
+			disk, err = makeVMDiskVector(diskconfig)
+			if err != nil {
+				return err
+			}
+			managed = true
+		} else {
+			disk = makeDiskVector(diskconfig)
+		}
 		tpl.Elements = append(tpl.Elements, disk)
 	}
 
+	if managed {
+		return d.Set("disk", disks)
+	}
 	return nil
 }
 

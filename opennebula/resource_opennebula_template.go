@@ -2,6 +2,8 @@ package opennebula
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -20,7 +22,7 @@ import (
 )
 
 func resourceOpennebulaTemplate() *schema.Resource {
-	return &schema.Resource{
+	r := &schema.Resource{
 		CreateContext: resourceOpennebulaTemplateCreate,
 		ReadContext:   resourceOpennebulaTemplateRead,
 		Exists:        resourceOpennebulaTemplateExists,
@@ -40,6 +42,28 @@ func resourceOpennebulaTemplate() *schema.Resource {
 			},
 		),
 	}
+
+	for key, field := range r.Schema {
+		if field.Optional && key != "group" {
+			field.Computed = true
+		}
+	}
+	r.Schema["disk"].ConfigMode = schema.SchemaConfigModeAttr
+	r.Schema["raw_template"] = &schema.Schema{
+		Type:          schema.TypeString,
+		Optional:      true,
+		ForceNew:      true,
+		ConflictsWith: []string{"raw_template_b64"},
+		Description:   "OpenNebula template text to allocate directly.",
+	}
+	r.Schema["raw_template_b64"] = &schema.Schema{
+		Type:          schema.TypeString,
+		Optional:      true,
+		ForceNew:      true,
+		ConflictsWith: []string{"raw_template"},
+		Description:   "Base64-encoded OpenNebula template text to allocate directly.",
+	}
+	return r
 }
 
 func commonTemplateSchemas() map[string]*schema.Schema {
@@ -267,25 +291,45 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 
 	var diags diag.Diagnostics
 
+	tplDef, _ := d.Get("raw_template").(string)
+	if encoded, ok := d.GetOk("raw_template_b64"); ok {
+		decoded, err := base64.StdEncoding.DecodeString(encoded.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		tplDef = string(decoded)
+	}
 	tpl, err := generateTemplate(d, meta)
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to generate description",
-			Detail:   err.Error(),
-		})
-		return diags
+		return diag.FromErr(fmt.Errorf("generate template: %w", err))
 	}
-
 	if customFunc != nil {
-		customDiags := customFunc(d, &tpl.Template)
-		if len(customDiags) > 0 {
+		if customDiags := customFunc(d, &tpl.Template); len(customDiags) > 0 {
 			return customDiags
 		}
 	}
 
-	tplDef := tpl.Template.String()
-	log.Printf("[INFO] Template definitions: %s", tplDef)
+	var overrides string
+	if tplDef == "" {
+		tplDef = tpl.Template.String()
+	} else {
+		// OpenNebula uses the first NAME at allocation. Merge the remaining
+		// configured fields by key so repeated vectors are replaced as a group.
+		name := vm.NewTemplate()
+		name.Add(vmk.Name, d.Get("name").(string))
+		tplDef = name.Template.String() + "\n" + tplDef
+		tpl.Del(string(vmk.Name))
+		rawConfig := d.GetRawConfig()
+		if rawConfig.IsKnown() && !rawConfig.IsNull() {
+			if disk := rawConfig.GetAttr("disk"); disk.IsKnown() && !disk.IsNull() && disk.LengthInt() == 0 {
+				tpl.AddVector("DISK")
+			}
+			if description := rawConfig.GetAttr("description"); description.IsKnown() && !description.IsNull() && description.AsString() == "" {
+				tpl.Add(vmk.Description, "")
+			}
+		}
+		overrides = tpl.Template.String()
+	}
 	tplID, err := controller.Templates().Create(tplDef)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
@@ -299,6 +343,17 @@ func resourceOpennebulaTemplateCreateCustom(ctx context.Context, d *schema.Resou
 	tc := controller.Template(tplID)
 
 	d.SetId(fmt.Sprintf("%v", tplID))
+
+	if overrides != "" {
+		if err := tc.Update(overrides, parameters.Merge); err != nil {
+			err = fmt.Errorf("apply configured fields to raw template %d: %w", tplID, err)
+			if cleanupErr := tc.Delete(); cleanupErr != nil {
+				return diag.FromErr(errors.Join(err, fmt.Errorf("delete incomplete template %d: %w", tplID, cleanupErr)))
+			}
+			d.SetId("")
+			return diag.FromErr(err)
+		}
+	}
 
 	// Change Permissions only if Permissions are set
 	if perms, ok := d.GetOk("permissions"); ok {
@@ -436,22 +491,20 @@ func resourceOpennebulaTemplateReadCustom(ctx context.Context, d *schema.Resourc
 	}
 
 	uInputs, _ := tpl.Template.GetVector("USER_INPUTS")
-	if uInputs != nil && len(uInputs.Pairs) > 0 {
-		uInputsMap := make(map[string]interface{}, 0)
-
+	uInputsMap := make(map[string]interface{})
+	if uInputs != nil {
 		for _, ui := range uInputs.Pairs {
 			uInputsMap[ui.Key()] = ui.Value
 		}
-
-		err = d.Set("user_inputs", uInputsMap)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to set attribute",
-				Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
-			})
-			return diags
-		}
+	}
+	err = d.Set("user_inputs", uInputsMap)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to set attribute",
+			Detail:   fmt.Sprintf("template (ID: %s): %s", d.Id(), err),
+		})
+		return diags
 	}
 
 	if readCustom != nil {
@@ -937,6 +990,7 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			})
 			return diags
 		}
+		update = true
 	}
 
 	if d.HasChange("nic") {
@@ -1047,9 +1101,9 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 
 func resourceOpennebulaTemplateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	err := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
-	if err != nil {
-		return nil
+	diags := resourceOpennebulaTemplateUpdateCustom(ctx, d, meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	return resourceOpennebulaTemplateRead(ctx, d, meta)

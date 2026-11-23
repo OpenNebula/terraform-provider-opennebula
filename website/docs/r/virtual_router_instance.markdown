@@ -188,6 +188,7 @@ The following attribute are exported:
 
 ### Disk
 
+* `tf_uuid` - Terraform-generated attachment UUID stored as `TF_UUID` on the VM disk. Assigned to newly created or attached disks; existing untagged disks retain legacy matching until reattached.
 * `disk_id` - disk attachment identifier
 * `computed_size` - Size (in MB) of the image attached to the virtual router instance. Not possible to change a cloned image size.
 * `computed_target` - Target name device on the virtual router instance. Depends of the image `dev_prefix`.
