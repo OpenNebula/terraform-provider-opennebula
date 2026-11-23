@@ -85,11 +85,33 @@ resource "opennebula_template" "example" {
 }
 ```
 
+An existing template can also be allocated directly. Its fields are read back
+into the normal resource attributes:
+
+```hcl
+resource "opennebula_template" "ubuntu" {
+  name             = "ubuntu"
+  raw_template_b64 = data.opennebula_marketplace_appliance.ubuntu.tags["VMTEMPLATE64"]
+
+  disk {
+    image_id = opennebula_image.ubuntu.id
+  }
+}
+```
+
+Alternatively, use `raw_template = base64decode(...)` for decoded text.
+Terraform sets the configured name at allocation and merges the configured
+template fields into the result. A configured disk list replaces any disks in
+the raw template. Omit the disk list to keep the raw disks or set `disk = []`
+to clear them. Changing the raw input replaces the template.
+
 ## Argument Reference
 
 The following arguments are supported:
 
 * `name` - (Required) The name of the virtual machine template.
+* `raw_template` - (Optional) Complete OpenNebula template text. Conflicts with `raw_template_b64`.
+* `raw_template_b64` - (Optional) Base64-encoded OpenNebula template text. Conflicts with `raw_template`.
 * `description`: (Optional) The description of the template.
 * `permissions` - (Optional) Permissions applied on template. Defaults to the UMASK in OpenNebula (in UNIX Format: owner-group-other => Use-Manage-Admin).
 * `group` - (Optional) Name of the group which owns the template. Defaults to the caller primary group.
@@ -101,7 +123,7 @@ The following arguments are supported:
 * `cpumodel` - (Optional) See [CPUmodel parameters](#cpumodel-parameters) below for details.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
-* `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disks parameters](#disks-parameters) below for details.
+* `disk` - (Optional, Computed) Can be specified multiple times to define several disks. Omit to retain existing disks, or set `disk = []` to remove all disks. See [Disks parameters](#disks-parameters) below for details.
 * `nic` - (Optional) Can be specified multiple times to attach several NICs. See [Nic parameters](#nic-parameters) below for details.
 * `nic_alias` - (Optional) Can be specified multiple times to attach several NIC Aliases. See [Nic alias parameters](#nic-alias-parameters) below for details.
 * `raw` - (Optional) Allow to pass hypervisor level tuning content. See [Raw parameters](#raw-parameters) below for details.

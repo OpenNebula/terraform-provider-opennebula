@@ -87,8 +87,7 @@ func resourceOpennebulaSecurityGroup() *schema.Resource {
 			},
 			"rule": {
 				Type:        schema.TypeList,
-				Required:    true,
-				MinItems:    1,
+				Optional:    true,
 				Description: "List of rules to be in the Security Group",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -421,10 +420,11 @@ func resourceOpennebulaSecurityGroupUpdate(ctx context.Context, d *schema.Resour
 	update := false
 	rulesUpdate := false
 
-	if d.HasChange("rule") && d.Get("rule") != "" {
+	if d.HasChange("rule") {
 
 		tpl.Del((string(sgk.RuleVec)))
 		generateSecurityGroupRules(d, tpl)
+		update = true
 		rulesUpdate = true
 	}
 

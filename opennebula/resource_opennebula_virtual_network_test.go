@@ -287,6 +287,42 @@ func TestAccVirtualNetworkReservationReplace(t *testing.T) {
 	})
 }
 
+func TestAccVirtualNetworkSecurityGroups(t *testing.T) {
+	const config = `
+resource "opennebula_security_group" "test" {
+  name = "test-vnet-sg"
+  rule {
+    protocol = "TCP"
+    rule_type = "INBOUND"
+    range = "22"
+  }
+}
+resource "opennebula_virtual_network" "test" {
+  name = "test-vnet-sg"
+  type = "dummy"
+  bridge = "onebr"
+  security_groups = %s
+}`
+	var steps []resource.TestStep
+	for _, tc := range []struct{ groups, count string }{
+		{"[0]", "1"},
+		{"[opennebula_security_group.test.id]", "1"},
+		{"[0, opennebula_security_group.test.id]", "2"},
+		{"[]", "0"},
+	} {
+		steps = append(steps, resource.TestStep{
+			Config: fmt.Sprintf(config, tc.groups),
+			Check:  resource.TestCheckResourceAttr("opennebula_virtual_network.test", "security_groups.#", tc.count),
+		})
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVirtualNetworkDestroy,
+		Steps:        steps,
+	})
+}
+
 func TestVirtualNetworkReservationDiff(t *testing.T) {
 	existing := &terraform.InstanceState{
 		ID: "42",

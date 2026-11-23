@@ -2,11 +2,17 @@
 
 ENHANCEMENTS:
 
+* resources/opennebula_template: allocate templates from plain-text or Base64-encoded OpenNebula definitions
 * resources/opennebula_template, opennebula_virtual_router_instance_template: add `features.virtio_blk_queues` (`VIRTIO_BLK_QUEUES`)
 * docs/opennebula_template, opennebula_virtual_router_instance_template: replace the `tags` and `template_section` example with a concrete examples
 
 BUG FIXES:
 
+* data-sources/opennebula_marketplace_appliance: register the data source and expose appliance source and size (#629)
+* resources/opennebula_virtual_network: fix a provider crash when updating security groups (#634)
+* resources/opennebula_security_group: allow empty rule lists and persist rule-only updates, including removal of the last rule (#599, #664)
+* resources/opennebula_virtual_machine: return an error when shrinking a disk and preserve duplicate disk definitions on update (#500)
+* resources/opennebula_virtual_machine, opennebula_virtual_router_instance: identify new disk attachments using `TF_UUID` so external resizing does not remove them from state (#598)
 * resources/opennebula_template, opennebula_virtual_router_instance_template: read `features.localtime` from OpenNebula `LOCALTIME` and update `features` attributes in place
 * resources/opennebula_template, opennebula_virtual_router_instance_template: persist `context` updates to OpenNebula and refresh `context` on read
 * resources/opennebula_template, opennebula_virtual_router_instance_template: ignore OpenNebula quote escaping when comparing `context` values such as `USER_DATA`

@@ -28,4 +28,6 @@ data "opennebula_marketplace_appliance" "example" {
 
 * `id` - ID of the marketplace appliance.
 * `name` - Name of the marketplace appliance.
+* `source` - Source path of the appliance.
+* `size` - Size of the appliance image.
 * `tags` - Tags of the marketplace appliance (Key = Value).

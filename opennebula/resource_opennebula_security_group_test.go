@@ -6,8 +6,51 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func TestSecurityGroupEmptyRules(t *testing.T) {
+	r := resourceOpennebulaSecurityGroup()
+	for _, config := range []map[string]interface{}{
+		{"name": "empty"},
+		{"name": "empty", "rule": []interface{}{}},
+	} {
+		if diags := schema.InternalMap(r.Schema).Validate(terraform.NewResourceConfigRaw(config)); diags.HasError() {
+			t.Fatalf("empty security group rejected: %v", diags)
+		}
+		d := schema.TestResourceDataRaw(t, r.Schema, config)
+		if got := d.Get("rule").([]interface{}); len(got) != 0 {
+			t.Fatalf("expected no rules, got %v", got)
+		}
+		if tpl := generateSecurityGroupTemplate(d, &Configuration{}); tpl != "" {
+			t.Fatalf("empty group generated unexpected template: %s", tpl)
+		}
+	}
+}
+
+func TestAccSecurityGroupEmptyRules(t *testing.T) {
+	const config = `resource "opennebula_security_group" "empty" {
+  name = "test-empty-sg"
+  %s
+}`
+	empty := fmt.Sprintf(config, "")
+	ssh := fmt.Sprintf(config, `rule {
+    protocol = "TCP"
+    rule_type = "INBOUND"
+    range = "22"
+  }`)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{Config: empty, Check: resource.TestCheckResourceAttr("opennebula_security_group.empty", "rule.#", "0")},
+			{Config: ssh, Check: resource.TestCheckResourceAttr("opennebula_security_group.empty", "rule.#", "1")},
+			{Config: empty, Check: resource.TestCheckResourceAttr("opennebula_security_group.empty", "rule.#", "0")},
+		},
+	})
+}
 
 func TestAccSecurityGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{

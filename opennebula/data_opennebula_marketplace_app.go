@@ -26,6 +26,16 @@ func dataOpennebulaMarketplaceApp() *schema.Resource {
 				Optional:    true,
 				Description: "Name of the appliance",
 			},
+			"source": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Source path of the appliance",
+			},
+			"size": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Size of the appliance image",
+			},
 			"tags": tagsSchema(),
 		},
 	}
@@ -93,6 +103,14 @@ func datasourceOpennebulaMarketplaceAppRead(ctx context.Context, d *schema.Resou
 
 	d.SetId(strconv.FormatInt(int64(app.ID), 10))
 	d.Set("name", app.Name)
+
+	if err := d.Set("source", app.Source); err != nil {
+		return diag.FromErr(fmt.Errorf("set appliance source: %w", err))
+	}
+
+	if err := d.Set("size", app.Size); err != nil {
+		return diag.FromErr(fmt.Errorf("set appliance size: %w", err))
+	}
 
 	if len(tplPairs) > 0 {
 		err := d.Set("tags", tplPairs)

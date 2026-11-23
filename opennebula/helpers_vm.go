@@ -66,6 +66,14 @@ func vmDiskAttach(ctx context.Context, vmc *goca.VMController, timeout time.Dura
 	if err != nil {
 		return -1, err
 	}
+	if id, _ := diskTpl.Get("TF_UUID"); id != "" {
+		for _, disk := range vm.Template.GetDisks() {
+			if remoteID, _ := disk.Get("TF_UUID"); remoteID == id {
+				return disk.ID()
+			}
+		}
+		return -1, fmt.Errorf("disk with TF_UUID %s not found after attachment to VM %d", id, vmc.ID)
+	}
 
 	oldDisks := make([]shared.Disk, 0, 1)
 	for _, disk := range vm.Template.GetDisks() {

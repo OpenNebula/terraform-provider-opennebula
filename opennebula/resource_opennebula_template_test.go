@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -11,6 +12,62 @@ import (
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/shared"
 )
+
+func TestAccRawTemplate(t *testing.T) {
+	const raw = `
+NAME = "embedded-template-name"
+DESCRIPTION = "embedded description"
+CPU = "0.5"
+MEMORY = "128"
+DISK = [ TYPE = "swap", SIZE = "16" ]
+`
+	config := func(field, input, overrides string) string {
+		return fmt.Sprintf(`
+resource "opennebula_template" "raw" {
+  name = "test-raw-template"
+  %s = %q
+  %s
+}
+`, field, input, overrides)
+	}
+	check := func(description, disks string, extra ...resource.TestCheckFunc) resource.TestCheckFunc {
+		return resource.ComposeTestCheckFunc(append([]resource.TestCheckFunc{
+			resource.TestCheckResourceAttr("opennebula_template.raw", "name", "test-raw-template"),
+			resource.TestCheckResourceAttr("opennebula_template.raw", "description", description),
+			resource.TestCheckResourceAttr("opennebula_template.raw", "memory", "128"),
+			resource.TestCheckResourceAttr("opennebula_template.raw", "disk.#", disks),
+		}, extra...)...)
+	}
+	encoded := base64.StdEncoding.EncodeToString([]byte(raw))
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTemplateDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config("raw_template", raw, `
+  description = "configured description"
+  disk {
+    volatile_type = "swap"
+    size = 32
+  }`),
+				Check: check("configured description", "1", resource.TestCheckResourceAttr("opennebula_template.raw", "disk.0.size", "32")),
+			},
+			{
+				Config: config("raw_template_b64", encoded, ""),
+				Check:  check("embedded description", "1", resource.TestCheckResourceAttr("opennebula_template.raw", "disk.0.size", "16")),
+			},
+			{
+				Config: config("raw_template_b64", encoded, "disk = []"),
+				Check:  check("embedded description", "0"),
+			},
+			{
+				Config: config("raw_template", raw, "disk = []"),
+				Check:  check("embedded description", "0"),
+			},
+		},
+	})
+}
 
 func TestAccTemplate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -280,7 +337,7 @@ func testAccCheckTemplateDestroy(s *terraform.State) error {
 var testTemplateNICVNetResources = `
 
 resource "opennebula_virtual_network" "network" {
-	name = "test-net1"
+	name = "test-template-network"
 	type            = "dummy"
 	bridge          = "onebr"
 	mtu             = 1500
