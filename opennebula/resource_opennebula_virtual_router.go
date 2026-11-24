@@ -564,7 +564,7 @@ func generateVirtualRouter(d *schema.ResourceData, meta interface{}) string {
 	}
 
 	tplStr := tpl.String()
-	log.Printf("[INFO] Template definitions: %s", tplStr)
+	log.Printf("[INFO] Template definitions: %s", maskVectors(tplStr, "CONTEXT"))
 
 	return tplStr
 }

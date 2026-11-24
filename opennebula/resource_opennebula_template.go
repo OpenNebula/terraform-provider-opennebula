@@ -44,7 +44,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 	}
 
 	for key, field := range r.Schema {
-		if field.Optional && key != "group" {
+		if field.Optional && !field.WriteOnly && key != "group" {
 			field.Computed = true
 		}
 	}
@@ -601,14 +601,36 @@ func addFeatures(tpl *vm.Template, features []map[string]interface{}) {
 	}
 }
 
-func addContext(tpl *vm.Template, context map[string]interface{}) {
+// addContext merges `context` and write-only `context_wo` from the resource
+// data and applies the result to the template's CONTEXT vector, replacing any
+// existing one. context_wo takes precedence over context when both define the
+// same key.
+func addContext(tpl *vm.Template, d *schema.ResourceData) {
+	context := d.Get("context").(map[string]interface{})
+
+	// Merge write-only context variables: they are applied to the CONTEXT
+	// vector but never stored in Terraform state.
+	contextWo := getContextWo(d)
+	merged := make(map[string]interface{}, len(context)+len(contextWo))
+	for k, v := range context {
+		merged[strings.ToUpper(k)] = v
+	}
+	for k, v := range contextWo {
+		merged[strings.ToUpper(k)] = v
+	}
+
+	addContextMap(tpl, merged)
+}
+
+// addContextMap applies a pre-merged context map to the template's CONTEXT
+// vector, replacing any existing one.
+func addContextMap(tpl *vm.Template, context map[string]interface{}) {
 	tpl.Del(vmk.ContextVec)
 	if len(context) == 0 {
 		return
 	}
 
 	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
 	for key, value := range context {
 		keyUp := strings.ToUpper(key)
 		if err := tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value)); err != nil {
@@ -661,6 +683,21 @@ func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
 		existing = raw.(map[string]interface{})
 	}
 
+	// Keys contributed by the write-only context_wo attribute must never be
+	// flattened into `context`: they would leak secrets into state (the
+	// problem context_wo exists to prevent) and oscillate between applied
+	// template and config on every plan.
+	// The write-only values themselves are not readable here (not in state,
+	// not in config during refresh), so any CONTEXT key that is neither
+	// configured in `context` nor part of the template's own CONTEXT before
+	// context_wo was applied is assumed to originate from context_wo.
+	contextWoKeys := map[string]bool{}
+	if _, diags := getContextWoChecked(d); !diags.HasError() {
+		for key := range getContextWo(d) {
+			contextWoKeys[strings.ToUpper(key)] = true
+		}
+	}
+
 	stateKeyByUpper := make(map[string]string, len(existing))
 	for key := range existing {
 		stateKeyByUpper[strings.ToUpper(key)] = key
@@ -669,6 +706,9 @@ func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
 	contextMap := make(map[string]interface{}, len(vec.Pairs))
 	for _, pair := range vec.Pairs {
 		key := pair.Key()
+		if contextWoKeys[strings.ToUpper(key)] {
+			continue
+		}
 		if orig, ok := stateKeyByUpper[strings.ToUpper(key)]; ok {
 			key = orig
 			// Keep the configured text when OpenNebula only trimmed it or
@@ -912,8 +952,14 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
-	if d.HasChange("context") {
-		addContext(&newTpl, d.Get("context").(map[string]interface{}))
+	// addContext replaces the whole CONTEXT vector with the merged
+	// context + context_wo map, so it is safe to apply it whenever either
+	// input changed. WriteOnly values are absent from persisted state, but
+	// the SDK shims them into the legacy diff for the planning session, so
+	// HasChange("context_wo") is true whenever the write-only value changed
+	// in config.
+	if d.HasChange("context") || d.HasChange("context_wo") {
+		addContext(&newTpl, d)
 		update = true
 	}
 
@@ -1147,7 +1193,7 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 
 	addFeatures(tpl, configuredFeatures(d))
 
-	addContext(tpl, d.Get("context").(map[string]interface{}))
+	addContext(tpl, d)
 
 	uInputs := d.Get("user_inputs").(map[string]interface{})
 	if len(uInputs) > 0 {

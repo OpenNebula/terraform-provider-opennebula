@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -559,4 +560,20 @@ func securityGroupIdsMatches(templatePair dyn.Pair, nicSgsStr string) bool {
 	nicSGIds := strings.Split(nicSgsStr, ",")
 
 	return ArraysAreEqual(templateSGIds, nicSGIds)
+}
+
+// maskVectors masks the values of the given template vectors in a template
+// string before logging. Vector content may hold sensitive data:
+// contextualization variables can include passwords, SSH keys or other
+// secrets delivered by write-only attributes such as `context_wo`.
+func maskVectors(tplStr string, sensitiveVecs ...string) string {
+	for _, vecKey := range sensitiveVecs {
+		maskedVec, err := regexp.Compile(`(?is)(^|\s)` + vecKey + `=\[.*?\]`)
+		if err != nil {
+			continue
+		}
+
+		tplStr = maskedVec.ReplaceAllString(tplStr, "${1}"+vecKey+"=[ REDACTED ]")
+	}
+	return tplStr
 }

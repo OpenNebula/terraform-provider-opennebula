@@ -2,6 +2,8 @@ package opennebula
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"sort"
@@ -9,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -471,7 +474,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		addNICs(d, vmTpl)
 		addNICAliases(d, vmTpl)
 
-		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
+		log.Printf("[DEBUG] VM template: %s", maskVectors(vmTpl.String(), "CONTEXT"))
 
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
@@ -538,7 +541,7 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		addNICs(d, vmTpl)
 		addNICAliases(d, vmTpl)
 
-		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
+		log.Printf("[DEBUG] VM template: %s", maskVectors(vmTpl.String(), "CONTEXT"))
 
 		// Create VM not in pending state
 		vmID, err = controller.VMs().Create(vmTpl.String(), d.Get("pending").(bool))
@@ -704,6 +707,8 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 	d.Set("template_disk", []interface{}{})
 	d.Set("template_nic_alias", []interface{}{})
 
+	// context_wo_hash is maintained by the Read path below (shared with
+	// virtual_router_instance and imports) when raw config is available.
 	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
@@ -800,6 +805,19 @@ func resourceOpennebulaVirtualMachineReadCustom(ctx context.Context, d *schema.R
 		d.Set("lock", LockLevelToString(vmInfo.LockInfos.Locked))
 	}
 
+	// Refresh context_wo_hash from the current config so that every resource
+	// sharing the VM schema (virtual_machine, virtual_router_instance) and
+	// freshly imported resources have the hash in state. Only do this when
+	// raw config is available: during refresh/import ResourceData carries no
+	// raw config, and computing a hash of an empty context_wo there would
+	// erase the stored hash and schedule a spurious CONTEXT update on every
+	// subsequent plan.
+	if contextWo, diags := getContextWoChecked(d); !diags.HasError() {
+		if err := d.Set("context_wo_hash", computeContextWoHash(contextWo)); err != nil {
+			log.Printf("[WARN] Failed to set context_wo_hash on read: %s", err)
+		}
+	}
+
 	return diags
 }
 
@@ -869,6 +887,9 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 				return diags
 			}
 		}
+
+		// Don't read context from API: it returns merged context+context_wo which
+		// would leak write-only values into state and break idempotency.
 
 		return nil
 	})
@@ -2136,25 +2157,49 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		}
 	}
 
-	if d.HasChange("context") {
+	// context_wo changes are tracked via context_wo_hash (set by CustomizeDiff).
+	contextChanged := d.HasChange("context")
+	contextWoChanged := d.HasChange("context_wo_hash")
+
+	if contextChanged || contextWoChanged {
 
 		updateConf = true
 
-		log.Printf("[DEBUG] Update context")
+		context := d.Get("context").(map[string]interface{})
+		// If the raw config is unavailable here, the merged map would miss
+		// the write-only pairs and updateVMTemplateVec would revoke the
+		// corresponding keys from the VM's CONTEXT: abort instead.
+		contextWo, contextWoDiags := getContextWoChecked(d)
+		if contextWoDiags.HasError() {
+			diags = append(diags, contextWoDiags...)
+			return diags
+		}
+
+		log.Printf("[DEBUG] Update context (contextChanged=%v, contextWoChanged=%v, context=%d vars, context_wo=%d vars)",
+			contextChanged, contextWoChanged, len(context), len(contextWo))
 
 		old, new := d.GetChange("context")
 		appliedContext := old.(map[string]interface{})
 		newContext := new.(map[string]interface{})
 
-		if len(newContext) == 0 {
+		if len(newContext) == 0 && len(contextWo) == 0 {
 			// No context configuration to apply
 			tpl.Del(vmk.ContextVec)
 		} else {
 
 			var contextVec *dyn.Vector
+			existingVecs := tpl.GetVectors(vmk.ContextVec)
+			if len(existingVecs) > 0 {
+				// Reuse the existing CONTEXT vector (e.g. injected by the
+				// base template at instantiate time) instead of appending a
+				// second one, which OpenNebula would reject or misparse.
+				contextVec = existingVecs[0]
+			} else {
+				contextVec = tpl.AddVector(vmk.ContextVec)
+			}
+
 			if len(appliedContext) == 0 {
 				// No context configuration applied
-				contextVec = tpl.AddVector(vmk.ContextVec)
 
 				// Add new elements
 				for key, value := range newContext {
@@ -2165,11 +2210,34 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 						continue
 					}
 
+					contextVec.Del(keyUp)
+					contextVec.AddPair(keyUp, value)
+				}
+
+				// Add write-only elements (always applied, no prior state)
+				for key, value := range contextWo {
+					keyUp := strings.ToUpper(key)
+					contextVec.Del(keyUp)
 					contextVec.AddPair(keyUp, value)
 				}
 
 			} else {
-				err = updateVMTemplateVec(tpl, "CONTEXT", appliedContext, newContext)
+				// Merge both context maps for update
+				mergedApplied := make(map[string]interface{})
+				mergedNew := make(map[string]interface{})
+
+				for k, v := range appliedContext {
+					mergedApplied[strings.ToUpper(k)] = v
+				}
+
+				for k, v := range newContext {
+					mergedNew[strings.ToUpper(k)] = v
+				}
+				for k, v := range contextWo {
+					mergedNew[strings.ToUpper(k)] = v
+				}
+
+				err = updateVMTemplateVec(tpl, "CONTEXT", mergedApplied, mergedNew)
 				if err != nil {
 					diags = append(diags, diag.Diagnostic{
 						Severity: diag.Error,
@@ -2180,6 +2248,10 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 				}
 			}
 		}
+
+		// The context_wo_hash diff entry is produced by CustomizeDiff
+		// (SetNew); applying it above rewrites CONTEXT with the new merged
+		// map. State catches up through the Read path.
 	}
 
 	if d.HasChange("raw") {
@@ -2341,7 +2413,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			return diags
 		}
 
-		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
+		log.Printf("[INFO] Update VM configuration: %s", maskVectors(tpl.String(), "CONTEXT"))
 
 		err := vmc.UpdateConf(tpl.String())
 		if err != nil {
@@ -3103,7 +3175,105 @@ func lookupMapFold(m map[string]interface{}, key string) (interface{}, bool) {
 	return nil, false
 }
 
-// updateVMVec update a vector of an existing VM template
+// ctyStringMapToGoMap converts a cty.Value string map to a Go map.
+// Entries with non-string values are skipped and reported through the returned
+// diagnostics rather than silently dropped, which would break change
+// detection for those keys.
+func ctyStringMapToGoMap(val cty.Value) (map[string]interface{}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	result := make(map[string]interface{})
+	if val.IsNull() || !val.IsKnown() {
+		return result, diags
+	}
+	if !val.Type().IsMapType() && !val.Type().IsObjectType() {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Invalid context_wo value",
+			Detail:   "context_wo must be a map of strings",
+		})
+		return result, diags
+	}
+	val.ForEachElement(func(key cty.Value, val cty.Value) (stop bool) {
+		if key.Type() == cty.String && val.Type() == cty.String {
+			result[key.AsString()] = val.AsString()
+		} else {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Ignoring non-string context_wo entry",
+				Detail:   fmt.Sprintf("entry %q is not a string and will be ignored in context_wo change detection", key.AsString()),
+			})
+		}
+		return false
+	})
+	return result, diags
+}
+
+// getContextWoChecked retrieves write-only context variables from the raw
+// Terraform config. WriteOnly attributes are never in state, so they must be
+// read via GetRawConfigAt. Errors are returned instead of swallowed: during
+// refresh and import no raw config is available, and treating context_wo as
+// empty in that situation would corrupt the stored hash or wipe secrets from
+// the VM's CONTEXT (see MINOR-1 in PR review). Callers that genuinely don't
+// care about raw-config availability may use getContextWo.
+func getContextWoChecked(d *schema.ResourceData) (map[string]interface{}, diag.Diagnostics) {
+	val, diags := d.GetRawConfigAt(cty.GetAttrPath("context_wo"))
+	if diags.HasError() {
+		return make(map[string]interface{}), diags
+	}
+	return ctyStringMapToGoMap(val)
+}
+
+// getContextWo retrieves write-only context variables from the raw Terraform
+// config, treating unavailability (refresh, import) as an empty set.
+func getContextWo(d *schema.ResourceData) map[string]interface{} {
+	m, diags := getContextWoChecked(d)
+	if diags.HasError() {
+		log.Printf("[WARN] context_wo unavailable in this context (refresh/import?): treating as empty")
+	}
+	return m
+}
+
+// computeContextWoHash computes a deterministic SHA256 hash of context_wo values.
+// Returns empty string if context_wo is empty.
+func computeContextWoHash(contextWo map[string]interface{}) string {
+	if len(contextWo) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(contextWo))
+	for k := range contextWo {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var sb strings.Builder
+	for _, k := range keys {
+		sb.WriteString(k)
+		sb.WriteString("=")
+		sb.WriteString(fmt.Sprint(contextWo[k]))
+		sb.WriteString(";")
+	}
+
+	hash := sha256.Sum256([]byte(sb.String()))
+	return hex.EncodeToString(hash[:])
+}
+
+// contextWoHashFromRaw derives the context_wo change-detection hash from a
+// raw config value. Returns (hash, decided): decided=false means the value is
+// unknown at plan time (e.g. sourced from an ephemeral resource) and no
+// decision can be made — the caller must keep the previous hash untouched.
+// A null (removed) context_wo in an available config is a real, decidable
+// state: it hashes to "" so removal is detected and revoked secrets are
+// purged from the VM's CONTEXT.
+func contextWoHashFromRaw(woVal cty.Value, rawConfigUnavailable bool) (string, bool) {
+	if rawConfigUnavailable || !woVal.IsKnown() {
+		return "", false
+	}
+	woMap, _ := ctyStringMapToGoMap(woVal)
+	return computeContextWoHash(woMap), true
+}
+
+// updateVMTemplateVec update a vector of an existing VM template
 func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg map[string]interface{}) error {
 
 	// Retrieve vector
@@ -3133,7 +3303,7 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 		return fmt.Errorf("Multiple %s vectors", vecName)
 	}
 
-	// Add new elements
+	// Add new elements (or update elements not tracked in appliedCfg, like context_wo)
 	for key, value := range newCfg {
 		keyUp := strings.ToUpper(key)
 
@@ -3141,6 +3311,9 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 			continue
 		}
 
+		// Delete first to ensure we're not creating duplicates
+		// This is important for context_wo values which aren't in appliedCfg
+		targetVec.Del(keyUp)
 		targetVec.AddPair(keyUp, value)
 	}
 
@@ -3285,10 +3458,10 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 		tpl.Add(vmk.Name, d.Get("name").(string))
 	}
 
-	//Generate CONTEXT definition
+	// Generate CONTEXT by merging regular context with write-only context_wo.
 	context := d.Get("context").(map[string]interface{})
-	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
+	contextWo := getContextWo(d)
+	log.Printf("Number of CONTEXT vars: %d, CONTEXT_WO vars: %d", len(context), len(contextWo))
 
 	var tplContext *dyn.Vector
 	if templateContent != nil {
@@ -3307,11 +3480,24 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 			tplContext.AddPair(keyUp, value)
 		}
 
+		// Add write-only context variables
+		for key, value := range contextWo {
+			keyUp := strings.ToUpper(key)
+			tplContext.Del(keyUp)
+			tplContext.AddPair(keyUp, value)
+		}
+
 		tpl.Elements = append(tpl.Elements, tplContext)
 	} else {
 
 		// Add new context elements to the template
 		for key, value := range context {
+			keyUp := strings.ToUpper(key)
+			tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
+		}
+
+		// Add write-only context elements to the template
+		for key, value := range contextWo {
 			keyUp := strings.ToUpper(key)
 			tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value))
 		}
@@ -3416,6 +3602,32 @@ func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v i
 	}
 
 	SetVMTagsDiff(ctx, diff, v)
+
+	// Detect context_wo changes via hash comparison.
+	// WriteOnly attributes don't trigger updates on their own, so we update
+	// context_wo_hash via SetNew to create a diff that triggers UPDATE.
+	if diff.Id() != "" {
+		// An absent or null context_wo hashes to "": removal must be
+		// detected too, otherwise revoked secrets would stay baked into
+		// the VM's CONTEXT forever.
+		//
+		// Read the hash source from the raw *config*, not the raw plan: the
+		// plan value may be captured before CustomizeDiff ran and becomes
+		// stale once SetNew triggers a re-diff, whereas the raw config is
+		// stable for the whole operation.
+		woVal, cfgDiags := diff.GetRawConfigAt(cty.GetAttrPath("context_wo"))
+		previousHash := diff.Get("context_wo_hash").(string)
+
+		currentHash, decided := contextWoHashFromRaw(woVal, cfgDiags.HasError())
+		if decided && currentHash != previousHash {
+			if err := diff.SetNew("context_wo_hash", currentHash); err != nil {
+				return fmt.Errorf("failed to update context_wo_hash: %w", err)
+			}
+		}
+		if !decided && previousHash != "" {
+			log.Printf("[DEBUG] context_wo is unknown at plan time (ephemeral source?); skipping context_wo_hash change detection")
+		}
+	}
 
 	return nil
 }

@@ -24,7 +24,7 @@ func TestAddContextReplacesContextVector(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	addContext(tpl, map[string]interface{}{
+	addContextMap(tpl, map[string]interface{}{
 		"EJECT_CDROM": "YS",
 		"network":     "YES",
 	})
@@ -112,7 +112,7 @@ func TestDecodeContextValuesBeforeReserialize(t *testing.T) {
 	configured := strings.TrimSpace(oneContextStartScript)
 
 	created := vm.NewTemplate()
-	addContext(created, map[string]interface{}{
+	addContextMap(created, map[string]interface{}{
 		"NETWORK":      "YES",
 		"START_SCRIPT": configured,
 	})

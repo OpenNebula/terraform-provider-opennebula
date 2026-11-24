@@ -86,14 +86,16 @@ func commonVMSchemas() map[string]*schema.Schema {
 
 func commonInstanceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"cpu":      cpuSchema(),
-		"vcpu":     vcpuSchema(),
-		"memory":   memorySchema(),
-		"context":  contextSchema(),
-		"cpumodel": cpumodelSchema(),
-		"graphics": graphicsSchema(),
-		"os":       osSchema(),
-		"vmgroup":  vmGroupSchema(),
+		"cpu":             cpuSchema(),
+		"vcpu":            vcpuSchema(),
+		"memory":          memorySchema(),
+		"context":         contextSchema(),
+		"context_wo":      contextWoSchema(),
+		"context_wo_hash": contextWoHashSchema(),
+		"cpumodel":        cpumodelSchema(),
+		"graphics":        graphicsSchema(),
+		"os":              osSchema(),
+		"vmgroup":         vmGroupSchema(),
 		"raw": {
 			Type:        schema.TypeList,
 			Optional:    true,
@@ -413,6 +415,29 @@ func contextSchema() *schema.Schema {
 		Type:        schema.TypeMap,
 		Optional:    true,
 		Description: "Context variables",
+	}
+}
+
+func contextWoSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:      schema.TypeMap,
+		Optional:  true,
+		WriteOnly: true,
+		// No Elem: schema.go's internalValidate rejects WriteOnly on
+		// TypeList/TypeSet/TypeMap-with-Elem (Terraform core does not
+		// support write-only collections). Omitting Elem is the only way to
+		// declare a write-only map; Terraform still delivers map(string)
+		// values here, which ctyStringMapToGoMap enforces defensively.
+		Elem:        nil,
+		Description: "Write-only context variables (never stored in state). Merged with context during VM operations. Requires Terraform 1.11 or later.",
+	}
+}
+
+func contextWoHashSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Computed:    true,
+		Description: "Hash of context_wo for change detection (managed by the provider).",
 	}
 }
 
