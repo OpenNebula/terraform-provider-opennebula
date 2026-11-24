@@ -3106,6 +3106,22 @@ func lookupMapFold(m map[string]interface{}, key string) (interface{}, bool) {
 // updateVMVec update a vector of an existing VM template
 func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg map[string]interface{}) error {
 
+	// FIRMWARE_SECURE is a Go bool in the OS config map but must be
+	// serialised as "YES"/"NO" in the OpenNebula template: OpenNebula
+	// recognises only those values, so "true" silently disables SecureBoot
+	// (see issue #631).
+	serializeVecValue := func(key string, value interface{}) interface{} {
+		if strings.EqualFold(key, string(vmk.FirmwareSecure)) {
+			if b, ok := value.(bool); ok {
+				if b {
+					return "YES"
+				}
+				return "NO"
+			}
+		}
+		return value
+	}
+
 	// Retrieve vector
 	var targetVec *dyn.Vector
 	vectors := tpl.GetVectors(vecName)
@@ -3123,7 +3139,7 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 			if ok {
 				// update existing element
 				targetVec.Del(keyUp)
-				targetVec.AddPair(keyUp, fmt.Sprint(value))
+				targetVec.AddPair(keyUp, fmt.Sprint(serializeVecValue(key, value)))
 			} else {
 				// remove element
 				targetVec.Del(keyUp)
@@ -3141,7 +3157,7 @@ func updateVMTemplateVec(tpl *vm.Template, vecName string, appliedCfg, newCfg ma
 			continue
 		}
 
-		targetVec.AddPair(keyUp, value)
+		targetVec.AddPair(keyUp, serializeVecValue(key, value))
 	}
 
 	return nil

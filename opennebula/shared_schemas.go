@@ -797,7 +797,11 @@ func addOS(tpl *vm.Template, os []interface{}) {
 			tpl.AddOS(vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
 			tpl.AddOS(vmk.UUID, osconfig["uuid"].(string))
 			tpl.AddOS(vmk.Firmware, osconfig["firmware"].(string))
-			tpl.AddOS(vmk.FirmwareSecure, osconfig["firmware_secure"].(bool))
+			if osconfig["firmware_secure"].(bool) {
+				tpl.AddOS(vmk.FirmwareSecure, "YES")
+			} else {
+				tpl.AddOS(vmk.FirmwareSecure, "NO")
+			}
 		}
 	}
 
@@ -1212,6 +1216,18 @@ func flattenDisk(disk shared.Disk) map[string]interface{} {
 	}
 }
 
+// firmwareSecureFromTemplate extracts the effective firmware_secure value from
+// an OpenNebula VM template, mirroring the parsing rule used in flattenTemplate.
+// An absent FIRMWARE_SECURE pair is not an error: it means "not configured".
+func firmwareSecureFromTemplate(vmTemplate *vm.Template) (bool, error) {
+	firmwareSecure, firmwareSecureErr := vmTemplate.GetOS(vmk.FirmwareSecure)
+	if firmwareSecureErr != nil {
+		// Pair absent: not configured.
+		return false, nil
+	}
+	return strings.EqualFold(firmwareSecure, "yes"), nil
+}
+
 func flattenTemplateVMGroup(d *schema.ResourceData, vmTemplate *vm.Template) error {
 	var err error
 
@@ -1257,7 +1273,6 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	sdDiskBus, _ := vmTemplate.GetOS(vmk.SDDiskBus)
 	uuid, _ := vmTemplate.GetOS(vmk.UUID)
 	firmware, _ := vmTemplate.GetOS(vmk.Firmware)
-	firmwareSecure, firmwareSecureErr := vmTemplate.GetOS(vmk.FirmwareSecure)
 	// CPU Model
 	cpumodelMap := make([]map[string]interface{}, 0, 1)
 	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
@@ -1314,10 +1329,7 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 
 	// Set OS to resource
 	if arch != "" {
-		firmwareSecureBool := false
-		if firmwareSecureErr == nil && firmwareSecure == "true" {
-			firmwareSecureBool = true
-		}
+		firmwareSecureBool, _ := firmwareSecureFromTemplate(vmTemplate)
 
 		osMap = append(osMap, map[string]interface{}{
 			"arch":            arch,
