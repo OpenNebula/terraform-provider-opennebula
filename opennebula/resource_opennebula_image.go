@@ -578,10 +578,13 @@ func resourceOpennebulaImageExists(d *schema.ResourceData, meta interface{}) (bo
 
 	_, err = controller.Image(int(imageID)).Info(false)
 	if NoExists(err) {
+		return false, nil
+	}
+	if err != nil {
 		return false, err
 	}
 
-	return true, err
+	return true, nil
 }
 
 func resourceOpennebulaImageUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

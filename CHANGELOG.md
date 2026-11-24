@@ -18,6 +18,7 @@ BUG FIXES:
 * resources/opennebula_template, opennebula_virtual_router_instance_template: ignore OpenNebula quote escaping when comparing `context` values such as `USER_DATA`
 * resources/opennebula_template, opennebula_virtual_router_instance_template: do not add another escape layer to `context` values such as `USER_DATA` when updating another attribute
 * resources/opennebula_template, opennebula_virtual_machine, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: ignore leading and trailing whitespace in `raw.data`
+* resources: fix `Exists` functions to return no error when the resource no longer exists, allowing Terraform to plan recreation instead of failing the plan (#624)
 
 # 1.5.0 (June 26th, 2025)
 
