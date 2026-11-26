@@ -19,6 +19,16 @@ import (
 func TestAccVirtualNetwork(t *testing.T) {
 	networkNotFoundErr, _ := regexp.Compile("Error getting virtual network.*[\n]?.*\\[25\\]")
 	vlanIDConflictError, _ := regexp.Compile(".*\"vlan_id\": conflicts with automatic_vlan_id.*")
+	var networkID string
+	checkNetworkID := resource.TestCheckResourceAttrWith("opennebula_virtual_network.test", "id", func(id string) error {
+		if networkID == "" {
+			networkID = id
+		}
+		if id != networkID {
+			return fmt.Errorf("virtual network ID changed from %s to %s", networkID, id)
+		}
+		return nil
+	})
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -27,6 +37,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 			{
 				Config: testAccVirtualNetworkConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
+					checkNetworkID,
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "physical_device", "tf-test-eth0"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "basic_vnet"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "dummy"),
@@ -86,6 +98,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 			{
 				Config: testAccVirtualNetworkConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
+					checkNetworkID,
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "physical_device", "tf-test-eth1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "basic_vnet_updated"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "dummy"),
@@ -149,6 +163,8 @@ func TestAccVirtualNetwork(t *testing.T) {
 			{
 				Config: testAccVirtualNetworkConfigRemoveGateway,
 				Check: resource.ComposeTestCheckFunc(
+					checkNetworkID,
+					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "physical_device", "tf-test-eth1"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "name", "basic_vnet_gateway"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "bridge", "onebr"),
 					resource.TestCheckResourceAttr("opennebula_virtual_network.test", "type", "dummy"),
@@ -519,6 +535,7 @@ var testAccVirtualNetworkConfigBasic = `
 	  name = "basic_vnet"
 	  type            = "dummy"
 	  bridge          = "onebr"
+	  physical_device = "tf-test-eth0"
 	  mtu             = 1500
 	  gateway         = "172.16.100.1"
 	  dns             = "172.16.100.1"
@@ -591,6 +608,7 @@ var testAccVirtualNetworkConfigUpdate = `
 	  name = "basic_vnet_updated"
 	  type            = "dummy"
 	  bridge          = "onebr"
+	  physical_device = "tf-test-eth1"
 	  mtu             = 1500
 	  gateway         = "172.16.100.254"
 	  dns             = "172.16.100.254"
