@@ -44,9 +44,13 @@ func resourceOpennebulaTemplate() *schema.Resource {
 	}
 
 	for key, field := range r.Schema {
-		if field.Optional && key != "group" {
+		if field.Optional && key != "group" && key != "tags" {
 			field.Computed = true
 		}
+	}
+	for _, key := range []string{"nic", "nic_alias"} {
+		fields := r.Schema[key].Elem.(*schema.Resource).Schema
+		fields["security_groups"].Computed = true
 	}
 	r.Schema["disk"].ConfigMode = schema.SchemaConfigModeAttr
 	r.Schema["raw_template"] = &schema.Schema{
@@ -999,11 +1003,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	if d.HasChange("nic") {
 		newTpl.Del(shared.NICVec)
 		addNICs(d, &newTpl)
+		update = true
 	}
 
 	if d.HasChange("nic_alias") {
 		newTpl.Del(shared.NICAliasVec)
-		addNICs(d, &newTpl)
+		addNICAliases(d, &newTpl)
+		update = true
 	}
 
 	if d.HasChange("tags") {
@@ -1011,14 +1017,12 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		oldTagsIf, newTagsIf := d.GetChange("tags")
 		oldTags := oldTagsIf.(map[string]interface{})
 		newTags := newTagsIf.(map[string]interface{})
+		effectiveTags := d.Get("tags_all").(map[string]interface{})
 
-		// delete tags
-		for k, _ := range oldTags {
-			_, ok := newTags[k]
-			if ok {
-				continue
+		for k := range oldTags {
+			if _, ok := effectiveTags[k]; !ok {
+				newTpl.Del(strings.ToUpper(k))
 			}
-			newTpl.Del(strings.ToUpper(k))
 		}
 
 		// add/update tags

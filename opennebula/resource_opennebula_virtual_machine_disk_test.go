@@ -55,7 +55,7 @@ func TestAccVirtualMachineDiskUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.computed_size", "16"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_target", "vdb"),
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.computed_size", "16"),
-					testAccPowerOffDiskVM,
+					testAccPrepareDiskDetach,
 				),
 			},
 			{
@@ -158,15 +158,23 @@ resource "opennebula_virtual_machine" "test" {
 	})
 }
 
-// Once live attachment and resize have been checked, use offline disk
-// operations so detach does not depend on a booted guest handling hot unplug.
-func testAccPowerOffDiskVM(s *terraform.State) error {
+func testAccPrepareDiskDetach(s *terraform.State) error {
 	id, err := strconv.Atoi(s.RootModule().Resources["opennebula_virtual_machine.test"].Primary.ID)
 	if err != nil {
 		return err
 	}
 	controller := testAccProvider.Meta().(*Configuration).Controller
-	if err := controller.VM(id).PoweroffHard(); err != nil {
+	vmc := controller.VM(id)
+	info, err := vmc.Info(false)
+	if err != nil {
+		return err
+	}
+	// The dummy driver can detach live without a guest. On real hypervisors
+	// this fixture has no booted guest to handle hot unplug.
+	if history := info.HistoryRecords; len(history) > 0 && history[len(history)-1].VMMad == "dummy" {
+		return nil
+	}
+	if err := vmc.PoweroffHard(); err != nil {
 		return err
 	}
 	return waitForVMState(id, vm.Poweroff, defaultVMTimeout)

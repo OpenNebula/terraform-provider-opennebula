@@ -14,6 +14,14 @@ import (
 )
 
 func TestAccRawTemplate(t *testing.T) {
+	const defaultTags = `
+provider "opennebula" {
+  alias = "tagged"
+  default_tags {
+    tags = { version = "2" }
+  }
+}
+`
 	const raw = `
 NAME = "embedded-template-name"
 DESCRIPTION = "embedded description"
@@ -29,6 +37,9 @@ resource "opennebula_template" "raw" {
   %s
 }
 `, field, input, overrides)
+	}
+	tagged := func(tags string) string {
+		return defaultTags + config("raw_template", raw, "provider = opennebula.tagged\ndisk = []\n"+tags)
 	}
 	check := func(description, disks string, extra ...resource.TestCheckFunc) resource.TestCheckFunc {
 		return resource.ComposeTestCheckFunc(append([]resource.TestCheckFunc{
@@ -62,8 +73,15 @@ resource "opennebula_template" "raw" {
 				Check:  check("embedded description", "0"),
 			},
 			{
-				Config: config("raw_template", raw, "disk = []"),
-				Check:  check("embedded description", "0"),
+				Config: tagged(`tags = { version = "2" }`),
+				Check:  check("embedded description", "0", resource.TestCheckResourceAttr("opennebula_template.raw", "tags.version", "2")),
+			},
+			{
+				Config: tagged(""),
+				Check: check("embedded description", "0",
+					resource.TestCheckNoResourceAttr("opennebula_template.raw", "tags.version"),
+					resource.TestCheckResourceAttr("opennebula_template.raw", "tags_all.version", "2"),
+				),
 			},
 		},
 	})

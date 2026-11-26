@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -113,6 +114,10 @@ func TestAccVirtualMachineTemplateNIC(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVMTemplateNICResource,
+			},
+			{
+				Config: strings.Replace(testAccVMTemplateNICResource, "security_groups = []", "security_groups = [0]", 1),
+				Check:  resource.TestCheckResourceAttr("opennebula_template.template", "nic.0.security_groups.0", "0"),
 			},
 			{
 				Config: testAccVirtualMachineTemplateNIC,
@@ -656,6 +661,7 @@ resource "opennebula_template" "template" {
 	  ip = "172.16.100.131"
 	  model = "virtio"
 	  virtio_queues = "2"
+      security_groups = []
     }
 	nic {
 		network_mode_auto = true
