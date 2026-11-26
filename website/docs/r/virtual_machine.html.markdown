@@ -170,7 +170,7 @@ The following arguments are supported:
 * `image_id` - (Optional) Name of the image to attach to the virtual machine. Conflicts with `volatile_type` and `volatile_format`.
 * `size` - (Optional) Size (in MB) of the image. If set, it will resize the image disk to the targeted size. The size must be greater than the current one.
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
-* `driver` - (Optional) OpenNebula image driver.
+* `driver` - (Optional) Requested disk driver. OpenNebula may select a different driver based on the image or datastore. Read the driver in use from `computed_driver`.
 * `volatile_type` - (Optional) Type of the disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id` and `image`.
 * `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id` and `image`.
 

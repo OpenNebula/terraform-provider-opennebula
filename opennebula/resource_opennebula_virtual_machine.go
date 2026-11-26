@@ -884,8 +884,9 @@ func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) 
 	if len(diskConfig["target"].(string)) > 0 {
 		diskMap["target"] = diskMap["computed_target"]
 	}
-	if len(diskConfig["driver"].(string)) > 0 {
-		diskMap["driver"] = diskMap["computed_driver"]
+	if driver := diskConfig["driver"].(string); driver != "" {
+		// OpenNebula can choose a different driver based on the image or datastore.
+		diskMap["driver"] = driver
 	}
 	if len(diskConfig["volatile_format"].(string)) > 0 {
 		diskMap["volatile_format"] = diskMap["computed_volatile_format"]
