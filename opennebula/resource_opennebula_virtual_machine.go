@@ -2070,37 +2070,8 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 
 	if d.HasChange("os") {
 		updateConf = true
-
-		log.Printf("[DEBUG] Update os")
-
-		old, new := d.GetChange("os")
-		newOSSlice := new.([]interface{})
-
-		if len(newOSSlice) == 0 {
-			// No os configuration to apply
-			tpl.Del("OS")
-		} else {
-
-			appliedOSSlice := old.([]interface{})
-
-			if len(appliedOSSlice) == 0 {
-				// No os configuration applied
-				addOS(tpl, newOSSlice)
-			} else {
-
-				newOS := newOSSlice[0].(map[string]interface{})
-				appliedOS := appliedOSSlice[0].(map[string]interface{})
-
-				err := updateVMTemplateVec(tpl, "OS", appliedOS, newOS)
-				if err != nil {
-					diags = append(diags, diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Failed to update OS vector",
-						Detail:   fmt.Sprintf("virtual machine (ID: %s): %s", d.Id(), err),
-					})
-					return diags
-				}
-			}
+		if err := updateOS(d, tpl); err != nil {
+			return diag.Errorf("virtual machine (ID: %s): failed to update OS: %s", d.Id(), err)
 		}
 	}
 

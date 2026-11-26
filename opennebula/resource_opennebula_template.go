@@ -914,6 +914,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	// raw configured text when that block itself changed.
 	decodeContextValues(&newTpl)
 
+	if d.HasChange("os") {
+		if err := updateOS(d, &newTpl); err != nil {
+			return diag.Errorf("template (ID: %s): failed to update OS: %s", d.Id(), err)
+		}
+		update = true
+	}
+
 	if d.HasChange("features") {
 		addFeatures(&newTpl, configuredFeatures(d))
 		update = true

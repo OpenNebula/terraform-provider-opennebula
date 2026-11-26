@@ -3,6 +3,7 @@ package opennebula
 import (
 	"fmt"
 	"log"
+	"maps"
 	"reflect"
 	"strconv"
 	"strings"
@@ -797,10 +798,26 @@ func addOS(tpl *vm.Template, os []interface{}) {
 			tpl.AddOS(vmk.SDDiskBus, osconfig["sd_disk_bus"].(string))
 			tpl.AddOS(vmk.UUID, osconfig["uuid"].(string))
 			tpl.AddOS(vmk.Firmware, osconfig["firmware"].(string))
-			tpl.AddOS(vmk.FirmwareSecure, osconfig["firmware_secure"].(bool))
+			tpl.AddOS(vmk.FirmwareSecure, boolToYesNo(osconfig["firmware_secure"].(bool)))
 		}
 	}
 
+}
+
+func updateOS(d *schema.ResourceData, tpl *vm.Template) error {
+	old, new := d.GetChange("os")
+	oldOS, newOS := old.([]interface{}), new.([]interface{})
+	switch {
+	case len(newOS) == 0:
+		tpl.Del("OS")
+	case len(oldOS) == 0:
+		addOS(tpl, newOS)
+	default:
+		config := maps.Clone(newOS[0].(map[string]interface{}))
+		config["firmware_secure"] = boolToYesNo(config["firmware_secure"].(bool))
+		return updateVMTemplateVec(tpl, "OS", oldOS[0].(map[string]interface{}), config)
+	}
+	return nil
 }
 
 func addGraphic(tpl *vm.Template, graphics []interface{}) {
@@ -1257,7 +1274,7 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 	sdDiskBus, _ := vmTemplate.GetOS(vmk.SDDiskBus)
 	uuid, _ := vmTemplate.GetOS(vmk.UUID)
 	firmware, _ := vmTemplate.GetOS(vmk.Firmware)
-	firmwareSecure, firmwareSecureErr := vmTemplate.GetOS(vmk.FirmwareSecure)
+	firmwareSecure, _ := vmTemplate.GetOS(vmk.FirmwareSecure)
 	// CPU Model
 	cpumodelMap := make([]map[string]interface{}, 0, 1)
 	cpumodel, _ := vmTemplate.GetCPUModel(vmk.Model)
@@ -1314,11 +1331,6 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 
 	// Set OS to resource
 	if arch != "" {
-		firmwareSecureBool := false
-		if firmwareSecureErr == nil && firmwareSecure == "true" {
-			firmwareSecureBool = true
-		}
-
 		osMap = append(osMap, map[string]interface{}{
 			"arch":            arch,
 			"machine":         machine,
@@ -1333,7 +1345,7 @@ func flattenTemplate(d *schema.ResourceData, inheritedVectors map[string]interfa
 			"sd_disk_bus":     sdDiskBus,
 			"uuid":            uuid,
 			"firmware":        firmware,
-			"firmware_secure": firmwareSecureBool,
+			"firmware_secure": yesNoToBool(firmwareSecure),
 		})
 		_, inherited := inheritedVectors["OS"]
 		if !inherited {
