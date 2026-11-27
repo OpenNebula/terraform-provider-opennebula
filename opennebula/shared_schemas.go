@@ -87,14 +87,15 @@ func commonVMSchemas() map[string]*schema.Schema {
 
 func commonInstanceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"cpu":      cpuSchema(),
-		"vcpu":     vcpuSchema(),
-		"memory":   memorySchema(),
-		"context":  contextSchema(),
-		"cpumodel": cpumodelSchema(),
-		"graphics": graphicsSchema(),
-		"os":       osSchema(),
-		"vmgroup":  vmGroupSchema(),
+		"cpu":        cpuSchema(),
+		"vcpu":       vcpuSchema(),
+		"memory":     memorySchema(),
+		"context":    contextSchema(),
+		"context_wo": contextWriteOnlySchema(),
+		"cpumodel":   cpumodelSchema(),
+		"graphics":   graphicsSchema(),
+		"os":         osSchema(),
+		"vmgroup":    vmGroupSchema(),
 		"raw": {
 			Type:        schema.TypeList,
 			Optional:    true,

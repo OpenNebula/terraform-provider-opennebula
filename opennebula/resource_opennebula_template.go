@@ -44,7 +44,7 @@ func resourceOpennebulaTemplate() *schema.Resource {
 	}
 
 	for key, field := range r.Schema {
-		if field.Optional && key != "group" && key != "tags" {
+		if field.Optional && key != "group" && key != "tags" && key != "context_wo" {
 			field.Computed = true
 		}
 	}
@@ -612,7 +612,6 @@ func addContext(tpl *vm.Template, context map[string]interface{}) {
 	}
 
 	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
 	for key, value := range context {
 		keyUp := strings.ToUpper(key)
 		if err := tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value)); err != nil {
@@ -671,8 +670,12 @@ func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
 	}
 
 	contextMap := make(map[string]interface{}, len(vec.Pairs))
+	writeOnlyNames := contextWriteOnlyNames(d.Get("context_wo"))
 	for _, pair := range vec.Pairs {
 		key := pair.Key()
+		if writeOnlyNames[strings.ToUpper(key)] {
+			continue
+		}
 		if orig, ok := stateKeyByUpper[strings.ToUpper(key)]; ok {
 			key = orig
 			// Keep the configured text when OpenNebula only trimmed it or
@@ -926,7 +929,12 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		update = true
 	}
 
-	if d.HasChange("context") {
+	if hasWriteOnlyContextChange(d) {
+		if err := updateWriteOnlyContext(d, &newTpl); err != nil {
+			return diag.FromErr(err)
+		}
+		update = true
+	} else if d.HasChange("context") {
 		addContext(&newTpl, d.Get("context").(map[string]interface{}))
 		update = true
 	}
@@ -1161,7 +1169,11 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 
 	addFeatures(tpl, configuredFeatures(d))
 
-	addContext(tpl, d.Get("context").(map[string]interface{}))
+	context, err := contextForWrite(d)
+	if err != nil {
+		return nil, err
+	}
+	addContext(tpl, context)
 
 	uInputs := d.Get("user_inputs").(map[string]interface{})
 	if len(uInputs) > 0 {
@@ -1172,7 +1184,7 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 		}
 	}
 
-	err := generateVMTemplate(d, tpl)
+	err = generateVMTemplate(d, tpl)
 	if err != nil {
 		return nil, err
 	}

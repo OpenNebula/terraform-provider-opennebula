@@ -92,6 +92,7 @@ The following arguments are supported:
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`.
+* `context_wo` - (Optional) [Write-only context entries](https://registry.terraform.io/providers/OpenNebula/opennebula/latest/docs/resources/virtual_machine#write-only-context). Change the block's version to update its write-only values. Requires Terraform 1.11 or later.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
 * `disk` - (Optional) Can be specified multiple times to attach several disks. See [Disk parameters](#disk-parameters) below for details.

@@ -471,8 +471,6 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 		addNICs(d, vmTpl)
 		addNICAliases(d, vmTpl)
 
-		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
-
 		// Instantiate template without creating a persistent copy of the template
 		// Note that the new VM is not pending
 		vmID, err = tc.Instantiate(d.Get("name").(string), d.Get("pending").(bool), vmTpl.String(), false)
@@ -537,8 +535,6 @@ func resourceOpennebulaVirtualMachineCreate(ctx context.Context, d *schema.Resou
 
 		addNICs(d, vmTpl)
 		addNICAliases(d, vmTpl)
-
-		log.Printf("[DEBUG] VM template: %s", vmTpl.String())
 
 		// Create VM not in pending state
 		vmID, err = controller.VMs().Create(vmTpl.String(), d.Get("pending").(bool))
@@ -2111,7 +2107,12 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 		}
 	}
 
-	if d.HasChange("context") {
+	if hasWriteOnlyContextChange(d) {
+		if err := updateWriteOnlyContext(d, tpl); err != nil {
+			return diag.FromErr(err)
+		}
+		updateConf = true
+	} else if d.HasChange("context") {
 
 		updateConf = true
 
@@ -2316,7 +2317,7 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 			return diags
 		}
 
-		log.Printf("[INFO] Update VM configuration: %s", tpl.String())
+		log.Printf("[INFO] Updating configuration for VM %d", vmc.ID)
 
 		err := vmc.UpdateConf(tpl.String())
 		if err != nil {
@@ -3261,9 +3262,11 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 	}
 
 	//Generate CONTEXT definition
-	context := d.Get("context").(map[string]interface{})
+	context, err := contextForWrite(d)
+	if err != nil {
+		return nil, err
+	}
 	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
 
 	var tplContext *dyn.Vector
 	if templateContent != nil {
@@ -3292,7 +3295,7 @@ func generateVm(d *schema.ResourceData, meta interface{}, templateContent *vm.Te
 		}
 	}
 
-	err := generateVMTemplate(d, tpl)
+	err = generateVMTemplate(d, tpl)
 	if err != nil {
 		return tpl, err
 	}

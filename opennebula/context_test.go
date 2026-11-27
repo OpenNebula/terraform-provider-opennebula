@@ -1,10 +1,12 @@
 package opennebula
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm"
 	vmk "github.com/OpenNebula/one/src/oca/go/src/goca/schemas/vm/keys"
@@ -75,6 +77,70 @@ func TestFlattenContextReadsRemoteValue(t *testing.T) {
 	got := d.Get("context").(map[string]interface{})
 	if got["EJECT_CDROM"] != "YES" {
 		t.Fatalf("EJECT_CDROM = %#v, want remote YES", got["EJECT_CDROM"])
+	}
+}
+
+func TestFlattenContextOmitsWriteOnlyEntries(t *testing.T) {
+	d := resourceOpennebulaTemplate().Data(&terraform.InstanceState{
+		ID: "42",
+		Attributes: map[string]string{
+			"context_wo.#":              "1",
+			"context_wo.0.version":      "1",
+			"context_wo.0.entry.#":      "1",
+			"context_wo.0.entry.0.name": "password",
+		},
+	})
+	tpl := vm.NewTemplate()
+	addContext(tpl, map[string]interface{}{"NETWORK": "YES", "PASSWORD": "example-private-value"})
+
+	if err := flattenContext(d, tpl); err != nil {
+		t.Fatal(err)
+	}
+	if got := d.Get("context").(map[string]interface{}); len(got) != 1 || got["NETWORK"] != "YES" {
+		t.Fatal("refresh did not retain only the ordinary context entry")
+	}
+}
+
+func TestRemoveWriteOnlyContextPreservesOtherEntries(t *testing.T) {
+	r := &schema.Resource{Schema: map[string]*schema.Schema{
+		"context":    contextSchema(),
+		"context_wo": contextWriteOnlySchema(),
+	}}
+	state := &terraform.InstanceState{ID: "42", Attributes: map[string]string{
+		"context_wo.#":              "1",
+		"context_wo.0.version":      "1",
+		"context_wo.0.entry.#":      "1",
+		"context_wo.0.entry.0.name": "password",
+	}}
+	diff, err := r.SimpleDiff(context.Background(), state, terraform.NewResourceConfigRaw(nil), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := schema.InternalMap(r.Schema).Data(state, diff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inherited := range []string{"", "YES"} {
+		t.Run("inherited="+inherited, func(t *testing.T) {
+			tpl := vm.NewTemplate()
+			values := map[string]interface{}{"PASSWORD": "example-private-value"}
+			if inherited != "" {
+				values["NETWORK"] = inherited
+			}
+			addContext(tpl, values)
+			if err := updateWriteOnlyContext(d, tpl); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tpl.GetCtx("PASSWORD"); err == nil {
+				t.Fatal("removed write-only entry is still present")
+			}
+			if got, _ := tpl.GetCtx("NETWORK"); got != inherited {
+				t.Fatalf("inherited NETWORK = %q, want %q", got, inherited)
+			}
+			if len(tpl.GetVectors(vmk.ContextVec)) != 1 {
+				t.Fatal("CONTEXT vector is required to send an empty update")
+			}
+		})
 	}
 }
 

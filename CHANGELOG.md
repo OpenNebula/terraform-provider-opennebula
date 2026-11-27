@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 
+* resources/opennebula_virtual_machine, opennebula_template, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: add versioned write-only context entries for Terraform 1.11 or later (#626)
 * resources/opennebula_template: allocate templates from plain-text or Base64-encoded OpenNebula definitions
 * resources/opennebula_template, opennebula_virtual_router_instance_template: add `features.virtio_blk_queues` (`VIRTIO_BLK_QUEUES`)
 * docs/opennebula_template, opennebula_virtual_router_instance_template: replace the `tags` and `template_section` example with a concrete examples
