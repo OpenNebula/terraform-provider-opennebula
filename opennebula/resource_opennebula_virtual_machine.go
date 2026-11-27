@@ -1754,10 +1754,13 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 	var diags diag.Diagnostics
 	if d.HasChange("disk") {
 		old, new := d.GetChange("disk")
+		// No changes have been made yet. Keep prior state if validation rejects the update.
 		if err := validateVMDiskLabels(new.([]interface{})); err != nil {
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		if err := validateVMDiskLabels(old.([]interface{})); err != nil {
+			d.Partial(true)
 			return diag.Errorf("cannot update existing VM disks. Their saved labels must be present and unique: %s", err)
 		}
 	}
