@@ -139,6 +139,7 @@ The following arguments are supported:
 
 * `image_id` - (Optional) ID of the image to attach to the virtual router instance. Defaults to -1 if not set: this skip Image attchment to the VM. Conflicts with `volatile_type` and `volatile_format`.
 * `size` - (Optional) Size (in MB) of the image. If set, it will resize the image disk to the targeted size. The size must be greater than the current one.
+* `disk_label` - (Required) Stable disk label, unique within the instance. OpenNebula stores it on the attachment as `TF_DISK_LABEL`.
 * `target` - (Optional) Target name device on the virtual router instance. Depends of the image `dev_prefix`.
 * `driver` - (Optional) Requested disk driver. OpenNebula may select a different driver based on the image or datastore. Read the driver in use from `computed_driver`.
 * `volatile_type` - (Optional) Type of the disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id`.
@@ -189,7 +190,6 @@ The following attribute are exported:
 
 ### Disk
 
-* `tf_uuid` - Terraform-generated attachment UUID stored as `TF_UUID` on the VM disk. Assigned to newly created or attached disks; existing untagged disks retain legacy matching until reattached.
 * `disk_id` - disk attachment identifier
 * `computed_size` - Size (in MB) of the image attached to the virtual router instance. Not possible to change a cloned image size.
 * `computed_target` - Target name device on the virtual router instance. Depends of the image `dev_prefix`.

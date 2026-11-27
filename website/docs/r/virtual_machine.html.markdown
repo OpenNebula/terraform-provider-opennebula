@@ -49,6 +49,7 @@ resource "opennebula_virtual_machine" "example" {
   }
 
   disk {
+    disk_label = "boot"
     image_id = opennebula_image.example.id
     size     = 10000
     target   = "vda"
@@ -170,7 +171,8 @@ The following arguments are supported:
 * `image_id` - (Optional) ID of the image to attach to the virtual machine. Defaults to -1 if not set: this skip Image attchment to the VM. Conflicts with `volatile_type` and `volatile_format`.
 * `image_id` - (Optional) Name of the image to attach to the virtual machine. Conflicts with `volatile_type` and `volatile_format`.
 * `size` - (Optional) Size (in MB) of the image. If set, it will resize the image disk to the targeted size. The size must be greater than the current one.
-* `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
+* `disk_label` - (Required) Stable disk label, unique within the VM. OpenNebula stores it on the attachment as `TF_DISK_LABEL`.
+* `target` - (Optional) Target device name on the virtual machine. Depends on the image's `dev_prefix`.
 * `driver` - (Optional) Requested disk driver. OpenNebula may select a different driver based on the image or datastore. Read the driver in use from `computed_driver`.
 * `volatile_type` - (Optional) Type of the disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id` and `image`.
 * `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id` and `image`.
@@ -178,6 +180,10 @@ The following arguments are supported:
 Minimum 1 item. Maximum 8 items.
 
 A disk update will be triggered in adding or removing a `disk` section, or by a modification of any of these parameters: `image_id`, `target`, `driver`
+
+Keep the label stable when reordering disks or resizing them. Changing it replaces the attachment. The provider leaves live disks without `TF_DISK_LABEL` alone.
+
+VMs with inline disks created by an earlier provider version need an explicit VM replacement before Terraform can manage those attachments by label. Adding a label to the HCL cannot label an existing attachment in place.
 
 ### NIC parameters
 
@@ -377,7 +383,6 @@ The following attribute are exported:
 
 ### Disk
 
-* `tf_uuid` - Terraform-generated attachment UUID stored as `TF_UUID` on the VM disk. Used to identify the disk independently of its size or disk ID. Assigned to newly created or attached disks; existing untagged disks retain legacy matching until reattached.
 * `disk_id` - disk attachment identifier
 * `computed_size` - Size (in MB) of the image attached to the virtual machine. Not possible to change a cloned image size.
 * `computed_target` - Target name device on the virtual machine. Depends of the image `dev_prefix`.

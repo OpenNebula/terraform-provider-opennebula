@@ -235,6 +235,7 @@ resource "opennebula_virtual_machine" "first_vm" {
   sched_requirements = "CLUSTER_ID!=\"123\""
 
   disk {
+    disk_label = "data"
     volatile_type = "swap"
     size          = 16
     target        = "vda"

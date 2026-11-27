@@ -670,6 +670,8 @@ func makeDiskVector(diskConfig map[string]interface{}) *shared.Disk {
 		}
 
 		switch k {
+		case "disk_label":
+			disk.Add(vmDiskLabel, v.(string))
 		case "target":
 			disk.Add(shared.TargetDisk, v.(string))
 		case "driver":
@@ -860,7 +862,11 @@ func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 
 	//Generate DISK definition
 	disks := d.Get("disk").([]interface{})
-	managed := false
+	if d.Get("template_disk") != nil {
+		if err := validateVMDiskLabels(disks); err != nil {
+			return err
+		}
+	}
 	log.Printf("Number of disks: %d", len(disks))
 
 	for i := 0; i < len(disks); i++ {
@@ -886,24 +892,9 @@ func addDisks(d *schema.ResourceData, tpl *vm.Template) error {
 			continue
 		}
 
-		var disk *shared.Disk
-		// Only VM schemas have tf_uuid; reusable templates must not carry it.
-		if _, ok := diskconfig["tf_uuid"]; ok {
-			var err error
-			disk, err = makeVMDiskVector(diskconfig)
-			if err != nil {
-				return err
-			}
-			managed = true
-		} else {
-			disk = makeDiskVector(diskconfig)
-		}
-		tpl.Elements = append(tpl.Elements, disk)
+		tpl.Elements = append(tpl.Elements, makeDiskVector(diskconfig))
 	}
 
-	if managed {
-		return d.Set("disk", disks)
-	}
 	return nil
 }
 

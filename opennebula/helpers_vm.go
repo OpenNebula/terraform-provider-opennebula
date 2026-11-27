@@ -27,103 +27,46 @@ type customVMFunc func(ctx context.Context, d *schema.ResourceData, tpl *vm.VM) 
 type customFunc func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics
 
 // vmDiskAttach is an helper that synchronously attach a disk
-func vmDiskAttach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, diskTpl *shared.Disk) (int, error) {
+func vmDiskAttach(ctx context.Context, vmc *goca.VMController, timeout time.Duration, diskTpl *shared.Disk) error {
+	label, _ := diskTpl.Get(vmDiskLabel)
+	if label == "" {
+		return fmt.Errorf("cannot attach a managed disk without a label")
+	}
 
-	log.Printf("[DEBUG] Attach disk to virtual machine (ID:%d)", vmc.ID)
-
-	// Retrieve disk list
-	vm, err := vmc.Info(false)
+	info, err := vmc.Info(false)
 	if err != nil {
-		return -1, err
+		return err
 	}
-
-	set := schema.NewSet(schema.HashString, []interface{}{})
-	for _, disk := range vm.Template.GetDisks() {
-		set.Add(disk.String())
-	}
-
-	err = vmc.DiskAttach(diskTpl.String())
+	disks, err := indexVMDiskLabels(info.Template.GetDisks())
 	if err != nil {
-		return -1, fmt.Errorf("can't attach image to virtual machine (ID:%d): %s\n", vmc.ID, err)
-
+		return err
+	}
+	if _, exists := disks[label]; exists {
+		return fmt.Errorf("VM %d already has a disk with label %q", vmc.ID, label)
+	}
+	if err := vmc.DiskAttach(diskTpl.String()); err != nil {
+		return fmt.Errorf("attach disk %q to VM %d: %w", label, vmc.ID, err)
 	}
 
-	// wait before checking disk list
-	// final states ar added to transient one in case of slow cloud
 	transient := vmDiskTransientStates
 	transient.Append(vmDiskUpdateReadyStates)
-	finalStrs := vmDiskUpdateReadyStates.ToStrings()
-	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), finalStrs)
+	stateConf := NewVMUpdateStateConf(timeout, transient.ToStrings(), vmDiskUpdateReadyStates.ToStrings())
+	if _, err := waitForVMStates(ctx, vmc, stateConf); err != nil {
+		return fmt.Errorf("wait for disk %q on VM %d: %w", label, vmc.ID, err)
+	}
 
-	_, err = waitForVMStates(ctx, vmc, stateConf)
+	info, err = vmc.Info(false)
 	if err != nil {
-		return -1, fmt.Errorf(
-			"waiting for virtual machine (ID:%d) to be in state %s: %s", vmc.ID, strings.Join(finalStrs, ","), err)
+		return err
 	}
-
-	// compare disk list to check that a new disk is attached
-	vm, err = vmc.Info(false)
+	disks, err = indexVMDiskLabels(info.Template.GetDisks())
 	if err != nil {
-		return -1, err
+		return err
 	}
-	if id, _ := diskTpl.Get("TF_UUID"); id != "" {
-		for _, disk := range vm.Template.GetDisks() {
-			if remoteID, _ := disk.Get("TF_UUID"); remoteID == id {
-				return disk.ID()
-			}
-		}
-		return -1, fmt.Errorf("disk with TF_UUID %s not found after attachment to VM %d", id, vmc.ID)
+	if _, exists := disks[label]; !exists {
+		return fmt.Errorf("disk with label %q not found after attachment to VM %d", label, vmc.ID)
 	}
-
-	oldDisks := make([]shared.Disk, 0, 1)
-	for _, disk := range vm.Template.GetDisks() {
-
-		if set.Contains(disk.String()) {
-			continue
-		}
-
-		oldDisks = append(oldDisks, disk)
-	}
-
-	var attachedDisk *shared.Disk
-
-	switch len(oldDisks) {
-	case 0:
-
-		// If disk not attached, retrieve error message
-		vmerr, _ := vm.UserTemplate.Get(vmk.Error)
-
-		return -1, fmt.Errorf("virtual machine (ID:%d): %s", vmc.ID, vmerr)
-
-	case 1:
-		attachedDisk = &oldDisks[0]
-	default:
-	loop:
-		for i, disk := range oldDisks {
-
-			for _, pair := range diskTpl.Pairs {
-
-				value, err := disk.GetStr(pair.Key())
-				if err != nil {
-
-				}
-
-				if value != pair.Value {
-					continue loop
-				}
-			}
-
-			attachedDisk = &oldDisks[i]
-			break
-		}
-		if attachedDisk == nil {
-			return -1, fmt.Errorf("can't find the disk attached to the virtual machine (ID:%d)", vmc.ID)
-		}
-	}
-
-	diskID, _ := attachedDisk.GetI(shared.DiskID)
-
-	return diskID, nil
+	return nil
 }
 
 // vmDiskDetach is an helper that synchronously detach a disk
