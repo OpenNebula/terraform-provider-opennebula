@@ -1,6 +1,7 @@
 package opennebula
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -136,6 +137,7 @@ resource "opennebula_virtual_machine" "test" {
 `
 	const disk = `
   disk {
+    disk_label = "%s"
     volatile_type = "swap"
     size          = 16
   }
@@ -147,11 +149,11 @@ resource "opennebula_virtual_machine" "test" {
 		Steps: []resource.TestStep{
 			{Config: config + "}"},
 			{
-				Config: config + strings.Repeat(disk, 2) + "}",
+				Config: config + fmt.Sprintf(disk, "first") + fmt.Sprintf(disk, "second") + "}",
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.#", "2"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "disk.0.tf_uuid"),
-					resource.TestCheckResourceAttrSet("opennebula_virtual_machine.test", "disk.1.tf_uuid"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.0.disk_label", "first"),
+					resource.TestCheckResourceAttr("opennebula_virtual_machine.test", "disk.1.disk_label", "second"),
 				),
 			},
 		},
@@ -231,6 +233,7 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	disk {
+		disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
@@ -271,11 +274,13 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	disk {
+		disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
 	}
 	disk {
+		disk_label = "data"
 		image_id = opennebula_image.image2.id
 		target = "vdb"
 	}
@@ -315,11 +320,13 @@ resource "opennebula_virtual_machine" "test" {
 	}
 
 	disk {
+		disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
 	}
 	disk {
+		disk_label = "data"
 		image_id = opennebula_image.image2.id
 		target = "vdb"
 		size = "16"
@@ -360,11 +367,13 @@ var testAccVirtualMachineSwitchNonPersistentDisk = testDiskImageResources + `
 	  }
 
 	  disk {
+	    disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
 	  }
 	  disk {
+	    disk_label = "data"
 		  image_id = opennebula_image.image1.id
 		  target = "vdc"
 	  }
@@ -404,11 +413,13 @@ var testAccVirtualMachineNonPersistentDiskTargetUpdate = testDiskImageResources 
 	  }
 
 	  disk {
+	    disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
 	  }
 	  disk {
+	    disk_label = "data"
 		  image_id = opennebula_image.image1.id
 		  target = "vdd"
 	  }
@@ -448,11 +459,13 @@ var testAccVirtualMachineNonPersistentDiskSizeUpdate = testDiskImageResources + 
 	  }
 
 	  disk {
+	    disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
 	  }
 	  disk {
+	    disk_label = "data"
 		  image_id = opennebula_image.image1.id
 		  target = "vdd"
           size = 32
@@ -493,16 +506,19 @@ var testAccVirtualMachineNonPersistentDiskAttachedTwice = testDiskImageResources
 	  }
 
 	  disk {
+	    disk_label = "swap"
 		volatile_type = "swap"
 		size          = 16
 		target        = "vda"
 	  }
 	  disk {
+	    disk_label = "data"
 		  image_id = opennebula_image.image1.id
 		  target = "vdd"
           size = 32
 	  }
 	  disk {
+	    disk_label = "extra"
 		image_id = opennebula_image.image1.id
 		target = "vde"
 		size = 64

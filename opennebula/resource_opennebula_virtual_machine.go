@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/OpenNebula/one/src/oca/go/src/goca"
 	dyn "github.com/OpenNebula/one/src/oca/go/src/goca/dynamic"
@@ -56,6 +56,8 @@ func (nu NICUpdates) getRecreatedNICDependantAliasIDsMaps() (map[int][]int, erro
 func (nu NICUpdates) getNICsToDetachIds() ([]int, error) {
 	return nu.getNICsIDs(nu.deletedNics)
 }
+
+const vmDiskLabel = "TF_DISK_LABEL"
 
 var (
 	vmDiskOnChangeValues = []string{"RECREATE", "SWAP"}
@@ -313,11 +315,6 @@ func nicAliasVMSchema() *schema.Schema {
 
 func diskComputedVMFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"tf_uuid": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "Terraform disk attachment identifier stored as TF_UUID in OpenNebula",
-		},
 		"disk_id": {
 			Type:     schema.TypeInt,
 			Computed: true,
@@ -378,7 +375,14 @@ func templateDiskVMSchema() *schema.Schema {
 }
 
 func diskVMFields() map[string]*schema.Schema {
-	return mergeSchemas(diskFields(), diskComputedVMFields())
+	return mergeSchemas(diskFields(), diskComputedVMFields(), map[string]*schema.Schema{
+		"disk_label": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ValidateFunc: validation.StringIsNotWhiteSpace,
+			Description:  "Stable disk label unique within the VM, stored as TF_DISK_LABEL on the attachment.",
+		},
+	})
 }
 
 func diskVMSchema() *schema.Schema {
@@ -873,13 +877,12 @@ func resourceOpennebulaVirtualMachineRead(ctx context.Context, d *schema.Resourc
 func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) map[string]interface{} {
 
 	diskMap := flattenDiskComputed(disk)
+	diskMap["disk_label"], _ = disk.Get(vmDiskLabel)
 
 	if diskConfig["size"].(int) > 0 {
 		diskMap["size"] = diskMap["computed_size"]
 	}
-	if len(diskConfig["target"].(string)) > 0 {
-		diskMap["target"] = diskMap["computed_target"]
-	}
+	diskMap["target"] = diskConfig["target"]
 	if driver := diskConfig["driver"].(string); driver != "" {
 		// OpenNebula can choose a different driver based on the image or datastore.
 		diskMap["driver"] = driver
@@ -904,7 +907,6 @@ func flattenVMDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) 
 }
 
 func flattenDiskComputed(disk shared.Disk) map[string]interface{} {
-	tfUUID, _ := disk.Get("TF_UUID")
 	size, _ := disk.GetI(shared.Size)
 	driver, _ := disk.Get(shared.Driver)
 	target, _ := disk.Get(shared.TargetDisk)
@@ -916,7 +918,6 @@ func flattenDiskComputed(disk shared.Disk) map[string]interface{} {
 	diskID, _ := disk.GetI(shared.DiskID)
 
 	return map[string]interface{}{
-		"tf_uuid":                  tfUUID,
 		"disk_id":                  diskID,
 		"computed_size":            size,
 		"computed_target":          target,
@@ -954,146 +955,52 @@ func flattenVMTemplateDisk(d *schema.ResourceData, vmTemplate *vm.Template) erro
 	return nil
 }
 
-func matchDisk(diskConfig map[string]interface{}, disk shared.Disk) bool {
-	remoteID, _ := disk.Get("TF_UUID")
-	if id, _ := diskConfig["tf_uuid"].(string); id != "" {
-		return id == remoteID
-	}
-	if remoteID != "" {
-		return false // An untagged legacy entry must not claim another managed disk.
-	}
-
-	size, _ := disk.GetI(shared.Size)
-	driver, _ := disk.Get(shared.Driver)
-	target, _ := disk.Get(shared.TargetDisk)
-	dev_prefix, _ := disk.Get("DEV_PREFIX")
-	cache, _ := disk.Get("CACHE")
-	discard, _ := disk.Get("DISCARD")
-	io, _ := disk.Get("IO")
-	volatileType, _ := disk.Get("TYPE")
-	volatileFormat, _ := disk.Get("FORMAT")
-
-	return emptyOrEqual(diskConfig["target"], target) &&
-		emptyOrEqual(diskConfig["size"], size) &&
-		emptyOrEqual(diskConfig["driver"], driver) &&
-		emptyOrEqual(diskConfig["dev_prefix"], dev_prefix) &&
-		emptyOrEqual(diskConfig["cache"], cache) &&
-		emptyOrEqual(diskConfig["discard"], discard) &&
-		emptyOrEqual(diskConfig["io"], io) &&
-		emptyOrEqual(diskConfig["volatile_type"], volatileType) &&
-		emptyOrEqual(diskConfig["volatile_format"], volatileFormat)
-}
-
-func matchDiskComputed(diskConfig map[string]interface{}, disk shared.Disk) bool {
-	if id, _ := diskConfig["tf_uuid"].(string); id != "" {
-		remoteID, _ := disk.Get("TF_UUID")
-		return id == remoteID
-	}
-
-	size, _ := disk.GetI(shared.Size)
-	driver, _ := disk.Get(shared.Driver)
-	target, _ := disk.Get(shared.TargetDisk)
-	format, _ := disk.Get("FORMAT")
-	dev_prefix, _ := disk.Get("DEV_PREFIX")
-	cache, _ := disk.Get("CACHE")
-	discard, _ := disk.Get("DISCARD")
-	io, _ := disk.Get("IO")
-
-	return (target == diskConfig["computed_target"].(string)) &&
-		(size == diskConfig["computed_size"].(int)) &&
-		(driver == diskConfig["computed_driver"].(string)) &&
-		(format == diskConfig["computed_volatile_format"].(string)) &&
-		(dev_prefix == diskConfig["computed_dev_prefix"].(string)) &&
-		(cache == diskConfig["computed_cache"].(string)) &&
-		(discard == diskConfig["computed_discard"].(string)) &&
-		(io == diskConfig["computed_io"].(string))
-}
-
-// flattenVMDisk is similar to flattenDisk but deal with computed_* attributes
-// this is a temporary solution until we can use nested attributes marked computed and optional
-func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
-
-	// Set disks to resource
-	disks := vmTemplate.GetDisks()
-	diskConfigs := d.Get("disk").([]interface{})
-
-	diskList := make([]interface{}, len(diskConfigs))
-	seenUUIDs := make(map[string]bool, len(disks))
-
-diskLoop:
+func indexVMDiskLabels(disks []shared.Disk) (map[string]shared.Disk, error) {
+	byLabel := make(map[string]shared.Disk, len(disks))
 	for _, disk := range disks {
-		if id, _ := disk.Get("TF_UUID"); id != "" {
-			if seenUUIDs[id] {
-				return fmt.Errorf("duplicate disk TF_UUID %s", id)
-			}
-			seenUUIDs[id] = true
+		label, _ := disk.Get(vmDiskLabel)
+		if label == "" {
+			continue
 		}
-
-		// exclude disk from template_disk
-		tplDiskConfigs := d.Get("template_disk").([]interface{})
-		for _, tplDiskConfigIf := range tplDiskConfigs {
-			tplDiskConfig := tplDiskConfigIf.(map[string]interface{})
-
-			if matchDiskComputed(tplDiskConfig, disk) {
-				continue diskLoop
-			}
+		if _, exists := byLabel[label]; exists {
+			return nil, fmt.Errorf("duplicate live disk label %q", label)
 		}
-
-		// copy disk config values
-		var diskMap map[string]interface{}
-
-		match := false
-		for j := 0; j < len(diskConfigs); j++ {
-			if diskList[j] != nil {
-				continue
-			}
-			diskConfig := diskConfigs[j].(map[string]interface{})
-
-			// try to reidentify the disk based on it's configuration values
-			if !matchDisk(diskConfig, disk) {
-				continue
-			}
-
-			match = true
-			diskMap = flattenVMDiskComputed(diskConfig, disk)
-
-			imageID, _ := diskConfig["image_id"].(int)
-			image, _ := diskConfig["image"].(string)
-			diskMap["image_id"] = imageID
-			diskMap["image"] = image
-
-			// for volatile disk, TYPE has the same value
-			// than DISK_TYPE
-			if imageID == -1 && image == "" {
-				volatileType, _ := disk.Get("TYPE")
-				diskMap["volatile_type"] = volatileType
-			}
-
-			diskList[j] = diskMap
-
-			break
-
-		}
-
-		if !match {
-			ID, _ := disk.ID()
-			log.Printf("[WARN] Configuration for disk ID: %d not found.", ID)
-		}
-
+		byLabel[label] = disk
 	}
+	return byLabel, nil
+}
 
-	matchedDisks := diskList[:0]
-	for _, disk := range diskList {
-		if disk != nil {
-			matchedDisks = append(matchedDisks, disk)
-		}
-	}
-	err := d.Set("disk", matchedDisks)
+func flattenVMDisk(d *schema.ResourceData, vmTemplate *vm.Template) error {
+	byLabel, err := indexVMDiskLabels(vmTemplate.GetDisks())
 	if err != nil {
 		return err
 	}
-
-	return nil
+	configs := d.Get("disk").([]interface{})
+	diskList := make([]interface{}, 0, len(configs))
+	for _, entry := range configs {
+		if entry == nil {
+			continue
+		}
+		config := entry.(map[string]interface{})
+		label, _ := config["disk_label"].(string)
+		if label == "" {
+			// Preserve legacy state without assigning it to a live disk.
+			diskList = append(diskList, config)
+			continue
+		}
+		disk, found := byLabel[label]
+		if !found {
+			continue
+		}
+		diskMap := flattenVMDiskComputed(config, disk)
+		diskMap["image_id"] = config["image_id"]
+		diskMap["image"] = config["image"]
+		if config["image_id"] == -1 && config["image"] == "" {
+			diskMap["volatile_type"], _ = disk.Get("TYPE")
+		}
+		diskList = append(diskList, diskMap)
+	}
+	return d.Set("disk", diskList)
 }
 
 func flattenNICComputedAttributes(nic shared.NIC, ignoreSGIDs []int) map[string]interface{} {
@@ -1845,6 +1752,15 @@ func findNICAliasByID(nicAliasList []any, nicAliasID int) (map[string]any, error
 func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema.ResourceData, meta interface{}, customFunc customFunc) diag.Diagnostics {
 
 	var diags diag.Diagnostics
+	if d.HasChange("disk") {
+		old, new := d.GetChange("disk")
+		if err := validateVMDiskLabels(new.([]interface{})); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := validateVMDiskLabels(old.([]interface{})); err != nil {
+			return diag.Errorf("cannot update existing VM disks. Their saved labels must be present and unique: %s", err)
+		}
+	}
 
 	//Get VM
 	vmc, err := getVirtualMachineController(d, meta)
@@ -2372,67 +2288,75 @@ func resourceOpennebulaVirtualMachineUpdateCustom(ctx context.Context, d *schema
 	return resourceOpennebulaVirtualMachineRead(ctx, d, meta)
 }
 
-func makeVMDiskVector(config map[string]interface{}) (*shared.Disk, error) {
-	id, _ := config["tf_uuid"].(string)
-	if id == "" {
-		var err error
-		id, err = uuid.GenerateUUID()
-		if err != nil {
-			return nil, fmt.Errorf("generate disk UUID: %w", err)
-		}
-		config["tf_uuid"] = id
-	}
-	disk := makeDiskVector(config)
-	disk.Add("TF_UUID", id)
-	return disk, nil
-}
-
-type vmDiskKey [len(vmDiskAttachFields) + 1]interface{}
-
-func diskAttachmentKey(config map[string]interface{}) vmDiskKey {
-	var key vmDiskKey
-	key[0], _ = config["tf_uuid"].(string)
-	for i, field := range vmDiskAttachFields {
-		key[i+1] = config[field]
-	}
-	return key
-}
-
 type vmDiskResizeRequest struct {
 	config   map[string]interface{}
 	attached map[string]interface{}
 }
 
+func validateVMDiskLabels(disks []interface{}) error {
+	seen := make(map[string]bool, len(disks))
+	for _, entry := range disks {
+		if entry == nil {
+			continue
+		}
+		label, _ := entry.(map[string]interface{})["disk_label"].(string)
+		if strings.TrimSpace(label) == "" {
+			return fmt.Errorf("each managed VM disk requires disk_label")
+		}
+		if seen[label] {
+			return fmt.Errorf("duplicate disk label %q", label)
+		}
+		seen[label] = true
+	}
+	return nil
+}
+
 func diffVMDiskConfig(new, old []interface{}) (detach, attach []map[string]interface{}, resize []vmDiskResizeRequest) {
-	oldByKey := make(map[vmDiskKey][]int, len(old))
-	for i, disk := range old {
-		key := diskAttachmentKey(disk.(map[string]interface{}))
-		oldByKey[key] = append(oldByKey[key], i)
+	previous := make(map[string]map[string]interface{}, len(old))
+	for _, entry := range old {
+		if entry != nil {
+			disk := entry.(map[string]interface{})
+			label, _ := disk["disk_label"].(string)
+			previous[label] = disk
+		}
 	}
 
-	matched := make([]bool, len(old))
-	for _, disk := range new {
-		config := disk.(map[string]interface{})
-		key := diskAttachmentKey(config)
-		candidates := oldByKey[key]
-		if len(candidates) == 0 {
+	retained := make(map[string]bool, len(old))
+	for _, entry := range new {
+		if entry == nil {
+			continue
+		}
+		config := entry.(map[string]interface{})
+		label, _ := config["disk_label"].(string)
+		prior := previous[label]
+		if prior == nil || !sameVMDiskAttachment(config, prior) {
 			attach = append(attach, config)
 			continue
 		}
-		i := candidates[0]
-		oldByKey[key] = candidates[1:]
-		matched[i] = true
-		attached := old[i].(map[string]interface{})
-		if config["size"] != attached["size"] {
-			resize = append(resize, vmDiskResizeRequest{config: config, attached: attached})
+		retained[label] = true
+		if config["size"] != prior["size"] {
+			resize = append(resize, vmDiskResizeRequest{config: config, attached: prior})
 		}
 	}
-	for i, disk := range old {
-		if !matched[i] {
-			detach = append(detach, disk.(map[string]interface{}))
+	for _, entry := range old {
+		if entry != nil {
+			disk := entry.(map[string]interface{})
+			label, _ := disk["disk_label"].(string)
+			if !retained[label] {
+				detach = append(detach, disk)
+			}
 		}
 	}
 	return detach, attach, resize
+}
+
+func sameVMDiskAttachment(config, prior map[string]interface{}) bool {
+	for _, field := range vmDiskAttachFields {
+		if config[field] != prior[field] {
+			return false
+		}
+	}
+	return true
 }
 
 func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
@@ -2455,6 +2379,43 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 	}
 
 	toDetach, toAttach, toResize := diffVMDiskConfig(newDisksCfg, attachedDisksCfg)
+	if len(toDetach) > 0 && strings.EqualFold(d.Get("on_disk_change").(string), "RECREATE") {
+		return fmt.Errorf("disk changes require VM replacement with on_disk_change = RECREATE")
+	}
+
+	if len(toDetach) > 0 || len(toResize) > 0 {
+		info, err := vmc.Info(false)
+		if err != nil {
+			return err
+		}
+		liveDisks, err := indexVMDiskLabels(info.Template.GetDisks())
+		if err != nil {
+			return err
+		}
+		resolve := func(config map[string]interface{}) error {
+			label := config["disk_label"].(string)
+			disk, exists := liveDisks[label]
+			if !exists {
+				return fmt.Errorf("VM %d disk with label %q is missing", vmc.ID, label)
+			}
+			diskID, err := disk.ID()
+			if err != nil {
+				return err
+			}
+			config["disk_id"] = diskID
+			return nil
+		}
+		for _, config := range toDetach {
+			if err := resolve(config); err != nil {
+				return err
+			}
+		}
+		for _, request := range toResize {
+			if err := resolve(request.attached); err != nil {
+				return err
+			}
+		}
+	}
 
 	for _, diskConfig := range toDetach {
 
@@ -2487,17 +2448,9 @@ func updateDisk(ctx context.Context, d *schema.ResourceData, meta interface{}) e
 			continue
 		}
 
-		diskTpl, err := makeVMDiskVector(diskConfig)
-		if err != nil {
-			return err
-		}
-
-		_, err = vmDiskAttach(ctx, vmc, timeout, diskTpl)
-		if err != nil {
+		diskTpl := makeDiskVector(diskConfig)
+		if err := vmDiskAttach(ctx, vmc, timeout, diskTpl); err != nil {
 			return fmt.Errorf("vm disk attach: %s", err)
-		}
-		if err := d.Set("disk", newDisksCfg); err != nil {
-			return err
 		}
 	}
 
@@ -3353,33 +3306,31 @@ func addNICAliases(d *schema.ResourceData, tpl *vm.Template) {
 }
 
 func resourceVMCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
-
-	onChange := diff.Get("on_disk_change").(string)
-
-	if strings.ToUpper(onChange) == "RECREATE" {
-
-		oldDisk, newDisk := diff.GetChange("disk")
-		oldDiskList := oldDisk.([]interface{})
-		newDiskList := newDisk.([]interface{})
-		toDetach, _ := diffListConfig(newDiskList, oldDiskList,
-			&schema.Resource{
-				Schema: diskFields(),
-			},
-			"image_id",
-			"image",
-			"target",
-			"driver")
-
-		if len(toDetach) > 0 {
-			for i := range oldDiskList {
-				diff.ForceNew(fmt.Sprintf("disk.%d.image_id", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.image", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.target", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.driver", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.dev_prefix", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.cache", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.discard", i))
-				diff.ForceNew(fmt.Sprintf("disk.%d.io", i))
+	raw := diff.GetRawConfig()
+	if diff.HasChange("disk") && diff.NewValueKnown("disk") && (raw.IsNull() || raw.GetAttr("disk").IsWhollyKnown()) {
+		oldValue, newValue := diff.GetChange("disk")
+		oldDisks, newDisks := oldValue.([]interface{}), newValue.([]interface{})
+		if err := validateVMDiskLabels(newDisks); err != nil {
+			return err
+		}
+		if strings.EqualFold(diff.Get("on_disk_change").(string), "RECREATE") && validateVMDiskLabels(oldDisks) == nil {
+			detach, _, _ := diffVMDiskConfig(newDisks, oldDisks)
+			if len(detach) > 0 {
+				if err := diff.ForceNew("disk"); err != nil {
+					return err
+				}
+				// ForceNew on the list covers count changes. Same-length list
+				// changes need ForceNew on the disk arguments themselves.
+				for index := range oldDisks {
+					for _, field := range append(vmDiskAttachFields[:], "disk_label") {
+						key := fmt.Sprintf("disk.%d.%s", index, field)
+						if diff.HasChange(key) {
+							if err := diff.ForceNew(key); err != nil {
+								return err
+							}
+						}
+					}
+				}
 			}
 		}
 	}
