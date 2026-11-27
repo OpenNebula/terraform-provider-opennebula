@@ -21,6 +21,7 @@ BUG FIXES:
 * resources/opennebula_template, opennebula_virtual_machine, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: ignore leading and trailing whitespace in `raw.data`
 * resources: plan recreation when OpenNebula XML-RPC confirms that a resource, its parent, or a managed list entry is missing (#623, #624)
 * resources/opennebula_virtual_machine, opennebula_template, opennebula_virtual_router_instance_template: encode `firmware_secure` as `YES` or `NO` so OpenNebula applies the requested Secure Boot setting (#631)
+* resources/opennebula_template, opennebula_virtual_router_instance_template: persist CPU model and graphics updates (#655)
 
 # 1.5.0 (June 26th, 2025)
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -88,6 +89,13 @@ resource "opennebula_template" "raw" {
 }
 
 func TestAccTemplate(t *testing.T) {
+	const templateHeader = `resource "opennebula_template" "template" {`
+	cpuModelOnly := strings.Replace(testAccTemplateConfigBasic, templateHeader, templateHeader+`
+  cpumodel {
+    model = "host-passthrough"
+  }
+`, 1)
+	graphicsOnly := strings.Replace(cpuModelOnly, `keymap = "en-us"`, `keymap = "de"`, 1)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -139,6 +147,14 @@ func TestAccTemplate(t *testing.T) {
 						"elements.testkey2": "testvalue2",
 					}),
 				),
+			},
+			{
+				Config: cpuModelOnly,
+				Check:  resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
+			},
+			{
+				Config: graphicsOnly,
+				Check:  resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "de"),
 			},
 			{
 				Config: testAccTemplateCPUModel,

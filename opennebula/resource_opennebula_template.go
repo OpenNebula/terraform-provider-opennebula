@@ -956,7 +956,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			cpumodelconfig := cpumodel[i].(map[string]interface{})
 			newTpl.CPUModel(cpumodelconfig["model"].(string))
 		}
+		update = true
+	}
 
+	if d.HasChange("graphics") {
+		newTpl.Del(vmk.IOGraphicsVec)
+		addGraphic(&newTpl, d.Get("graphics").([]interface{}))
+		update = true
 	}
 
 	if d.HasChange("cpu") {
