@@ -18,7 +18,7 @@ BUG FIXES:
 * resources/opennebula_template, opennebula_virtual_router_instance_template: ignore OpenNebula quote escaping when comparing `context` values such as `USER_DATA`
 * resources/opennebula_template, opennebula_virtual_router_instance_template: do not add another escape layer to `context` values such as `USER_DATA` when updating another attribute
 * resources/opennebula_template, opennebula_virtual_machine, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: ignore leading and trailing whitespace in `raw.data`
-* resources: fix `Exists` functions to return no error when the resource no longer exists, allowing Terraform to plan recreation instead of failing the plan (#624)
+* resources: plan recreation when OpenNebula XML-RPC confirms that a resource, its parent, or a managed list entry is missing (#623, #624)
 * resources/opennebula_virtual_machine, opennebula_template, opennebula_virtual_router_instance_template: encode `firmware_secure` as `YES` or `NO` so OpenNebula applies the requested Secure Boot setting (#631)
 
 # 1.5.0 (June 26th, 2025)

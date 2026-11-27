@@ -85,6 +85,10 @@ func resourceOpennebulaGroupAdminsRead(ctx context.Context, d *schema.ResourceDa
 
 	group, err := controller.Group(int(groupID)).Info(false)
 	if err != nil {
+		if NoExists(err) {
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve group informations",

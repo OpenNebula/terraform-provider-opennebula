@@ -85,6 +85,10 @@ func resourceOpennebulaGroupQuotasRead(ctx context.Context, d *schema.ResourceDa
 
 	groupInfos, err := controller.Group(int(groupID)).Info(false)
 	if err != nil {
+		if NoExists(err) {
+			d.SetId("")
+			return nil
+		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to retrieve informations",

@@ -15,6 +15,7 @@ func TestAccACL(t *testing.T) {
 	invalidResourceErr, _ := regexp.Compile("resource 'a' malformed")
 	invalidRightsErr, _ := regexp.Compile("right 'aa' does not exist")
 	invalidZoneErr, _ := regexp.Compile("ID String bad malformed")
+	var deletedID int
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -24,7 +25,27 @@ func TestAccACL(t *testing.T) {
 				Config: testACLConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_acl.acl_foo", "user", "@1"),
+					resource.TestCheckResourceAttrWith("opennebula_acl.acl_foo", "id", func(value string) error {
+						var err error
+						deletedID, err = strconv.Atoi(value)
+						return err
+					}),
 				),
+			},
+			{
+				PreConfig: func() {
+					controller := testAccProvider.Meta().(*Configuration).Controller
+					if err := controller.ACLs().DeleteRule(deletedID); err != nil {
+						t.Fatalf("delete ACL outside Terraform: %v", err)
+					}
+				},
+				Config: testACLConfigBasic,
+				Check: resource.TestCheckResourceAttrWith("opennebula_acl.acl_foo", "id", func(value string) error {
+					if value == strconv.Itoa(deletedID) {
+						return fmt.Errorf("ACL ID %s did not change after external deletion", value)
+					}
+					return nil
+				}),
 			},
 			{
 				Config: testACLConfigReplace,
