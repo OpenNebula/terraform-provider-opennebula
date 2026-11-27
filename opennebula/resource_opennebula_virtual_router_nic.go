@@ -99,6 +99,13 @@ func resourceOpennebulaVirtualRouterNIC() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"routes": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "Comma-separated static routes in CIDR via gateway format",
+			},
 		},
 	}
 }
@@ -133,6 +140,9 @@ func resourceOpennebulaVirtualRouterNICCreate(ctx context.Context, d *schema.Res
 	}
 	if v, ok := d.GetOk("physical_device"); ok {
 		nicTpl.Add("PHYDEV", v.(string))
+	}
+	if v, ok := d.GetOk("routes"); ok {
+		nicTpl.Add("ROUTES", v.(string))
 	}
 	if v, ok := d.GetOk("security_groups"); ok {
 		secGroups := ArrayToString(v.([]interface{}), ",")
@@ -218,6 +228,7 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	network, _ := nic.Get(shared.Network)
 	model, _ := nic.Get(shared.Model)
 	virtioQueues, _ := nic.GetStr("VIRTIO_QUEUES")
+	routes, _ := nic.GetStr("ROUTES")
 
 	sg := make([]int, 0)
 	securityGroupsArray, _ := nic.Get(shared.SecurityGroups)
@@ -249,6 +260,7 @@ func resourceOpennebulaVirtualRouterNICRead(ctx context.Context, d *schema.Resou
 	d.Set("network", network)
 	d.Set("model", model)
 	d.Set("virtio_queues", virtioQueues)
+	d.Set("routes", routes)
 	d.Set("security_groups", sg)
 	d.Set("floating_ip", strings.ToUpper(floatingIP) == "YES")
 	d.Set("floating_only", strings.ToUpper(floatingOnly) == "YES")

@@ -121,6 +121,7 @@ func TestAccVirtualRouter(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router_nic.nic2", "network_id"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_ip", "true"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_only", "true"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "routes", "10.0.0.0/24 via 172.16.100.8,10.1.0.0/24 via 172.16.100.8"),
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router_nic.nic1", "ip"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_ip", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_only", "false"),
@@ -148,6 +149,7 @@ func TestAccVirtualRouter(t *testing.T) {
 					resource.TestCheckResourceAttrSet("opennebula_virtual_router_nic.nic2", "network_id"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_ip", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "floating_only", "false"),
+					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic1", "routes", "10.4.0.0/24 via 172.16.100.9"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_ip", "false"),
 					resource.TestCheckResourceAttr("opennebula_virtual_router_nic.nic2", "floating_only", "false"),
 					testAccCheckVirtualRouterPermissions(&shared.Permissions{
@@ -551,15 +553,18 @@ resource "opennebula_virtual_router" "test" {
 }
 
 resource "opennebula_virtual_router_nic" "nic2" {
+    depends_on        = [opennebula_virtual_router_instance.test2]
     virtual_router_id = opennebula_virtual_router.test.id
     network_id        = opennebula_virtual_network.network2.id
 }
 
 resource "opennebula_virtual_router_nic" "nic1" {
+    depends_on        = [opennebula_virtual_router_instance.test2]
     floating_ip       = true
     floating_only     = true
     virtual_router_id = opennebula_virtual_router.test.id
     network_id        = opennebula_virtual_network.network1.id
+    routes            = "10.0.0.0/24 via 172.16.100.8,10.1.0.0/24 via 172.16.100.8"
 }
 `
 var testAccVirtualRouterUpdateNICs = testAccVirtualRouterMachineTemplate + testAccVirtualRouterVNet + `
@@ -598,14 +603,17 @@ resource "opennebula_virtual_router" "test" {
 }
 
 resource "opennebula_virtual_router_nic" "nic2" {
+	depends_on        = [opennebula_virtual_router_instance.test2]
 	virtual_router_id = opennebula_virtual_router.test.id
 	network_id        = opennebula_virtual_network.network3.id
 }
 
 resource "opennebula_virtual_router_nic" "nic1" {
+	depends_on        = [opennebula_virtual_router_instance.test2]
 	floating_ip       = false
 	virtual_router_id = opennebula_virtual_router.test.id
 	network_id        = opennebula_virtual_network.network1.id
+	routes            = "10.4.0.0/24 via 172.16.100.9"
 }
 `
 
