@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 
+* resources/opennebula_virtual_machine, opennebula_template, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: add versioned write-only context entries for Terraform 1.11 or later (#626)
 * resources/opennebula_template: allocate templates from plain-text or Base64-encoded OpenNebula definitions
 * resources/opennebula_template, opennebula_virtual_router_instance_template: add `features.virtio_blk_queues` (`VIRTIO_BLK_QUEUES`)
 * docs/opennebula_template, opennebula_virtual_router_instance_template: replace the `tags` and `template_section` example with a concrete examples
@@ -18,7 +19,9 @@ BUG FIXES:
 * resources/opennebula_template, opennebula_virtual_router_instance_template: ignore OpenNebula quote escaping when comparing `context` values such as `USER_DATA`
 * resources/opennebula_template, opennebula_virtual_router_instance_template: do not add another escape layer to `context` values such as `USER_DATA` when updating another attribute
 * resources/opennebula_template, opennebula_virtual_machine, opennebula_virtual_router_instance, opennebula_virtual_router_instance_template: ignore leading and trailing whitespace in `raw.data`
-* resources: fix `Exists` functions to return no error when the resource no longer exists, allowing Terraform to plan recreation instead of failing the plan (#624)
+* resources: plan recreation when OpenNebula XML-RPC confirms that a resource, its parent, or a managed list entry is missing (#623, #624)
+* resources/opennebula_virtual_machine, opennebula_template, opennebula_virtual_router_instance_template: encode `firmware_secure` as `YES` or `NO` so OpenNebula applies the requested Secure Boot setting (#631)
+* resources/opennebula_template, opennebula_virtual_router_instance_template: persist CPU model and graphics updates (#655)
 
 # 1.5.0 (June 26th, 2025)
 

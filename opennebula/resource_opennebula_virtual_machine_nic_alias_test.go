@@ -2,6 +2,7 @@ package opennebula
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -139,6 +140,13 @@ func TestAccVirtualMachineTemplateNICAlias(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVMTemplateNICAliasResource,
+			},
+			{
+				Config: strings.Replace(testAccVMTemplateNICAliasResource, "security_groups = []", "security_groups = [0]", 1),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("opennebula_template.template_nic_alias", "nic.#", "2"),
+					resource.TestCheckResourceAttr("opennebula_template.template_nic_alias", "nic_alias.0.security_groups.0", "0"),
+				),
 			},
 			{
 				Config: testAccVMTemplateNICAliasVM,
@@ -916,6 +924,7 @@ resource "opennebula_template" "template_nic_alias" {
 
     nic_alias {
       parent = "template-nic-1"
+      security_groups = []
       network_id = opennebula_virtual_network.network2.id
       ip = "192.168.100.3"
     }

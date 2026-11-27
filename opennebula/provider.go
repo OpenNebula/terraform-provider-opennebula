@@ -176,6 +176,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	insecure := d.Get("insecure")
 	tr := &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure.(bool)},
 	}
 

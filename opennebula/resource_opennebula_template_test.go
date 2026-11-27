@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -14,6 +15,14 @@ import (
 )
 
 func TestAccRawTemplate(t *testing.T) {
+	const defaultTags = `
+provider "opennebula" {
+  alias = "tagged"
+  default_tags {
+    tags = { version = "2" }
+  }
+}
+`
 	const raw = `
 NAME = "embedded-template-name"
 DESCRIPTION = "embedded description"
@@ -29,6 +38,9 @@ resource "opennebula_template" "raw" {
   %s
 }
 `, field, input, overrides)
+	}
+	tagged := func(tags string) string {
+		return defaultTags + config("raw_template", raw, "provider = opennebula.tagged\ndisk = []\n"+tags)
 	}
 	check := func(description, disks string, extra ...resource.TestCheckFunc) resource.TestCheckFunc {
 		return resource.ComposeTestCheckFunc(append([]resource.TestCheckFunc{
@@ -62,14 +74,28 @@ resource "opennebula_template" "raw" {
 				Check:  check("embedded description", "0"),
 			},
 			{
-				Config: config("raw_template", raw, "disk = []"),
-				Check:  check("embedded description", "0"),
+				Config: tagged(`tags = { version = "2" }`),
+				Check:  check("embedded description", "0", resource.TestCheckResourceAttr("opennebula_template.raw", "tags.version", "2")),
+			},
+			{
+				Config: tagged(""),
+				Check: check("embedded description", "0",
+					resource.TestCheckNoResourceAttr("opennebula_template.raw", "tags.version"),
+					resource.TestCheckResourceAttr("opennebula_template.raw", "tags_all.version", "2"),
+				),
 			},
 		},
 	})
 }
 
 func TestAccTemplate(t *testing.T) {
+	const templateHeader = `resource "opennebula_template" "template" {`
+	cpuModelOnly := strings.Replace(testAccTemplateConfigBasic, templateHeader, templateHeader+`
+  cpumodel {
+    model = "host-passthrough"
+  }
+`, 1)
+	graphicsOnly := strings.Replace(cpuModelOnly, `keymap = "en-us"`, `keymap = "de"`, 1)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -94,6 +120,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.firmware_secure", "false"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.env", "prod"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.customer", "test"),
@@ -122,6 +149,14 @@ func TestAccTemplate(t *testing.T) {
 				),
 			},
 			{
+				Config: cpuModelOnly,
+				Check:  resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
+			},
+			{
+				Config: graphicsOnly,
+				Check:  resource.TestCheckResourceAttr("opennebula_template.template", "graphics.0.keymap", "de"),
+			},
+			{
 				Config: testAccTemplateCPUModel,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("opennebula_template.template", "name", "terra-tpl-cpumodel"),
@@ -140,6 +175,7 @@ func TestAccTemplate(t *testing.T) {
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.arch", "x86_64"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.boot", ""),
+					resource.TestCheckResourceAttr("opennebula_template.template", "os.0.firmware_secure", "true"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.#", "1"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "cpumodel.0.model", "host-passthrough"),
 					resource.TestCheckResourceAttr("opennebula_template.template", "tags.%", "2"),
@@ -455,7 +491,8 @@ resource "opennebula_template" "template" {
 
   os {
     arch = "x86_64"
-        boot = ""
+    boot = ""
+    firmware_secure = true
   }
 
   tags = {

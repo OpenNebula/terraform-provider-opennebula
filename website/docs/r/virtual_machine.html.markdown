@@ -106,6 +106,7 @@ The following arguments are supported:
 * `vpcu` - (Optional) Number of CPU cores presented to the VM.
 * `memory` - (Optional) Amount of RAM assigned to the VM in MB. **Mandatory if** `template_id` **is not set**.
 * `context` - (Optional) Array of free form key=value pairs, rendered and added to the CONTEXT variables for the VM. Recommended to include: `NETWORK = "YES"` and `SET_HOSTNAME = "$NAME"`. If a `template_id` is set, see [Instantiate from a template](#instantiate-from-a-template) for details.
+* `context_wo` - (Optional) [Write-only context entries](#write-only-context). Requires Terraform 1.11 or later.
 * `cpumodel` - (Optional) See [CPU model parameters](#cpu-model-parameters) below for details.
 * `graphics` - (Optional) See [Graphics parameters](#graphics-parameters) below for details.
 * `os` - (Optional) See [OS parameters](#os-parameters) below for details.
@@ -170,7 +171,7 @@ The following arguments are supported:
 * `image_id` - (Optional) Name of the image to attach to the virtual machine. Conflicts with `volatile_type` and `volatile_format`.
 * `size` - (Optional) Size (in MB) of the image. If set, it will resize the image disk to the targeted size. The size must be greater than the current one.
 * `target` - (Optional) Target name device on the virtual machine. Depends of the image `dev_prefix`.
-* `driver` - (Optional) OpenNebula image driver.
+* `driver` - (Optional) Requested disk driver. OpenNebula may select a different driver based on the image or datastore. Read the driver in use from `computed_driver`.
 * `volatile_type` - (Optional) Type of the disk: `swap` or `fs`. Type `swap` is not supported in vcenter. Conflicts with `image_id` and `image`.
 * `volatile_format` - (Optional) Format of the Image: `raw` or `qcow2`. Conflicts with `image_id` and `image`.
 
@@ -246,6 +247,25 @@ A NIC alias update will be triggered adding or removing a `nic_alias` section.
 
 * `name` - (Optional) The vector name.
 * `elements` - (Optional) Collection of custom tags.
+
+## Write-only context
+
+Use `context_wo` to supply sensitive context variables. The block has a required integer `version` and one or more `entry` blocks. Each entry has a `name` and a write-only string `value`. Names can use letters, digits, and underscores. Use distinct names across `context` and `context_wo`, ignoring case.
+
+```hcl
+context_wo {
+  version = 1
+
+  entry {
+    name  = "PASSWORD"
+    value = var.vm_password
+  }
+}
+```
+
+To update the values in place, change `version` and apply. Terraform stores the version and entry names in state and keeps the entry values out of plans and state. Changing only an entry's value leaves the plan unchanged. Out-of-band changes to write-only values are ignored on refresh. Removing an entry removes that managed context key on the next apply.
+
+An existing VM must have a `CONTEXT` section before OpenNebula can update its context in place.
 
 ## Attribute Reference
 

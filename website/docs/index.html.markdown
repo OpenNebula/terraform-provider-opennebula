@@ -84,6 +84,10 @@ terraform init
 terraform plan
 ```
 
+## Proxy support
+
+OpenNebula XML-RPC, OneFlow, and OneKS connections use `HTTP_PROXY` for HTTP endpoints and `HTTPS_PROXY` for HTTPS endpoints. Use `NO_PROXY` to bypass the proxy for specific hosts, domains, IP addresses, or CIDR ranges. Lowercase variants are also supported, and loopback endpoints bypass the proxy. Set these variables before starting Terraform or OpenTofu.
+
 ## Using tags
 
 ### Resource tags

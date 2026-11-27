@@ -145,23 +145,36 @@ func TestVMDiskUUIDPlan(t *testing.T) {
 	r := resourceOpennebulaVirtualMachine()
 	d := schema.TestResourceDataRaw(t, r.Schema, map[string]interface{}{
 		"name": "test", "cpu": 1.0, "memory": 128,
-		"disk": []interface{}{map[string]interface{}{"image_id": 3, "size": 100, "tf_uuid": "original"}},
+		"disk": []interface{}{map[string]interface{}{"image_id": 3, "size": 100, "driver": "qcow2", "tf_uuid": "original"}},
 	})
 	d.SetId("9")
+	tpl := vm.NewTemplate()
+	disk := testVMDisk(0, "original", 100, "vda")
+	disk.Del(string(shared.Driver))
+	disk.Add(shared.Driver, "raw")
+	tpl.Elements = append(tpl.Elements, &disk.Vector)
+	if err := flattenVMDisk(d, tpl); err != nil {
+		t.Fatal(err)
+	}
 	state := d.State()
 	state.Attributes["vmgroup.#"] = "0"
+	if got := state.Attributes["disk.0.computed_driver"]; got != "raw" {
+		t.Fatalf("computed_driver = %q, want raw", got)
+	}
 	for _, tc := range []struct {
 		name        string
 		image, size int
+		driver      string
 	}{
-		{"unchanged", 3, 100},
-		{"resize", 3, 200},
-		{"replace image", 4, 100},
+		{"unchanged after driver normalization", 3, 100, "qcow2"},
+		{"resize", 3, 200, "qcow2"},
+		{"replace image", 4, 100, "qcow2"},
+		{"change requested driver", 3, 100, "raw"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			config := terraform.NewResourceConfigRaw(map[string]interface{}{
 				"name": "test", "cpu": 1.0, "memory": 128,
-				"disk": []interface{}{map[string]interface{}{"image_id": tc.image, "size": tc.size}},
+				"disk": []interface{}{map[string]interface{}{"image_id": tc.image, "size": tc.size, "driver": tc.driver}},
 			})
 			diff, err := r.SimpleDiff(context.Background(), state, config, &Configuration{})
 			if err != nil {
@@ -171,14 +184,21 @@ func TestVMDiskUUIDPlan(t *testing.T) {
 			if attr != nil {
 				t.Fatalf("existing UUID should be preserved: %+v", attr)
 			}
+			if attr := diff.Attributes["disk.0.driver"]; tc.driver == "qcow2" {
+				if attr != nil {
+					t.Fatalf("unchanged requested driver should not be planned: %+v", attr)
+				}
+			} else if attr == nil || attr.Old != "qcow2" || attr.New != tc.driver {
+				t.Fatalf("explicit driver change should be planned: %+v", attr)
+			}
 		})
 	}
 	t.Run("add disk", func(t *testing.T) {
 		config := terraform.NewResourceConfigRaw(map[string]interface{}{
 			"name": "test", "cpu": 1.0, "memory": 128,
 			"disk": []interface{}{
-				map[string]interface{}{"image_id": 4, "size": 100},
-				map[string]interface{}{"image_id": 3, "size": 100},
+				map[string]interface{}{"image_id": 4, "size": 100, "driver": "qcow2"},
+				map[string]interface{}{"image_id": 3, "size": 100, "driver": "qcow2"},
 			},
 		})
 		diff, err := r.SimpleDiff(context.Background(), state, config, &Configuration{})

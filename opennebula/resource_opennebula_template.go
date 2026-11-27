@@ -44,9 +44,13 @@ func resourceOpennebulaTemplate() *schema.Resource {
 	}
 
 	for key, field := range r.Schema {
-		if field.Optional && key != "group" {
+		if field.Optional && key != "group" && key != "tags" && key != "context_wo" {
 			field.Computed = true
 		}
+	}
+	for _, key := range []string{"nic", "nic_alias"} {
+		fields := r.Schema[key].Elem.(*schema.Resource).Schema
+		fields["security_groups"].Computed = true
 	}
 	r.Schema["disk"].ConfigMode = schema.SchemaConfigModeAttr
 	r.Schema["raw_template"] = &schema.Schema{
@@ -608,7 +612,6 @@ func addContext(tpl *vm.Template, context map[string]interface{}) {
 	}
 
 	log.Printf("Number of CONTEXT vars: %d", len(context))
-	log.Printf("CONTEXT Map: %s", context)
 	for key, value := range context {
 		keyUp := strings.ToUpper(key)
 		if err := tpl.AddCtx(vmk.Context(keyUp), fmt.Sprint(value)); err != nil {
@@ -667,8 +670,12 @@ func flattenContext(d *schema.ResourceData, tpl *vm.Template) error {
 	}
 
 	contextMap := make(map[string]interface{}, len(vec.Pairs))
+	writeOnlyNames := contextWriteOnlyNames(d.Get("context_wo"))
 	for _, pair := range vec.Pairs {
 		key := pair.Key()
+		if writeOnlyNames[strings.ToUpper(key)] {
+			continue
+		}
 		if orig, ok := stateKeyByUpper[strings.ToUpper(key)]; ok {
 			key = orig
 			// Keep the configured text when OpenNebula only trimmed it or
@@ -910,12 +917,24 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	// raw configured text when that block itself changed.
 	decodeContextValues(&newTpl)
 
+	if d.HasChange("os") {
+		if err := updateOS(d, &newTpl); err != nil {
+			return diag.Errorf("template (ID: %s): failed to update OS: %s", d.Id(), err)
+		}
+		update = true
+	}
+
 	if d.HasChange("features") {
 		addFeatures(&newTpl, configuredFeatures(d))
 		update = true
 	}
 
-	if d.HasChange("context") {
+	if hasWriteOnlyContextChange(d) {
+		if err := updateWriteOnlyContext(d, &newTpl); err != nil {
+			return diag.FromErr(err)
+		}
+		update = true
+	} else if d.HasChange("context") {
 		addContext(&newTpl, d.Get("context").(map[string]interface{}))
 		update = true
 	}
@@ -937,7 +956,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 			cpumodelconfig := cpumodel[i].(map[string]interface{})
 			newTpl.CPUModel(cpumodelconfig["model"].(string))
 		}
+		update = true
+	}
 
+	if d.HasChange("graphics") {
+		newTpl.Del(vmk.IOGraphicsVec)
+		addGraphic(&newTpl, d.Get("graphics").([]interface{}))
+		update = true
 	}
 
 	if d.HasChange("cpu") {
@@ -999,11 +1024,13 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 	if d.HasChange("nic") {
 		newTpl.Del(shared.NICVec)
 		addNICs(d, &newTpl)
+		update = true
 	}
 
 	if d.HasChange("nic_alias") {
 		newTpl.Del(shared.NICAliasVec)
-		addNICs(d, &newTpl)
+		addNICAliases(d, &newTpl)
+		update = true
 	}
 
 	if d.HasChange("tags") {
@@ -1011,14 +1038,12 @@ func resourceOpennebulaTemplateUpdateCustom(ctx context.Context, d *schema.Resou
 		oldTagsIf, newTagsIf := d.GetChange("tags")
 		oldTags := oldTagsIf.(map[string]interface{})
 		newTags := newTagsIf.(map[string]interface{})
+		effectiveTags := d.Get("tags_all").(map[string]interface{})
 
-		// delete tags
-		for k, _ := range oldTags {
-			_, ok := newTags[k]
-			if ok {
-				continue
+		for k := range oldTags {
+			if _, ok := effectiveTags[k]; !ok {
+				newTpl.Del(strings.ToUpper(k))
 			}
-			newTpl.Del(strings.ToUpper(k))
 		}
 
 		// add/update tags
@@ -1150,7 +1175,11 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 
 	addFeatures(tpl, configuredFeatures(d))
 
-	addContext(tpl, d.Get("context").(map[string]interface{}))
+	context, err := contextForWrite(d)
+	if err != nil {
+		return nil, err
+	}
+	addContext(tpl, context)
 
 	uInputs := d.Get("user_inputs").(map[string]interface{})
 	if len(uInputs) > 0 {
@@ -1161,7 +1190,7 @@ func generateTemplate(d *schema.ResourceData, meta interface{}) (*vm.Template, e
 		}
 	}
 
-	err := generateVMTemplate(d, tpl)
+	err = generateVMTemplate(d, tpl)
 	if err != nil {
 		return nil, err
 	}

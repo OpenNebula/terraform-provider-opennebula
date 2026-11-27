@@ -149,7 +149,6 @@ func resourceOpennebulaVirtualRouterInstanceCreate(ctx context.Context, d *schem
 	vmTpl.AddPair(vrInstancePairingKey, tmpProviderID)
 
 	vmDef := vmTpl.String()
-	log.Printf("[INFO] VM definition: %s", vmDef)
 	_, err = vrc.Instantiate(1, templateID, d.Get("name").(string), d.Get("pending").(bool), vmDef)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
